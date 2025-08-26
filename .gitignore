@@ -1,0 +1,13 @@
+*.pptx
+node_modules/
+.DS_Store
+.env
+dist/
+venv/
+*.pem
+*.docx
+*.jar
+/input-cache/
+/fsh-generated/
+/publisher.jar
+*.jar
