@@ -1,13 +1,5 @@
-print(">>> iris_db.py started", flush=True)
-
 import iris, json, os, time
-
-# Connection Settings
-IRIS_HOST = os.environ.get("IRIS_HOST", "iris4health")
-IRIS_PORT = os.environ.get("IRIS_PORT", "1972")
-IRIS_NAMESPACE = os.environ.get("IRIS_NAMESPACE", "USER")
-IRIS_USERNAME = os.environ.get("IRIS_USERNAME", "_SYSTEM")
-IRIS_PASSWORD = os.environ.get("IRIS_PASSWORD", "demo")
+from config import IRIS_HOST, IRIS_PORT, IRIS_NAMESPACE, IRIS_USERNAME, IRIS_PASSWORD
 
 def connect_once_ready(conn_str, user, pwd, tries=60, sleep_s=2):
     for i in range(tries):
@@ -47,15 +39,6 @@ def main():
 
     try:
         irispy = iris.createIRIS(conn)
-        
-        # 2. COMPILE CHECK: Pointing to the root of your source
-        # This will now find /iris-src/MyApp/ because of the folder we created
-        print(">>> Compiling classes...", flush=True)
-        # status = irispy.classMethodValue("%SYSTEM.OBJ", "LoadDir", "/iris-src", "ck")
-        
-        # if status != 1:
-        #     print(">>> ERROR: Compilation failed. Check folder structure and .cls syntax.", flush=True)
-        #     return
 
         st1 = irispy.classMethodValue("%SYSTEM.OBJ", "Load", "/iris-src/MyApp/JSONStore.cls", "ck")
         if irispy.classMethodValue("%SYSTEM.Status", "IsError", st1):
