@@ -1,1 +1,0 @@
-/usr/irissys/csp/broker/ZEN_ComponentEx_svgImageProvider.js

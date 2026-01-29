@@ -1,1 +1,0 @@
-/usr/irissys/csp/broker/zenMenusSMP.js
