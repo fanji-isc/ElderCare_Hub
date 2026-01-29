@@ -1,0 +1,1 @@
+/usr/irissys/csp/broker/fontawesome-5.12.0.all.js

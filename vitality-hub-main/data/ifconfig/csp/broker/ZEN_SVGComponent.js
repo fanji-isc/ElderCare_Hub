@@ -1,0 +1,1 @@
+/usr/irissys/csp/broker/ZEN_SVGComponent.js

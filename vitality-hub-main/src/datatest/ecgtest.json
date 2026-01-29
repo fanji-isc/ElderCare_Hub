@@ -1,0 +1,23 @@
+[
+  {
+    "summary": {
+      "detailId": "flat-visible-test",
+      "rhythmClassification": "FLAT_VISIBLE",
+      "heartRateAverage": 60
+    },
+    "reading": {
+      "sampleRate": 128.0,
+      "durationInSeconds": 10,
+      "samples": [
+        0.0500, 0.0501, 0.0499, 0.0500,
+        0.0501, 0.0499, 0.0500, 0.0501,
+
+        0.0500, 0.0501, 0.0499, 0.0500,
+        0.0501, 0.0499, 0.0500, 0.0501,
+
+        0.0500, 0.0501, 0.0499, 0.0500,
+        0.0501, 0.0499, 0.0500, 0.0501
+      ]
+    }
+  }
+]

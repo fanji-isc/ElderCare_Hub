@@ -1,0 +1,43 @@
+services:
+  iris4health:
+    image: containers.intersystems.com/intersystems/irishealth-community:latest-cd
+    container_name: iris-health
+    restart: unless-stopped
+    ports:
+      - "1972:1972"
+      - "52773:52773"
+    volumes:
+      - ./data:/data
+      - ./merge:/merge
+      - ./backend/iris:/iris-src
+    environment:
+      ISC_DATA_DIRECTORY: /data/ifconfig
+      ISC_CPF_MERGE_FILE: /merge/CMF.cpf
+    entrypoint: ["/iris-main"]
+
+  api:
+    build: ./backend
+    ports:
+      - "3001:3001"
+    environment:
+      IRIS_HOST: iris4health
+      IRIS_PORT: 1972
+      IRIS_NAMESPACE: USER
+      IRIS_USERNAME: _SYSTEM
+      IRIS_PASSWORD: demo
+    depends_on:
+      - iris4health
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      CHOKIDAR_USEPOLLING: "true"
+    depends_on:
+      - api
