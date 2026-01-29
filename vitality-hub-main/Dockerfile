@@ -1,22 +1,3 @@
-# # syntax=docker/dockerfile:1
-
-# FROM node:20-alpine
-
-# WORKDIR /app
-
-# # Install deps first for caching
-# COPY package*.json ./
-# RUN npm ci
-
-# # Copy the rest
-# COPY . .
-
-# EXPOSE 8080
-
-# # Vite must bind to all interfaces inside Docker
-# CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "8080"]
-# syntax=docker/dockerfile:1
-# syntax=docker/dockerfile:1
 FROM node:20-slim
 
 WORKDIR /app
