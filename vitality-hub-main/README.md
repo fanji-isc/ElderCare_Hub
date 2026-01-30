@@ -2,6 +2,7 @@ Welcome..
 
 ## How to this project?
 Create .env file in the root folder, and add OPENAI_API_KEY=sk-XXXXXXXXXX
+
 Simply run 'docker compose up --build'
 
 You can access Management Portal at http://localhost:52773/csp/sys/UtilHome.csp
