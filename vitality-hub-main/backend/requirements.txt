@@ -1,3 +1,5 @@
 fastapi
 uvicorn
 intersystems-irispython
+openai
+python-multipart

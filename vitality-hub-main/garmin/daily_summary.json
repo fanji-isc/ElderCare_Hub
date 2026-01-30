@@ -1,0 +1,367 @@
+{
+        "userProfilePK": 142121536,
+        "calendarDate": "2026-01-17",
+        "uuid": "a45f05f2b557414a9eeae7be9cc8b83c",
+        "durationInMilliseconds": 86400000,
+        "totalKilocalories": 2363.0,
+        "activeKilocalories": 834.0,
+        "bmrKilocalories": 1529.0,
+        "wellnessKilocalories": 2363.0,
+        "wellnessTotalKilocalories": 2363.0,
+        "wellnessActiveKilocalories": 834.0,
+        "restingCaloriesFromActivity": 172.0,
+        "totalSteps": 8826,
+        "dailyStepGoal": 8560,
+        "totalDistanceMeters": 15420,
+        "wellnessDistanceMeters": 6358,
+        "wellnessStartTimeGmt": "2026-01-17T05:00:00.0",
+        "wellnessEndTimeGmt": "2026-01-18T05:00:00.0",
+        "wellnessStartTimeLocal": "2026-01-17T00:00:00.0",
+        "wellnessEndTimeLocal": "2026-01-18T00:00:00.0",
+        "highlyActiveSeconds": 1029,
+        "activeSeconds": 5953,
+        "moderateIntensityMinutes": 66,
+        "vigorousIntensityMinutes": 19,
+        "isVigorousDay": false,
+        "floorsAscendedInMeters": 47.4,
+        "floorsDescendedInMeters": 60.986,
+        "userIntensityMinutesGoal": 150,
+        "userFloorsAscendedGoal": 10,
+        "minHeartRate": 48,
+        "maxHeartRate": 140,
+        "restingHeartRate": 50,
+        "currentDayRestingHeartRate": 49,
+        "restingHeartRateTimestamp": 1768712400000,
+        "includesWellnessData": true,
+        "includesActivityData": true,
+        "includesCalorieConsumedData": false,
+        "includesSingleMeasurement": false,
+        "includesContinuousMeasurement": false,
+        "includesAllDayPulseOx": false,
+        "includesSleepPulseOx": false,
+        "source": 0,
+        "allDayStress": {
+            "userProfilePK": 142121536,
+            "calendarDate": "2026-01-17",
+            "aggregatorList": [
+                {
+                    "type": "TOTAL",
+                    "averageStressLevel": 37,
+                    "averageStressLevelIntensity": 28,
+                    "maxStressLevel": 100,
+                    "stressIntensityCount": 944,
+                    "stressOffWristCount": 241,
+                    "stressTooActiveCount": 254,
+                    "totalStressCount": 1439,
+                    "totalStressIntensity": -3799,
+                    "stressDuration": 24120,
+                    "restDuration": 32520,
+                    "activityDuration": 15240,
+                    "uncategorizedDuration": 14460,
+                    "totalDuration": 86340,
+                    "lowDuration": 7140,
+                    "mediumDuration": 6240,
+                    "highDuration": 10740
+                },
+                {
+                    "type": "AWAKE",
+                    "averageStressLevel": 54,
+                    "averageStressLevelIntensity": 51,
+                    "maxStressLevel": 100,
+                    "stressIntensityCount": 529,
+                    "stressOffWristCount": 241,
+                    "stressTooActiveCount": 254,
+                    "totalStressCount": 1024,
+                    "totalStressIntensity": -18462,
+                    "stressDuration": 23040,
+                    "restDuration": 8700,
+                    "activityDuration": 15240,
+                    "uncategorizedDuration": 14460,
+                    "totalDuration": 61440,
+                    "lowDuration": 6060,
+                    "mediumDuration": 6240,
+                    "highDuration": 10740
+                },
+                {
+                    "type": "ASLEEP",
+                    "averageStressLevel": 16,
+                    "averageStressLevelIntensity": 17,
+                    "maxStressLevel": 39,
+                    "stressIntensityCount": 415,
+                    "totalStressCount": 415,
+                    "totalStressIntensity": 14663,
+                    "stressDuration": 1080,
+                    "restDuration": 23820,
+                    "totalDuration": 24900,
+                    "lowDuration": 1080
+                }
+            ]
+        },
+        "bodyBattery": {
+            "userProfilePK": 142121536,
+            "calendarDate": "2026-01-17",
+            "chargedValue": 53,
+            "drainedValue": 66,
+            "bodyBatteryVersion": 3.0,
+            "bodyBatteryStatList": [
+                {
+                    "bodyBatteryStatType": "HIGHEST",
+                    "statsValue": 84,
+                    "bodyBatteryStatus": "MEASURED",
+                    "statTimestamp": "2026-01-17T11:36:00.0"
+                },
+                {
+                    "bodyBatteryStatType": "LOWEST",
+                    "statsValue": 18,
+                    "bodyBatteryStatus": "MODELED",
+                    "statTimestamp": "2026-01-18T02:39:00.0"
+                },
+                {
+                    "bodyBatteryStatType": "MOSTRECENT",
+                    "statsValue": 22,
+                    "bodyBatteryStatus": "MEASURED",
+                    "statTimestamp": "2026-01-18T05:00:00.0"
+                },
+                {
+                    "bodyBatteryStatType": "ENDOFDAY",
+                    "statsValue": 21,
+                    "bodyBatteryStatus": "MEASURED",
+                    "statTimestamp": "2026-01-18T04:43:00.0"
+                },
+                {
+                    "bodyBatteryStatType": "STARTOFDAY",
+                    "statsValue": 35,
+                    "bodyBatteryStatus": "MEASURED",
+                    "statTimestamp": "2026-01-17T05:01:00.0"
+                },
+                {
+                    "bodyBatteryStatType": "SLEEPSTART",
+                    "statsValue": 31,
+                    "bodyBatteryStatus": "MEASURED",
+                    "statTimestamp": "2026-01-17T03:02:00.0"
+                },
+                {
+                    "bodyBatteryStatType": "SLEEPEND",
+                    "statsValue": 84,
+                    "bodyBatteryStatus": "MEASURED",
+                    "statTimestamp": "2026-01-17T11:38:00.0"
+                },
+                {
+                    "bodyBatteryStatType": "DURINGSLEEP",
+                    "statsValue": 53,
+                    "bodyBatteryStatus": "MEASURED",
+                    "statTimestamp": "2026-01-17T11:38:00.0"
+                }
+            ]
+        },
+        "minAvgHeartRate": 49,
+        "maxAvgHeartRate": 140,
+        "version": 76740002,
+        "averageMonitoringEnvironmentAltitude": 93.0,
+        "hydration": {
+            "userProfilePK": 142121536,
+            "calendarDate": "2026-01-17",
+            "valueInML": 0.0,
+            "activityIntakeInML": 0.0,
+            "goalInML": 2129.292,
+            "capped": false,
+            "sweatLossInML": 1071.0,
+            "adjustedGoalInML": 3200.292,
+            "lastEntryTimestampLocal": "2026-01-17T13:46:47.0"
+        },
+        "respiration": {
+            "userProfilePK": 142121536,
+            "calendarDate": "2026-01-17",
+            "avgWakingRespirationValue": 15.0,
+            "highestRespirationValue": 24.0,
+            "lowestRespirationValue": 7.0,
+            "latestRespirationValue": 13.0,
+            "latestRespirationTimeGMT": "2026-01-18T05:00:00.0",
+            "algorithmVersion": 100
+        },
+        "bodyBatteryFeedback": {
+            "userProfilePk": 142121536,
+            "calendarDate": {
+                "year": 2026,
+                "month": "JANUARY",
+                "chronology": {
+                    "calendarType": "iso8601",
+                    "id": "ISO"
+                },
+                "dayOfWeek": "SATURDAY",
+                "era": "CE",
+                "dayOfYear": 17,
+                "leapYear": false,
+                "monthValue": 1,
+                "dayOfMonth": 17
+            },
+            "deviceId": 3622654004,
+            "bodyBatteryVersion": 3.0,
+            "bodyBatteryDynamicFeedbackEvent": {
+                "eventTimestampGmt": {
+                    "dayOfWeek": "SUNDAY",
+                    "dayOfYear": 18,
+                    "year": 2026,
+                    "month": "JANUARY",
+                    "nano": 0,
+                    "monthValue": 1,
+                    "dayOfMonth": 18,
+                    "hour": 3,
+                    "minute": 35,
+                    "second": 59,
+                    "chronology": {
+                        "calendarType": "iso8601",
+                        "id": "ISO"
+                    }
+                },
+                "bodyBatteryLevel": 3,
+                "feedbackShortType": 371,
+                "feedbackLongType": 466
+            },
+            "bodyBatteryActivityEventList": [
+                {
+                    "eventType": 4,
+                    "eventStartTimeGmt": {
+                        "dayOfWeek": "SATURDAY",
+                        "dayOfYear": 17,
+                        "year": 2026,
+                        "month": "JANUARY",
+                        "nano": 0,
+                        "monthValue": 1,
+                        "dayOfMonth": 17,
+                        "hour": 3,
+                        "minute": 1,
+                        "second": 40,
+                        "chronology": {
+                            "calendarType": "iso8601",
+                            "id": "ISO"
+                        }
+                    },
+                    "eventUpdateTimeGmt": {
+                        "dayOfWeek": "SATURDAY",
+                        "dayOfYear": 17,
+                        "year": 2026,
+                        "month": "JANUARY",
+                        "nano": 0,
+                        "monthValue": 1,
+                        "dayOfMonth": 17,
+                        "hour": 11,
+                        "minute": 59,
+                        "second": 19,
+                        "chronology": {
+                            "calendarType": "iso8601",
+                            "id": "ISO"
+                        }
+                    },
+                    "timezoneOffset": -18000000,
+                    "durationInMilliseconds": 31020000,
+                    "bodyBatteryImpact": 53,
+                    "feedbackType": 0,
+                    "shortFeedback": 0
+                },
+                {
+                    "eventType": 3,
+                    "eventStartTimeGmt": {
+                        "dayOfWeek": "SATURDAY",
+                        "dayOfYear": 17,
+                        "year": 2026,
+                        "month": "JANUARY",
+                        "nano": 0,
+                        "monthValue": 1,
+                        "dayOfMonth": 17,
+                        "hour": 13,
+                        "minute": 17,
+                        "second": 39,
+                        "chronology": {
+                            "calendarType": "iso8601",
+                            "id": "ISO"
+                        }
+                    },
+                    "eventUpdateTimeGmt": {
+                        "dayOfWeek": "SATURDAY",
+                        "dayOfYear": 17,
+                        "year": 2026,
+                        "month": "JANUARY",
+                        "nano": 0,
+                        "monthValue": 1,
+                        "dayOfMonth": 17,
+                        "hour": 14,
+                        "minute": 29,
+                        "second": 29,
+                        "chronology": {
+                            "calendarType": "iso8601",
+                            "id": "ISO"
+                        }
+                    },
+                    "timezoneOffset": -18000000,
+                    "durationInMilliseconds": 2040000,
+                    "bodyBatteryImpact": 0,
+                    "feedbackType": 3,
+                    "shortFeedback": 2
+                },
+                {
+                    "eventType": 0,
+                    "eventStartTimeGmt": {
+                        "dayOfWeek": "SATURDAY",
+                        "dayOfYear": 17,
+                        "year": 2026,
+                        "month": "JANUARY",
+                        "nano": 0,
+                        "monthValue": 1,
+                        "dayOfMonth": 17,
+                        "hour": 18,
+                        "minute": 46,
+                        "second": 47,
+                        "chronology": {
+                            "calendarType": "iso8601",
+                            "id": "ISO"
+                        }
+                    },
+                    "eventUpdateTimeGmt": {
+                        "dayOfWeek": "SATURDAY",
+                        "dayOfYear": 17,
+                        "year": 2026,
+                        "month": "JANUARY",
+                        "nano": 0,
+                        "monthValue": 1,
+                        "dayOfMonth": 17,
+                        "hour": 21,
+                        "minute": 28,
+                        "second": 30,
+                        "chronology": {
+                            "calendarType": "iso8601",
+                            "id": "ISO"
+                        }
+                    },
+                    "timezoneOffset": -18000000,
+                    "durationInMilliseconds": 9660000,
+                    "bodyBatteryImpact": -9,
+                    "feedbackType": 29,
+                    "shortFeedback": 15
+                }
+            ],
+            "version": 76740002,
+            "endOfDayBodyBatteryDynamicFeedbackEvent": {
+                "eventTimestampGmt": {
+                    "dayOfWeek": "SUNDAY",
+                    "dayOfYear": 18,
+                    "year": 2026,
+                    "month": "JANUARY",
+                    "nano": 0,
+                    "monthValue": 1,
+                    "dayOfMonth": 18,
+                    "hour": 4,
+                    "minute": 30,
+                    "second": 3,
+                    "chronology": {
+                        "calendarType": "iso8601",
+                        "id": "ISO"
+                    }
+                },
+                "bodyBatteryLevel": 3,
+                "feedbackShortType": 402,
+                "feedbackLongType": 538
+            },
+            "preferredActivityTracker": true
+        }
+    }

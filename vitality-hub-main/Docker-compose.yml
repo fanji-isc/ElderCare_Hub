@@ -25,6 +25,8 @@ services:
       IRIS_NAMESPACE: USER
       IRIS_USERNAME: _SYSTEM
       IRIS_PASSWORD: demo
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+
     depends_on:
       - iris4health
 
