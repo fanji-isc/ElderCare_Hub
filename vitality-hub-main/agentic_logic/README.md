@@ -70,10 +70,6 @@ There are three schemas defined within the fall detection project.
 ### OctopusSample
 > This is a deprecated schema that is kept as part of this project to show how the Appliance Agent handles noise. Within the schema is the **SampleData** table, which includes data pulled from the Octopus Energy API about energy prices at various times and some fabricated sample energy usage. 
 >
-> To populate this table, you may run:
->    ```bash
->    python iris-local\src\populate_octopus_sample.py
->    ```
 > This table was for the Energy Agent to use, but as it is not a part of this subgraph of the Agent Network, this table is unnecessary.
 
 ### BlackBox
