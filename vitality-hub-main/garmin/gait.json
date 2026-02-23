@@ -1,0 +1,234 @@
+[
+  {
+    "calendarDate": "2026-01-15",
+    "deviceId": "GARMIN_WATCH_001",
+    "patientId": "PATIENT_001",
+    "sessions": [
+      {
+        "startTime": "2026-01-15T09:10:00.0",
+        "durationSeconds": 840,
+        "steps": 1020,
+        "cadence": 87,
+        "gaitSpeedMs": 0.78,
+        "strideLength": { "leftCm": 94, "rightCm": 81 },
+        "groundContactTimeMs": { "left": 880, "right": 960 },
+        "strideVariabilityPct": 10.2,
+        "stepSymmetryPct": 79
+      },
+      {
+        "startTime": "2026-01-15T15:30:00.0",
+        "durationSeconds": 1200,
+        "steps": 1540,
+        "cadence": 90,
+        "gaitSpeedMs": 0.83,
+        "strideLength": { "leftCm": 96, "rightCm": 84 },
+        "groundContactTimeMs": { "left": 850, "right": 930 },
+        "strideVariabilityPct": 9.1,
+        "stepSymmetryPct": 81
+      }
+    ]
+  },
+  {
+    "calendarDate": "2026-01-16",
+    "deviceId": "GARMIN_WATCH_001",
+    "patientId": "PATIENT_001",
+    "sessions": [
+      {
+        "startTime": "2026-01-16T08:45:00.0",
+        "durationSeconds": 660,
+        "steps": 780,
+        "cadence": 82,
+        "gaitSpeedMs": 0.71,
+        "strideLength": { "leftCm": 90, "rightCm": 76 },
+        "groundContactTimeMs": { "left": 910, "right": 995 },
+        "strideVariabilityPct": 12.4,
+        "stepSymmetryPct": 75
+      },
+      {
+        "startTime": "2026-01-16T14:00:00.0",
+        "durationSeconds": 900,
+        "steps": 1100,
+        "cadence": 85,
+        "gaitSpeedMs": 0.76,
+        "strideLength": { "leftCm": 93, "rightCm": 80 },
+        "groundContactTimeMs": { "left": 890, "right": 965 },
+        "strideVariabilityPct": 11.0,
+        "stepSymmetryPct": 78
+      }
+    ]
+  },
+  {
+    "calendarDate": "2026-01-17",
+    "deviceId": "GARMIN_WATCH_001",
+    "patientId": "PATIENT_001",
+    "sessions": [
+      {
+        "startTime": "2026-01-17T09:22:00.0",
+        "durationSeconds": 720,
+        "steps": 870,
+        "cadence": 84,
+        "gaitSpeedMs": 0.72,
+        "strideLength": { "leftCm": 92, "rightCm": 78 },
+        "groundContactTimeMs": { "left": 920, "right": 1010 },
+        "strideVariabilityPct": 11.8,
+        "stepSymmetryPct": 77
+      },
+      {
+        "startTime": "2026-01-17T16:15:00.0",
+        "durationSeconds": 960,
+        "steps": 1160,
+        "cadence": 86,
+        "gaitSpeedMs": 0.77,
+        "strideLength": { "leftCm": 94, "rightCm": 81 },
+        "groundContactTimeMs": { "left": 900, "right": 980 },
+        "strideVariabilityPct": 10.5,
+        "stepSymmetryPct": 79
+      }
+    ]
+  },
+  {
+    "calendarDate": "2026-01-18",
+    "deviceId": "GARMIN_WATCH_001",
+    "patientId": "PATIENT_001",
+    "sessions": [
+      {
+        "startTime": "2026-01-18T10:00:00.0",
+        "durationSeconds": 900,
+        "steps": 1080,
+        "cadence": 86,
+        "gaitSpeedMs": 0.79,
+        "strideLength": { "leftCm": 93, "rightCm": 80 },
+        "groundContactTimeMs": { "left": 895, "right": 975 },
+        "strideVariabilityPct": 10.8,
+        "stepSymmetryPct": 79
+      },
+      {
+        "startTime": "2026-01-18T15:45:00.0",
+        "durationSeconds": 1080,
+        "steps": 1310,
+        "cadence": 88,
+        "gaitSpeedMs": 0.82,
+        "strideLength": { "leftCm": 95, "rightCm": 83 },
+        "groundContactTimeMs": { "left": 870, "right": 950 },
+        "strideVariabilityPct": 9.6,
+        "stepSymmetryPct": 82
+      }
+    ]
+  },
+  {
+    "calendarDate": "2026-01-19",
+    "deviceId": "GARMIN_WATCH_001",
+    "patientId": "PATIENT_001",
+    "sessions": [
+      {
+        "startTime": "2026-01-19T09:30:00.0",
+        "durationSeconds": 780,
+        "steps": 940,
+        "cadence": 83,
+        "gaitSpeedMs": 0.74,
+        "strideLength": { "leftCm": 91, "rightCm": 79 },
+        "groundContactTimeMs": { "left": 905, "right": 985 },
+        "strideVariabilityPct": 11.3,
+        "stepSymmetryPct": 78
+      },
+      {
+        "startTime": "2026-01-19T14:30:00.0",
+        "durationSeconds": 1020,
+        "steps": 1240,
+        "cadence": 87,
+        "gaitSpeedMs": 0.80,
+        "strideLength": { "leftCm": 94, "rightCm": 82 },
+        "groundContactTimeMs": { "left": 880, "right": 955 },
+        "strideVariabilityPct": 10.1,
+        "stepSymmetryPct": 80
+      }
+    ]
+  },
+  {
+    "calendarDate": "2026-01-20",
+    "deviceId": "GARMIN_WATCH_001",
+    "patientId": "PATIENT_001",
+    "sessions": [
+      {
+        "startTime": "2026-01-20T08:55:00.0",
+        "durationSeconds": 960,
+        "steps": 1170,
+        "cadence": 88,
+        "gaitSpeedMs": 0.83,
+        "strideLength": { "leftCm": 95, "rightCm": 83 },
+        "groundContactTimeMs": { "left": 868, "right": 942 },
+        "strideVariabilityPct": 9.4,
+        "stepSymmetryPct": 81
+      },
+      {
+        "startTime": "2026-01-20T15:20:00.0",
+        "durationSeconds": 1140,
+        "steps": 1400,
+        "cadence": 91,
+        "gaitSpeedMs": 0.87,
+        "strideLength": { "leftCm": 97, "rightCm": 86 },
+        "groundContactTimeMs": { "left": 852, "right": 920 },
+        "strideVariabilityPct": 8.7,
+        "stepSymmetryPct": 83
+      }
+    ]
+  },
+  {
+    "calendarDate": "2026-01-21",
+    "deviceId": "GARMIN_WATCH_001",
+    "patientId": "PATIENT_001",
+    "sessions": [
+      {
+        "startTime": "2026-01-21T09:05:00.0",
+        "durationSeconds": 1020,
+        "steps": 1250,
+        "cadence": 89,
+        "gaitSpeedMs": 0.85,
+        "strideLength": { "leftCm": 96, "rightCm": 85 },
+        "groundContactTimeMs": { "left": 858, "right": 928 },
+        "strideVariabilityPct": 9.0,
+        "stepSymmetryPct": 83
+      },
+      {
+        "startTime": "2026-01-21T16:00:00.0",
+        "durationSeconds": 1260,
+        "steps": 1550,
+        "cadence": 92,
+        "gaitSpeedMs": 0.89,
+        "strideLength": { "leftCm": 98, "rightCm": 87 },
+        "groundContactTimeMs": { "left": 844, "right": 910 },
+        "strideVariabilityPct": 8.3,
+        "stepSymmetryPct": 85
+      }
+    ]
+  },
+  {
+    "calendarDate": "2026-01-22",
+    "deviceId": "GARMIN_WATCH_001",
+    "patientId": "PATIENT_001",
+    "sessions": [
+      {
+        "startTime": "2026-01-22T09:15:00.0",
+        "durationSeconds": 1080,
+        "steps": 1330,
+        "cadence": 91,
+        "gaitSpeedMs": 0.88,
+        "strideLength": { "leftCm": 98, "rightCm": 87 },
+        "groundContactTimeMs": { "left": 848, "right": 914 },
+        "strideVariabilityPct": 8.5,
+        "stepSymmetryPct": 85
+      },
+      {
+        "startTime": "2026-01-22T15:10:00.0",
+        "durationSeconds": 1320,
+        "steps": 1630,
+        "cadence": 93,
+        "gaitSpeedMs": 0.91,
+        "strideLength": { "leftCm": 100, "rightCm": 89 },
+        "groundContactTimeMs": { "left": 835, "right": 898 },
+        "strideVariabilityPct": 7.9,
+        "stepSymmetryPct": 87
+      }
+    ]
+  }
+]
