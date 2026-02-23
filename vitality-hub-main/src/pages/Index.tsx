@@ -1,97 +1,114 @@
-import { useState } from "react";
-import { Heart, Moon, Activity, Zap, Upload } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Heart, Moon, Footprints, Activity, Upload } from "lucide-react";
 import { Header } from "@/components/Header";
 import { VitalCard } from "@/components/VitalCard";
 import { HeartRateChart } from "@/components/HeartRateCharttest";
 import { ECGVisualization } from "@/components/ECGVisualization";
 import { SleepChart } from "@/components/SleepChart";
-import { StressIndicator } from "@/components/StressIndicator";
-import { FallPrevention } from "@/components/FallPrevention";
+import { HydrationIndicator } from "@/components/HydrationIndicator";
+import { WalkingActivityChart } from "@/components/WalkingActivityChart";
 import { ShareWithProvider } from "@/components/ShareWithProvider";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import VoiceButton from "@/components/VoiceButton";
+import VoiceAssistantPanel from "@/components/VoiceAssistantPanel";
 
-type Msg = { role: "user" | "assistant"; content: string };
-
-// Text-to-Speech helper
-const speak = async (text: string) => {
-  try {
-    const res = await fetch("http://localhost:3001/api/speak", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }),
-    });
-
-    const ct = res.headers.get("content-type") || "";
-    if (!res.ok) {
-      console.error("TTS failed:", await res.text());
-      return;
-    }
-    if (!ct.startsWith("audio/")) return;
-
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const audio = new Audio(url);
-    audio.onended = () => URL.revokeObjectURL(url);
-    await audio.play();
-  } catch (e) {
-    console.error("Audio playback error:", e);
-  }
+type Vitals = {
+  heartRate: number;   // dailySummary
+  steps: number;       // dailySummary
+  stressLevel: number; // dailySummary allDayStress AWAKE averageStressLevel
+  sleepHours: number;  // /api/sleep list (deep+light+rem)
 };
 
-const Index = () => {
-  const [messages, setMessages] = useState<Msg[]>([]);
-  const [isThinking, setIsThinking] = useState(false);
+const API_BASE = "http://localhost:3001";
+const PATIENT_ID = "PATIENT_001";
 
+// Pick latest daily record by calendarDate (YYYY-MM-DD)
+function pickLatestByCalendarDate(list: any[]): any | null {
+  if (!Array.isArray(list) || list.length === 0) return null;
+  return [...list].sort((a, b) =>
+    String(b?.calendarDate || "").localeCompare(String(a?.calendarDate || ""))
+  )[0];
+}
+
+function extractStress(latestDay: any): number {
+  const aggregators = latestDay?.allDayStress?.aggregatorList ?? [];
+  const awake = aggregators.find((a: any) => a.type === "AWAKE");
+  return Math.round(Number(awake?.averageStressLevel ?? 0));
+}
+
+function stressLabel(v: number): string {
+  if (v === 0) return "Today";
+  if (v <= 25) return "Low stress";
+  if (v <= 50) return "Moderate";
+  if (v <= 75) return "High stress";
+  return "Very high";
+}
+
+// Your /api/sleep returns a LIST of sleep records. Compute hours from deep+light+rem.
+function extractSleepHoursFromGarminList(sleepJson: any): number {
+  if (!Array.isArray(sleepJson)) return 0;
+
+  const records = sleepJson.filter((x: any) =>
+    typeof x?.calendarDate === "string" &&
+    (x?.deepSleepSeconds != null || x?.lightSleepSeconds != null || x?.remSleepSeconds != null)
+  );
+
+  if (records.length === 0) return 0;
+
+  const latest = pickLatestByCalendarDate(records);
+  if (!latest) return 0;
+
+  const deep = Number(latest.deepSleepSeconds ?? 0);
+  const light = Number(latest.lightSleepSeconds ?? 0);
+  const rem = Number(latest.remSleepSeconds ?? 0);
+
+  const totalSleepSeconds = deep + light + rem;
+  return totalSleepSeconds / 3600;
+}
+
+const Index = () => {
   const handleImportData = () => {
     toast.info("Health data import coming soon!", {
       description: "Connect to InterSystems IRIS to sync your export.xml data",
     });
   };
 
-  const handleVoice = async (text: string) => {
-  const userText = (text || "").trim();
-  if (!userText) return;
+  const [vitals, setVitals] = useState<Vitals>({
+    heartRate: 0,
+    steps: 0,
+    stressLevel: 0,
+    sleepHours: 0,
+  });
 
-  const nextMessages: Msg[] = [...messages, { role: "user", content: userText }];
-  setMessages(nextMessages);
-  setIsThinking(true);
+  useEffect(() => {
+    (async () => {
+      try {
+        const [dailyRes, sleepRes] = await Promise.all([
+          fetch(`${API_BASE}/api/dailySummary?patient_id=${encodeURIComponent(PATIENT_ID)}`),
+          fetch(`${API_BASE}/api/sleep?patient_id=${encodeURIComponent(PATIENT_ID)}`),
+        ]);
 
-  try {
-    const res = await fetch("http://localhost:3001/api/answer", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        text: userText,
-        messages: nextMessages,
-      }),
-    });
+        const dailyJson = dailyRes.ok ? await dailyRes.json() : [];
+        const sleepJson = sleepRes.ok ? await sleepRes.json() : [];
 
-    const data = await res.json();
+        const latestDay = Array.isArray(dailyJson) ? pickLatestByCalendarDate(dailyJson) : null;
 
-    if (!res.ok || data?.error) {
-      const errMsg = "Sorry — something went wrong.";
-      setMessages([...nextMessages, { role: "assistant", content: errMsg }]);
-      setIsThinking(false);
-      speak(errMsg); // no await
-      return;
-    }
+        const heartRate = Number(
+          latestDay?.currentDayRestingHeartRate ?? latestDay?.restingHeartRate ?? 0
+        );
 
-    const a = String(data.answer || "").trim();
-    setMessages([...nextMessages, { role: "assistant", content: a }]);
+        const steps = Number(latestDay?.totalSteps ?? 0);
 
-    setIsThinking(false); 
-    speak(a);             
-    return;
-  } catch (e) {
-    const errMsg = "Sorry — network error.";
-    setMessages([...nextMessages, { role: "assistant", content: errMsg }]);
-    setIsThinking(false);
-    speak("I'm having trouble connecting right now.");
-    return;
-  }
-};
+        const stressLevel = extractStress(latestDay);
+
+        const sleepHours = extractSleepHoursFromGarminList(sleepJson);
+
+        setVitals({ heartRate, steps, stressLevel, sleepHours });
+      } catch (e) {
+        console.log("Vitals fetch error:", e);
+      }
+    })();
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -110,7 +127,7 @@ const Index = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            <VoiceButton onTranscript={handleVoice} />
+            <VoiceAssistantPanel />
             <Button onClick={handleImportData}>
               <Upload className="mr-2 h-4 w-4" />
               Import Data
@@ -118,75 +135,54 @@ const Index = () => {
           </div>
         </div>
 
-        {messages.length > 0 && (
-          <div className="mb-6 rounded-2xl bg-muted/60 p-5">
-            <div className="space-y-3">
-              {messages.map((m, i) => (
-                <div key={i} className="flex gap-3">
-                  <div className="shrink-0 font-semibold">
-                    {m.role === "user" ? "You" : "Assistant"}
-                  </div>
-                  <div>{m.content}</div>
-                </div>
-              ))}
-
-                            {isThinking &&
-                messages.length > 0 &&
-                messages[messages.length - 1].role === "user" && (
-                  <div className="flex gap-3 text-muted-foreground">
-                    <div className="shrink-0 font-semibold">Assistant</div>
-                    <div>Thinking…</div>
-                  </div>
-              )}
-
-            </div>
-          </div>
-        )}
-
-        {/* Rest of your dashboard */}
+        {/* Vital Cards */}
         <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-  <VitalCard
-    title="Heart Rate"
-    value={72}
-    unit="BPM"
-    icon={<Heart className="h-5 w-5" />}
-    variant="heart"
-    trend="stable"
-    trendValue="Normal"
-    subtitle="Resting"
-  />
-  <VitalCard
-    title="Sleep"
-    value="7.5"
-    unit="hours"
-    icon={<Moon className="h-5 w-5" />}
-    variant="sleep"
-    trend="up"
-    trendValue="+0.5h"
-    subtitle="Last night"
-  />
-  <VitalCard
-    title="Blood Oxygen"
-    value={98}
-    unit="%"
-    icon={<Activity className="h-5 w-5" />}
-    variant="ecg"
-    trend="stable"
-    trendValue="Healthy"
-  />
-  <VitalCard
-    title="Energy Level"
-    value={85}
-    unit="%"
-    icon={<Zap className="h-5 w-5" />}
-    variant="stress"
-    trend="up"
-    trendValue="+10%"
-    subtitle="vs yesterday"
-  />
-</div>
+          <VitalCard
+            title="Resting Heart Rate"
+            value={vitals.heartRate}
+            unit="BPM"
+            icon={<Heart className="h-5 w-5" />}
+            variant="heart"
+            trend="stable"
+            trendValue="Today"
+            subtitle=""
+          />
 
+          <VitalCard
+            title="Sleep"
+            value={vitals.sleepHours ? vitals.sleepHours.toFixed(1) : "—"}
+            unit={vitals.sleepHours ? "hours" : ""}
+            icon={<Moon className="h-5 w-5" />}
+            variant="sleep"
+            trend="stable"
+            trendValue="Last night"
+            subtitle=""
+          />
 
+          <VitalCard
+            title="Steps"
+            value={vitals.steps}
+            unit=""
+            icon={<Footprints className="h-5 w-5" />}
+            variant="ecg"
+            trend="stable"
+            trendValue="Today"
+            subtitle=""
+          />
+
+          <VitalCard
+            title="Stress Level"
+            value={vitals.stressLevel || "—"}
+            unit={vitals.stressLevel ? "/ 100" : ""}
+            icon={<Activity className="h-5 w-5" />}
+            variant="stress"
+            trend="stable"
+            trendValue={stressLabel(vitals.stressLevel)}
+            subtitle=""
+          />
+        </div>
+
+        {/* Charts */}
         <div className="mb-8 grid gap-6 lg:grid-cols-2">
           <HeartRateChart />
           <ECGVisualization />
@@ -194,11 +190,12 @@ const Index = () => {
 
         <div className="mb-8 grid gap-6 lg:grid-cols-2">
           <SleepChart />
-          <StressIndicator />
+          <HydrationIndicator />
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-2">
-          <FallPrevention />
+        {/* Gait Analysis + Share */}
+        <div className="mb-8 grid gap-6 lg:grid-cols-2">
+          <WalkingActivityChart />
           <ShareWithProvider />
         </div>
       </main>

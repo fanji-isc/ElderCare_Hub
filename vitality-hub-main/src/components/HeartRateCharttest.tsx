@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Heart } from "lucide-react";
 import { Area, AreaChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts";
 // import epochJson from "../data/heart_rate.json"; // <-- put your epoch JSON here
 
@@ -108,17 +109,19 @@ export function HeartRateChart() {
 
   return (
     <div className="rounded-2xl bg-card p-6 shadow-card">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h3 className="text-heading font-display text-foreground">Heart Rate Today</h3>
-          <p className="text-body-sm text-muted-foreground">Real time from epoch timestamps</p>
-        </div>
-
-        <div className="flex gap-4 text-body-sm">
-          <div className="flex items-center gap-2">
-            <span className="h-3 w-3 rounded-full bg-heart" />
-            <span className="text-muted-foreground">{rangeText}</span>
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-heart text-primary-foreground">
+            <Heart className="h-5 w-5" />
           </div>
+          <div>
+            <h3 className="text-heading font-display text-foreground">Heart Rate Today</h3>
+            <p className="text-caption text-muted-foreground">Real-time from Garmin epochs</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="h-2.5 w-2.5 rounded-full bg-heart" />
+          <span className="text-caption text-muted-foreground">{rangeText}</span>
         </div>
       </div>
 

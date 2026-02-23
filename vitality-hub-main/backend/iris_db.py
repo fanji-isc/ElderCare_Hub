@@ -27,6 +27,9 @@ def main():
     ecg_text = safe_load("ecg.json")
     hr_text = safe_load("heart_rate.json")
     sleep_text = safe_load("sleep.json")
+    dailySummary_text = safe_load("daily_summary.json")
+    toilet_text = safe_load("toilet_hydration.json")
+    gait_text = safe_load("gait.json")
 
     patient_id = "PATIENT_001"
 
@@ -50,20 +53,21 @@ def main():
             raise RuntimeError(irispy.classMethodValue("%SYSTEM.Status", "GetErrorText", st2))
 
 
-        # 3. SAVE DATA: Passing all 4 arguments to MyApp.Utils:SavePatientData
+        # 3. Remove any duplicate rows accumulated from previous restarts
+        irispy.classMethodValue("MyApp.Utils", "DeleteDuplicates", patient_id)
+
+        # 4. Upsert patient data
         record_id = irispy.classMethodValue(
-            "MyApp.Utils", 
-            "SavePatientData", 
-            patient_id, 
-            ecg_text, 
+            "MyApp.Utils",
+            "SavePatientData",
+            patient_id,
+            ecg_text,
             hr_text,
-            sleep_text
+            sleep_text,
+            dailySummary_text,
+            toilet_text,
+            gait_text
         )
-        
-        if record_id and record_id != "0":
-            print(f">>> Success! Record saved for {patient_id} with ID = {record_id}", flush=True)
-        else:
-            print(">>> Error: SavePatientData returned 0. Check IRIS logs for %Save() errors.", flush=True)
         
     except Exception as e:
         print(f">>> Runtime Error: {e}", flush=True)

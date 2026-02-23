@@ -1,4 +1,5 @@
-{
+[
+   {
         "userProfilePK": 142121536,
         "calendarDate": "2026-01-17",
         "uuid": "a45f05f2b557414a9eeae7be9cc8b83c",
@@ -365,3 +366,4 @@
             "preferredActivityTracker": true
         }
     }
+]

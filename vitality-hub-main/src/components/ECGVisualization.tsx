@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Activity } from "lucide-react";
 
 type EcgRecord = {
   summary: {
@@ -149,19 +150,23 @@ export function ECGVisualization() {
     <div className="rounded-2xl bg-card p-6 shadow-card">
       {/* Header */}
       <div className="mb-4 flex items-center justify-between">
-        <div>
-          <h3 className="text-heading font-display text-foreground">ECG Reading</h3>
-          <p className="text-body-sm text-muted-foreground">
-            {ecg.summary.rhythmClassification ?? "ECG waveform"}
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-ecg text-primary-foreground">
+            <Activity className="h-5 w-5" />
+          </div>
+          <div>
+            <h3 className="text-heading font-display text-foreground">ECG Reading</h3>
+            <p className="text-caption text-muted-foreground">
+              {ecg.summary.rhythmClassification ?? "ECG waveform"}
+            </p>
+          </div>
         </div>
-
         <div className="flex items-center gap-2">
           <span className="relative flex h-3 w-3">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75"></span>
             <span className="relative inline-flex h-3 w-3 rounded-full bg-success"></span>
           </span>
-          <span className="text-body-sm font-medium text-success">Normal</span>
+          <span className="text-caption font-medium text-success">Normal</span>
         </div>
       </div>
 

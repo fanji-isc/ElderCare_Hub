@@ -38,11 +38,14 @@ export function ShareWithProvider() {
 
   return (
     <div className="rounded-2xl bg-card p-6 shadow-card">
-      <div className="mb-6">
-        <h3 className="text-heading font-display text-foreground">Share with Healthcare Provider</h3>
-        <p className="text-body-sm text-muted-foreground">
-          Securely share your health data with your doctor or caregiver
-        </p>
+      <div className="mb-6 flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+          <Share2 className="h-5 w-5" />
+        </div>
+        <div>
+          <h3 className="text-heading font-display text-foreground">Share with Provider</h3>
+          <p className="text-caption text-muted-foreground">Securely share data with your doctor</p>
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
