@@ -350,6 +350,15 @@ export function WalkingActivityChart() {
               level={rLevels!.symmetry}
               normalLabel="normal ≥95%"
             />
+            <MetricBar
+              label="Stride Variability"
+              display={`${latestSession.strideVariabilityPct}%`}
+              value={latestSession.strideVariabilityPct}
+              scale={[0, 20]}
+              normalRange={[0, 5]}
+              level={rLevels!.variability}
+              normalLabel="normal <5%"
+            />
           </div>
         ) : (
           <div className="mb-4 h-32 rounded-xl bg-muted/30 animate-pulse" />

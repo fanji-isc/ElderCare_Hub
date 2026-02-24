@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Heart, Moon, Footprints, Activity, Upload } from "lucide-react";
+import { Heart, Moon, Footprints, Activity, Upload, Users } from "lucide-react";
 import { Header } from "@/components/Header";
 import { VitalCard } from "@/components/VitalCard";
 import { HeartRateChart } from "@/components/HeartRateCharttest";
@@ -8,6 +8,8 @@ import { SleepChart } from "@/components/SleepChart";
 import { HydrationIndicator } from "@/components/HydrationIndicator";
 import { WalkingActivityChart } from "@/components/WalkingActivityChart";
 import { ShareWithProvider } from "@/components/ShareWithProvider";
+import { CommunityPanel } from "@/components/CommunityPanel";
+import { NOHACheckIn } from "@/components/NOHACheckIn";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import VoiceAssistantPanel from "@/components/VoiceAssistantPanel";
@@ -67,6 +69,8 @@ function extractSleepHoursFromGarminList(sleepJson: any): number {
 }
 
 const Index = () => {
+  const [activeTab, setActiveTab] = useState<"dashboard" | "community">("dashboard");
+
   const handleImportData = () => {
     toast.info("Health data import coming soon!", {
       description: "Connect to InterSystems IRIS to sync your export.xml data",
@@ -110,94 +114,129 @@ const Index = () => {
     })();
   }, []);
 
+  const tabs = [
+    { id: "dashboard" as const, label: "My Health", icon: Activity },
+    { id: "community" as const, label: "Community", icon: Users },
+  ];
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
 
+      {/* Persistent Welcome + NOHA — visible on every tab */}
+      <div className="border-b border-border bg-card/40">
+        <div className="container mx-auto px-4 py-6">
+          <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-display-sm font-display text-foreground">Good morning, Frank</h2>
+              <p className="text-body-lg text-muted-foreground">
+                Here's your health overview for today
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <VoiceAssistantPanel />
+              <Button onClick={handleImportData}>
+                <Upload className="mr-2 h-4 w-4" />
+                Import Data
+              </Button>
+            </div>
+          </div>
+          <NOHACheckIn />
+        </div>
+      </div>
+
+      {/* Tab Navigation */}
+      <div className="sticky top-16 z-40 border-b border-border bg-background/95 backdrop-blur-sm">
+        <div className="container mx-auto px-4">
+          <nav className="flex gap-1">
+            {tabs.map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                onClick={() => setActiveTab(id)}
+                className={`-mb-px flex items-center gap-2 border-b-2 px-4 py-3 text-body-sm font-medium transition-all ${
+                  activeTab === id
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:border-border hover:text-foreground"
+                }`}
+              >
+                <Icon className="h-4 w-4" />
+                {label}
+              </button>
+            ))}
+          </nav>
+        </div>
+      </div>
+
       <main className="container mx-auto px-4 py-8">
-        {/* Welcome Section */}
-        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="text-display-sm font-display text-foreground">
-              Good morning, Fan
-            </h2>
-            <p className="text-body-lg text-muted-foreground">
-              Here's your health overview for today
-            </p>
-          </div>
+        {activeTab === "dashboard" ? (
+          <>
+            {/* Vital Cards */}
+            <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <VitalCard
+                title="Resting Heart Rate"
+                value={vitals.heartRate}
+                unit="BPM"
+                icon={<Heart className="h-5 w-5" />}
+                variant="heart"
+                trend="stable"
+                trendValue="Today"
+                subtitle=""
+              />
 
-          <div className="flex items-center gap-3">
-            <VoiceAssistantPanel />
-            <Button onClick={handleImportData}>
-              <Upload className="mr-2 h-4 w-4" />
-              Import Data
-            </Button>
-          </div>
-        </div>
+              <VitalCard
+                title="Sleep"
+                value={vitals.sleepHours ? vitals.sleepHours.toFixed(1) : "—"}
+                unit={vitals.sleepHours ? "hours" : ""}
+                icon={<Moon className="h-5 w-5" />}
+                variant="sleep"
+                trend="stable"
+                trendValue="Last night"
+                subtitle=""
+              />
 
-        {/* Vital Cards */}
-        <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <VitalCard
-            title="Resting Heart Rate"
-            value={vitals.heartRate}
-            unit="BPM"
-            icon={<Heart className="h-5 w-5" />}
-            variant="heart"
-            trend="stable"
-            trendValue="Today"
-            subtitle=""
-          />
+              <VitalCard
+                title="Steps"
+                value={vitals.steps}
+                unit=""
+                icon={<Footprints className="h-5 w-5" />}
+                variant="ecg"
+                trend="stable"
+                trendValue="Today"
+                subtitle=""
+              />
 
-          <VitalCard
-            title="Sleep"
-            value={vitals.sleepHours ? vitals.sleepHours.toFixed(1) : "—"}
-            unit={vitals.sleepHours ? "hours" : ""}
-            icon={<Moon className="h-5 w-5" />}
-            variant="sleep"
-            trend="stable"
-            trendValue="Last night"
-            subtitle=""
-          />
+              <VitalCard
+                title="Stress Level"
+                value={vitals.stressLevel || "—"}
+                unit={vitals.stressLevel ? "/ 100" : ""}
+                icon={<Activity className="h-5 w-5" />}
+                variant="stress"
+                trend="stable"
+                trendValue={stressLabel(vitals.stressLevel)}
+                subtitle=""
+              />
+            </div>
 
-          <VitalCard
-            title="Steps"
-            value={vitals.steps}
-            unit=""
-            icon={<Footprints className="h-5 w-5" />}
-            variant="ecg"
-            trend="stable"
-            trendValue="Today"
-            subtitle=""
-          />
+            {/* Charts */}
+            <div className="mb-8 grid gap-6 lg:grid-cols-2">
+              <HeartRateChart />
+              <ECGVisualization />
+            </div>
 
-          <VitalCard
-            title="Stress Level"
-            value={vitals.stressLevel || "—"}
-            unit={vitals.stressLevel ? "/ 100" : ""}
-            icon={<Activity className="h-5 w-5" />}
-            variant="stress"
-            trend="stable"
-            trendValue={stressLabel(vitals.stressLevel)}
-            subtitle=""
-          />
-        </div>
+            <div className="mb-8 grid gap-6 lg:grid-cols-2">
+              <SleepChart />
+              <HydrationIndicator />
+            </div>
 
-        {/* Charts */}
-        <div className="mb-8 grid gap-6 lg:grid-cols-2">
-          <HeartRateChart />
-          <ECGVisualization />
-        </div>
-
-        <div className="mb-8 grid gap-6 lg:grid-cols-2">
-          <SleepChart />
-          <HydrationIndicator />
-        </div>
-
-        {/* Gait Analysis + Share */}
-        <div className="mb-8 grid gap-6 lg:grid-cols-2">
-          <WalkingActivityChart />
-          <ShareWithProvider />
-        </div>
+            {/* Gait Analysis + Share */}
+            <div className="mb-8 grid gap-6 lg:grid-cols-2">
+              <WalkingActivityChart />
+              <ShareWithProvider />
+            </div>
+          </>
+        ) : (
+          <CommunityPanel />
+        )}
       </main>
     </div>
   );
