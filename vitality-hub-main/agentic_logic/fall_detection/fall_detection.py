@@ -33,7 +33,7 @@ iris_cursor = connection.cursor()
 
 appliance_schemas = get_schemas_metadata(schema_list=os.getenv("APPLIANCE_SCHEMA").split(","))
 wellbeing_schemas = get_schemas_metadata(schema_list=os.getenv("WELLBEING_SCHEMA").split(","))
-appliance_desc = _read_description_file("appliance.txt") + str(appliance_schemas)
+appliance_desc = _read_description_file("appliance.txt") + f"\nThe database schema has been extracted as follows: {str(appliance_schemas)}"
 wellbeing_desc = _read_description_file("wellbeing.txt") + f"\nThe database schema has been extracted as follows: {str(wellbeing_schemas)}"
 messaging_desc = _read_description_file("messaging.txt")
 
