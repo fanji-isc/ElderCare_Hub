@@ -46,6 +46,8 @@ falls_condition = _find_condition(os.path.join(par_dir, "utils/conditions/nhs_co
 appliance_desc = _read_description_file("appliance.txt") + f"\nThe database schema has been extracted as follows: {str(appliance_schemas)}"
 clinical_desc = _read_description_file("clinical.txt") + f"\nThe patient's FHIR bundle is located at this file path: {FHIR_inpath}" # could replace this with giving it the patients NHS number, and it then performs the GET request itself through a tool call
 wellbeing_desc = _read_description_file("wellbeing.txt") + f"\nThe database schema has been extracted as follows: {str(wellbeing_schemas)}"
+messaging_desc = _read_description_file("messaging.txt")
+
 # Result outpaths
 clinical_risk_path = os.path.join(base_dir, "outputs/clinical_risks.txt")
 tasklist_path = os.path.join(base_dir, "outputs/agent_tasklists.json")
