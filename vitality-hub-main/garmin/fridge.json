@@ -1,0 +1,100 @@
+[
+  {
+    "calendarDate": "2026-02-24",
+    "deviceId": "SMART_FRIDGE_001",
+    "patientId": "PATIENT_001",
+    "inventory": [
+      { "item": "Milk", "quantity": "1.5 L", "expiresInDays": 3, "category": "dairy", "stockLevel": "medium" },
+      { "item": "Greek Yogurt", "quantity": "2 cups", "expiresInDays": 5, "category": "dairy", "stockLevel": "full" },
+      { "item": "Apples", "quantity": "4 pieces", "expiresInDays": 7, "category": "fruit", "stockLevel": "medium" },
+      { "item": "Spinach", "quantity": "200 g", "expiresInDays": 2, "category": "vegetable", "stockLevel": "low" },
+      { "item": "Chicken Breast", "quantity": "300 g", "expiresInDays": 1, "category": "protein", "stockLevel": "low" },
+      { "item": "Orange Juice", "quantity": "500 ml", "expiresInDays": 4, "category": "beverage", "stockLevel": "medium" },
+      { "item": "Eggs", "quantity": "6 pieces", "expiresInDays": 14, "category": "protein", "stockLevel": "full" },
+      { "item": "Cheddar Cheese", "quantity": "150 g", "expiresInDays": 10, "category": "dairy", "stockLevel": "low" }
+    ],
+    "dailyNutrition": {
+      "calories": 1720,
+      "protein": 62,
+      "carbs": 195,
+      "fat": 52,
+      "fiber": 22,
+      "waterLiters": 1.6
+    },
+    "mealsDetected": [
+      { "time": "07:45", "meal": "Breakfast", "items": ["Greek Yogurt", "Apples"], "calories": 310 },
+      { "time": "12:30", "meal": "Lunch", "items": ["Chicken Breast", "Spinach"], "calories": 460 },
+      { "time": "19:00", "meal": "Dinner", "items": ["Eggs", "Cheddar Cheese"], "calories": 540 }
+    ],
+    "alerts": [
+      { "type": "expiring", "item": "Chicken Breast", "message": "Expires tomorrow — use soon" },
+      { "type": "expiring", "item": "Spinach", "message": "Expires in 2 days" },
+      { "type": "nutrition", "message": "Vitamin C intake below recommended level" }
+    ]
+  },
+  {
+    "calendarDate": "2026-02-25",
+    "deviceId": "SMART_FRIDGE_001",
+    "patientId": "PATIENT_001",
+    "inventory": [
+      { "item": "Milk", "quantity": "1.2 L", "expiresInDays": 2, "category": "dairy", "stockLevel": "medium" },
+      { "item": "Greek Yogurt", "quantity": "1 cup", "expiresInDays": 4, "category": "dairy", "stockLevel": "low" },
+      { "item": "Bananas", "quantity": "3 pieces", "expiresInDays": 3, "category": "fruit", "stockLevel": "medium" },
+      { "item": "Broccoli", "quantity": "250 g", "expiresInDays": 4, "category": "vegetable", "stockLevel": "full" },
+      { "item": "Salmon Fillet", "quantity": "200 g", "expiresInDays": 2, "category": "protein", "stockLevel": "low" },
+      { "item": "Orange Juice", "quantity": "300 ml", "expiresInDays": 3, "category": "beverage", "stockLevel": "low" },
+      { "item": "Eggs", "quantity": "4 pieces", "expiresInDays": 13, "category": "protein", "stockLevel": "medium" },
+      { "item": "Blueberries", "quantity": "150 g", "expiresInDays": 5, "category": "fruit", "stockLevel": "low" }
+    ],
+    "dailyNutrition": {
+      "calories": 1890,
+      "protein": 74,
+      "carbs": 210,
+      "fat": 58,
+      "fiber": 27,
+      "waterLiters": 2.1
+    },
+    "mealsDetected": [
+      { "time": "08:00", "meal": "Breakfast", "items": ["Greek Yogurt", "Blueberries", "Bananas"], "calories": 380 },
+      { "time": "13:00", "meal": "Lunch", "items": ["Salmon Fillet", "Broccoli"], "calories": 510 },
+      { "time": "18:30", "meal": "Dinner", "items": ["Eggs", "Broccoli"], "calories": 420 }
+    ],
+    "alerts": [
+      { "type": "expiring", "item": "Salmon Fillet", "message": "Expires in 2 days" },
+      { "type": "expiring", "item": "Milk", "message": "Expires in 2 days" }
+    ]
+  },
+  {
+    "calendarDate": "2026-02-26",
+    "deviceId": "SMART_FRIDGE_001",
+    "patientId": "PATIENT_001",
+    "inventory": [
+      { "item": "Milk", "quantity": "0.8 L", "expiresInDays": 1, "category": "dairy", "stockLevel": "low" },
+      { "item": "Greek Yogurt", "quantity": "1 cup", "expiresInDays": 3, "category": "dairy", "stockLevel": "low" },
+      { "item": "Oranges", "quantity": "5 pieces", "expiresInDays": 6, "category": "fruit", "stockLevel": "full" },
+      { "item": "Carrots", "quantity": "300 g", "expiresInDays": 8, "category": "vegetable", "stockLevel": "medium" },
+      { "item": "Turkey Slices", "quantity": "150 g", "expiresInDays": 2, "category": "protein", "stockLevel": "low" },
+      { "item": "Almond Milk", "quantity": "600 ml", "expiresInDays": 7, "category": "beverage", "stockLevel": "medium" },
+      { "item": "Eggs", "quantity": "3 pieces", "expiresInDays": 12, "category": "protein", "stockLevel": "low" },
+      { "item": "Cottage Cheese", "quantity": "200 g", "expiresInDays": 6, "category": "dairy", "stockLevel": "medium" },
+      { "item": "Strawberries", "quantity": "200 g", "expiresInDays": 3, "category": "fruit", "stockLevel": "low" }
+    ],
+    "dailyNutrition": {
+      "calories": 1640,
+      "protein": 58,
+      "carbs": 188,
+      "fat": 47,
+      "fiber": 25,
+      "waterLiters": 1.9
+    },
+    "mealsDetected": [
+      { "time": "07:30", "meal": "Breakfast", "items": ["Greek Yogurt", "Strawberries"], "calories": 290 },
+      { "time": "12:45", "meal": "Lunch", "items": ["Turkey Slices", "Carrots"], "calories": 380 }
+    ],
+    "alerts": [
+      { "type": "expiring", "item": "Milk", "message": "Expires tomorrow — use soon" },
+      { "type": "expiring", "item": "Turkey Slices", "message": "Expires in 2 days" },
+      { "type": "nutrition", "message": "Only 2 meals detected so far today — dinner not yet logged" }
+    ]
+  }
+]

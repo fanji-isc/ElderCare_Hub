@@ -86,29 +86,49 @@ export function SleepChart({ patientId = "PATIENT_001" }: { patientId?: string }
   const latest = rows[rows.length - 1];
 
   if (loading) return (
-    <div className="rounded-2xl bg-card p-6 shadow-card flex items-center justify-center h-64">
-      <p className="text-body-sm text-muted-foreground">Loading sleep data…</p>
+    <div className="rounded-2xl bg-card shadow-card overflow-hidden">
+      <div className="flex items-center gap-3 border-b border-border bg-gradient-to-r from-indigo-50 to-violet-50 px-6 py-4">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sleep text-primary-foreground">
+          <Moon className="h-5 w-5" />
+        </div>
+        <div className="flex-1">
+          <h3 className="text-heading font-display text-foreground">Sleep Analysis</h3>
+          <p className="text-caption text-muted-foreground">Sleep stages from Garmin</p>
+        </div>
+      </div>
+      <div className="flex items-center justify-center h-48">
+        <p className="text-body-sm text-muted-foreground">Loading sleep data…</p>
+      </div>
     </div>
   );
 
   if (error || !rows.length) return (
-    <div className="rounded-2xl bg-card p-6 shadow-card flex items-center justify-center h-64">
-      <p className="text-body-sm text-muted-foreground">{error ?? "No sleep data available"}</p>
+    <div className="rounded-2xl bg-card shadow-card overflow-hidden">
+      <div className="flex items-center gap-3 border-b border-border bg-gradient-to-r from-indigo-50 to-violet-50 px-6 py-4">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sleep text-primary-foreground">
+          <Moon className="h-5 w-5" />
+        </div>
+        <div className="flex-1">
+          <h3 className="text-heading font-display text-foreground">Sleep Analysis</h3>
+          <p className="text-caption text-muted-foreground">Sleep stages from Garmin</p>
+        </div>
+      </div>
+      <div className="flex items-center justify-center h-48">
+        <p className="text-body-sm text-muted-foreground">{error ?? "No sleep data available"}</p>
+      </div>
     </div>
   );
 
   return (
-    <div className="rounded-2xl bg-card p-6 shadow-card">
+    <div className="rounded-2xl bg-card shadow-card overflow-hidden">
       {/* Header */}
-      <div className="mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sleep text-primary-foreground">
-            <Moon className="h-5 w-5" />
-          </div>
-          <div>
-            <h3 className="text-heading font-display text-foreground">Sleep Analysis</h3>
-            <p className="text-caption text-muted-foreground">Sleep stages from Garmin</p>
-          </div>
+      <div className="flex items-center gap-3 border-b border-border bg-gradient-to-r from-indigo-50 to-violet-50 px-6 py-4">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sleep text-primary-foreground">
+          <Moon className="h-5 w-5" />
+        </div>
+        <div className="flex-1">
+          <h3 className="text-heading font-display text-foreground">Sleep Analysis</h3>
+          <p className="text-caption text-muted-foreground">Sleep stages from Garmin</p>
         </div>
         <div className="text-right">
           <div className="text-heading font-display text-foreground">{avgTotal}h</div>
@@ -116,57 +136,59 @@ export function SleepChart({ patientId = "PATIENT_001" }: { patientId?: string }
         </div>
       </div>
 
-      {/* Latest night stage breakdown */}
-      {latest && (
-        <div className="mb-4 grid grid-cols-3 divide-x divide-border rounded-xl border border-border">
+      <div className="p-6">
+        {/* Latest night stage breakdown */}
+        {latest && (
+          <div className="mb-4 grid grid-cols-3 divide-x divide-border rounded-xl border border-border">
+            {(["deep", "rem", "light"] as const).map((stage) => (
+              <div key={stage} className="flex flex-col items-center gap-1 py-3">
+                <span className="h-2 w-8 rounded-full" style={{ backgroundColor: STAGE[stage].color }} />
+                <span className="text-heading font-display text-foreground">
+                  {latest[stage].toFixed(1)}h
+                </span>
+                <span className="text-caption text-muted-foreground">{STAGE[stage].label}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Stacked bar chart */}
+        <div className="h-48">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={rows} margin={{ top: 4, right: 8, left: -20, bottom: 0 }} barCategoryGap="35%">
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+              <XAxis
+                dataKey="dayLabel"
+                tick={{ fontSize: 11, fill: "hsl(215, 16%, 50%)" }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <YAxis
+                tick={{ fontSize: 11, fill: "hsl(215, 16%, 50%)" }}
+                axisLine={false}
+                tickLine={false}
+                unit="h"
+              />
+              <Tooltip
+                contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid hsl(var(--border))" }}
+                formatter={(v: number, name: string) => [`${v.toFixed(1)}h`, name]}
+              />
+              <Bar dataKey="deep"  name="Deep"  stackId="a" fill={STAGE.deep.color}  isAnimationActive={false} />
+              <Bar dataKey="rem"   name="REM"   stackId="a" fill={STAGE.rem.color}   isAnimationActive={false} />
+              <Bar dataKey="light" name="Light" stackId="a" fill={STAGE.light.color} isAnimationActive={false} radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Legend */}
+        <div className="mt-3 flex justify-center gap-6">
           {(["deep", "rem", "light"] as const).map((stage) => (
-            <div key={stage} className="flex flex-col items-center gap-1 py-3">
-              <span className="h-2 w-8 rounded-full" style={{ backgroundColor: STAGE[stage].color }} />
-              <span className="text-heading font-display text-foreground">
-                {latest[stage].toFixed(1)}h
-              </span>
+            <div key={stage} className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: STAGE[stage].color }} />
               <span className="text-caption text-muted-foreground">{STAGE[stage].label}</span>
             </div>
           ))}
         </div>
-      )}
-
-      {/* Stacked bar chart */}
-      <div className="h-48">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={rows} margin={{ top: 4, right: 8, left: -20, bottom: 0 }} barCategoryGap="35%">
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-            <XAxis
-              dataKey="dayLabel"
-              tick={{ fontSize: 11, fill: "hsl(215, 16%, 50%)" }}
-              axisLine={false}
-              tickLine={false}
-            />
-            <YAxis
-              tick={{ fontSize: 11, fill: "hsl(215, 16%, 50%)" }}
-              axisLine={false}
-              tickLine={false}
-              unit="h"
-            />
-            <Tooltip
-              contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid hsl(var(--border))" }}
-              formatter={(v: number, name: string) => [`${v.toFixed(1)}h`, name]}
-            />
-            <Bar dataKey="deep"  name="Deep"  stackId="a" fill={STAGE.deep.color}  isAnimationActive={false} />
-            <Bar dataKey="rem"   name="REM"   stackId="a" fill={STAGE.rem.color}   isAnimationActive={false} />
-            <Bar dataKey="light" name="Light" stackId="a" fill={STAGE.light.color} isAnimationActive={false} radius={[4, 4, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-
-      {/* Legend */}
-      <div className="mt-3 flex justify-center gap-6">
-        {(["deep", "rem", "light"] as const).map((stage) => (
-          <div key={stage} className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: STAGE[stage].color }} />
-            <span className="text-caption text-muted-foreground">{STAGE[stage].label}</span>
-          </div>
-        ))}
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 Class MyApp.Utils
 {
 
-ClassMethod SavePatientData(pid As %String, ecgJson As %String = "", hrJson As %String = "", sleepJson As %String = "", dailySummaryJson As %String = "", toiletJson As %String = "", gaitJson As %String = "") As %Integer
+ClassMethod SavePatientData(pid As %String, ecgJson As %String = "", hrJson As %String = "", sleepJson As %String = "", dailySummaryJson As %String = "", toiletJson As %String = "", gaitJson As %String = "", fridgeJson As %String = "") As %Integer
 {
     // Upsert: reuse existing record for this patient if one exists
     Set id = ""
@@ -21,6 +21,7 @@ ClassMethod SavePatientData(pid As %String, ecgJson As %String = "", hrJson As %
     If (dailySummaryJson '= "") Set rec.DailySummaryData = {}.%FromJSON(dailySummaryJson)
     If (toiletJson '= "") Set rec.ToiletData = {}.%FromJSON(toiletJson)
     If (gaitJson '= "") Set rec.GaitData = {}.%FromJSON(gaitJson)
+    If (fridgeJson '= "") Set rec.FridgeData = {}.%FromJSON(fridgeJson)
 
     Do rec.%Save()
     Quit rec.%Id()
@@ -73,6 +74,7 @@ ClassMethod GetLatestJSONFile(pid As %String = "") As %String
     Set response.dailySummary = rec.DailySummaryData
     Set response.toilet = rec.ToiletData
     Set response.gait = rec.GaitData
+    Set response.fridge = rec.FridgeData
 
     Quit response.%ToJSON()
 }

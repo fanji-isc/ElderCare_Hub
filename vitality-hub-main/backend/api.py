@@ -1,5 +1,5 @@
 from fastapi import FastAPI, UploadFile, File
-from fastapi.responses import Response
+from fastapi.responses import Response, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import HTTPException
 
@@ -108,6 +108,18 @@ def get_gait(patient_id: str = ""):
         conn.close()
 
 
+@app.get("/api/fridge")
+def get_fridge(patient_id: str = ""):
+    conn = get_iris()
+    try:
+        irispy = iris.createIRIS(conn)
+        txt = irispy.classMethodValue("MyApp.Utils", "GetLatestJSONFile", patient_id)
+        data = json.loads(txt) if txt else {}
+        return data.get("fridge", [])
+    finally:
+        conn.close()
+
+
 @app.get("/api/steps")
 def get_steps(patient_id: str = ""):
     conn = get_iris()
@@ -168,6 +180,51 @@ async def answer(payload: dict = Body(...)):
 
     answer_text = completion.choices[0].message.content.strip()
     return {"answer": answer_text}
+
+@app.post("/api/answer/stream")
+async def answer_stream(payload: dict = Body(...)):
+    client = get_openai_client()
+    if client is None:
+        raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
+
+    user_text = (payload.get("text") or "").strip()
+    if not user_text:
+        raise HTTPException(status_code=400, detail="Empty input")
+
+    history = (payload.get("messages") or [])[-5:]
+
+    # Allow callers to inject a custom system prompt (e.g. RAG context with personal health data).
+    # Fall back to the generic elder-care prompt if none is provided.
+    custom_system = (payload.get("system") or "").strip()
+    system_msg = {
+        "role": "system",
+        "content": custom_system if custom_system else (
+            "You are a calm, friendly elder-care assistant. "
+            "Speak clearly, briefly, and reassuringly. "
+            "Do not give medical diagnoses. "
+            "If unsure, suggest contacting a healthcare professional."
+        )
+    }
+
+    chat = [system_msg] + history + [{"role": "user", "content": user_text}]
+
+    def generate():
+        try:
+            stream = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=chat,
+                temperature=0.3,
+                stream=True,
+            )
+            for chunk in stream:
+                delta = chunk.choices[0].delta.content or ""
+                if delta:
+                    yield json.dumps({"delta": delta}) + "\n"
+        except Exception as e:
+            yield json.dumps({"error": str(e)}) + "\n"
+        yield json.dumps({"done": True}) + "\n"
+
+    return StreamingResponse(generate(), media_type="application/x-ndjson")
 
 @app.post("/api/transcribe")
 async def transcribe(file: UploadFile = File(...)):

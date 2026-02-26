@@ -112,6 +112,45 @@ const ACTIVITIES = [
     badgeColor: "bg-emerald-100 text-emerald-700",
     highlighted: false,
   },
+  {
+    id: 5,
+    title: "Card Games Afternoon",
+    subtitle: "Bridge, Rummy & more · All welcome",
+    date: "Wednesday",
+    time: "2:00 PM",
+    location: "Senior Lounge, Rm 4",
+    duration: "2 hrs",
+    attendees: [
+      { name: "Ruth", initials: "R", color: "bg-amber-100 text-amber-600" },
+      { name: "Harold", initials: "H", color: "bg-amber-100 text-amber-600" },
+      { name: "Frances", initials: "F", color: "bg-purple-100 text-purple-600" },
+    ],
+    extraCount: 3,
+    gradient: "from-orange-400 to-amber-500",
+    iconEl: Star,
+    badge: "Weekly favourite",
+    badgeColor: "bg-amber-100 text-amber-700",
+    highlighted: false,
+  },
+  {
+    id: 6,
+    title: "Memory & Storytelling",
+    subtitle: "Share stories · Build connections",
+    date: "Thursday",
+    time: "11:00 AM",
+    location: "Community Center, Hall B",
+    duration: "1 hr",
+    attendees: [
+      { name: "Margaret", initials: "M", color: "bg-emerald-100 text-emerald-600" },
+      { name: "Dorothy", initials: "D", color: "bg-pink-100 text-pink-600" },
+    ],
+    extraCount: 4,
+    gradient: "from-rose-400 to-pink-500",
+    iconEl: MessageCircle,
+    badge: "New session",
+    badgeColor: "bg-rose-100 text-rose-700",
+    highlighted: false,
+  },
 ];
 
 const FEED_ITEMS = [
@@ -213,6 +252,8 @@ const HELP_POSTS: {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+export type CommunitySection = "all" | "activity" | "helping";
+
 const FRANK = { name: "Frank", initials: "F", color: "bg-primary/15 text-primary" };
 
 const CATEGORIES: { label: string; icon: React.ElementType; color: string }[] = [
@@ -224,7 +265,7 @@ const CATEGORIES: { label: string; icon: React.ElementType; color: string }[] = 
   { label: "Other",         icon: BookOpen,     color: "bg-gray-100 text-gray-600" },
 ];
 
-export function CommunityPanel() {
+export function CommunityPanel({ section = "all" }: { section?: CommunitySection }) {
   const [joined, setJoined] = useState<Set<number>>(new Set());
   const [liked, setLiked] = useState<Set<number>>(new Set());
   const [helped, setHelped] = useState<Set<number>>(new Set());
@@ -307,50 +348,8 @@ export function CommunityPanel() {
 
   return (
     <div className="space-y-6">
-      {/* ── Neighborhood Activity Feed ────────────────────────────────────────── */}
-      <div className="rounded-2xl bg-card p-6 shadow-card">
-        <h3 className="mb-4 font-display text-heading text-foreground">Neighborhood Activity</h3>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {FEED_ITEMS.map((item) => {
-            const FeedIcon = item.iconEl;
-            const isLiked = liked.has(item.id);
-            return (
-              <div key={item.id} className="flex items-start gap-3">
-                <div
-                  className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-body-sm font-semibold ${item.color}`}
-                >
-                  {item.initials}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-body-sm leading-snug text-foreground">
-                    <span className="font-semibold">{item.name}</span> {item.activity}
-                  </p>
-                  <div className="mt-1.5 flex items-center gap-3">
-                    <span className="text-caption text-muted-foreground">{item.time}</span>
-                    <button
-                      onClick={() => handleLike(item.id)}
-                      className={`flex items-center gap-1 text-caption transition-colors ${
-                        isLiked ? "text-primary" : "text-muted-foreground hover:text-primary"
-                      }`}
-                    >
-                      <ThumbsUp className="h-3 w-3" />
-                      <span>Encourage</span>
-                    </button>
-                  </div>
-                </div>
-                <div
-                  className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg ${item.bgColor}`}
-                >
-                  <FeedIcon className={`h-3.5 w-3.5 ${item.iconColor}`} />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
       {/* ── Community Activities ─────────────────────────────────────────────── */}
-      <div>
+      {(section === "all" || section === "activity") && <div>
         <div className="mb-4 flex items-center justify-between">
           <div>
             <h3 className="font-display text-heading text-foreground">Community Activities This Week</h3>
@@ -364,7 +363,7 @@ export function CommunityPanel() {
           </span>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid max-h-[520px] gap-4 overflow-y-auto pr-1 sm:grid-cols-2">
           {ACTIVITIES.map((act) => {
             const Icon = act.iconEl;
             const isJoined = joined.has(act.id);
@@ -465,8 +464,10 @@ export function CommunityPanel() {
         </div>
       </div>
 
+      }
+
       {/* ── Helping Hand Board ───────────────────────────────────────────────── */}
-      <div className="rounded-2xl bg-card p-6 shadow-card">
+      {(section === "all" || section === "helping") && <div className="rounded-2xl bg-card p-6 shadow-card">
         {/* Header */}
         <div className="mb-5 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -597,8 +598,10 @@ export function CommunityPanel() {
         </div>
       </div>
 
+      }
+
       {/* ── Post Dialog ───────────────────────────────────────────────────────── */}
-      <Dialog open={postOpen} onOpenChange={setPostOpen}>
+      {(section === "all" || section === "helping") && <Dialog open={postOpen} onOpenChange={setPostOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="font-display text-heading">Add to the Board</DialogTitle>
@@ -685,7 +688,7 @@ export function CommunityPanel() {
             </Button>
           </div>
         </DialogContent>
-      </Dialog>
+      </Dialog>}
     </div>
   );
 }

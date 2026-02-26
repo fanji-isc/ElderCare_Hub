@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Activity } from "lucide-react";
 
 type EcgRecord = {
@@ -122,54 +122,69 @@ export function ECGVisualization() {
   const hrv = ecg?.summary.rmssdHrv ?? "—";
   const duration = ecg?.reading.durationInSeconds ?? "—";
 
+  const EcgBanner = ({ subtitle, right }: { subtitle: string; right?: React.ReactNode }) => (
+    <div className="flex items-center gap-3 border-b border-border bg-gradient-to-r from-emerald-50 to-teal-50 px-6 py-4">
+      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-ecg text-primary-foreground">
+        <Activity className="h-5 w-5" />
+      </div>
+      <div className="flex-1">
+        <h3 className="text-heading font-display text-foreground">ECG Reading</h3>
+        <p className="text-caption text-muted-foreground">{subtitle}</p>
+      </div>
+      {right}
+    </div>
+  );
+
   if (error) {
     return (
-      <div className="rounded-2xl bg-card p-6 shadow-card">
-        <p className="text-sm text-destructive">Failed to load ECG: {error}</p>
+      <div className="rounded-2xl bg-card shadow-card overflow-hidden">
+        <EcgBanner subtitle="ECG waveform" />
+        <div className="p-6">
+          <p className="text-sm text-destructive">Failed to load ECG: {error}</p>
+        </div>
       </div>
     );
   }
 
   if (!ecgJson) {
     return (
-      <div className="rounded-2xl bg-card p-6 shadow-card">
-        <p className="text-sm text-muted-foreground">Loading ECG…</p>
+      <div className="rounded-2xl bg-card shadow-card overflow-hidden">
+        <EcgBanner subtitle="ECG waveform" />
+        <div className="flex items-center justify-center h-48">
+          <p className="text-sm text-muted-foreground">Loading ECG…</p>
+        </div>
       </div>
     );
   }
 
   if (!ecg) {
     return (
-      <div className="rounded-2xl bg-card p-6 shadow-card">
-        <p className="text-sm text-muted-foreground">No ECG records found.</p>
+      <div className="rounded-2xl bg-card shadow-card overflow-hidden">
+        <EcgBanner subtitle="ECG waveform" />
+        <div className="flex items-center justify-center h-48">
+          <p className="text-sm text-muted-foreground">No ECG records found.</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="rounded-2xl bg-card p-6 shadow-card">
+    <div className="rounded-2xl bg-card shadow-card overflow-hidden">
       {/* Header */}
-      <div className="mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-ecg text-primary-foreground">
-            <Activity className="h-5 w-5" />
+      <EcgBanner
+        subtitle={ecg.summary.rhythmClassification ?? "ECG waveform"}
+        right={
+          <div className="flex items-center gap-2">
+            <span className="relative flex h-3 w-3">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75"></span>
+              <span className="relative inline-flex h-3 w-3 rounded-full bg-success"></span>
+            </span>
+            <span className="text-caption font-medium text-success">Normal</span>
           </div>
-          <div>
-            <h3 className="text-heading font-display text-foreground">ECG Reading</h3>
-            <p className="text-caption text-muted-foreground">
-              {ecg.summary.rhythmClassification ?? "ECG waveform"}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="relative flex h-3 w-3">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75"></span>
-            <span className="relative inline-flex h-3 w-3 rounded-full bg-success"></span>
-          </span>
-          <span className="text-caption font-medium text-success">Normal</span>
-        </div>
-      </div>
+        }
+      />
 
+      <div className="p-6">
       {/* ECG Chart */}
       <div className="relative h-32 overflow-hidden rounded-xl bg-foreground/5">
         <svg
@@ -229,6 +244,7 @@ export function ECGVisualization() {
           <p className="text-display-sm font-display text-foreground">{startTime}</p>
           <p className="text-caption text-muted-foreground">Start Time</p>
         </div>
+      </div>
       </div>
     </div>
   );

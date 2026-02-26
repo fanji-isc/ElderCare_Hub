@@ -280,28 +280,27 @@ export function WalkingActivityChart() {
   return (
     <>
       {/* ── Concise overview card ── */}
-      <div className="rounded-2xl bg-card p-6 shadow-card">
-        <div className="mb-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-fall text-primary-foreground">
-              <Footprints className="h-6 w-6" />
-            </div>
-            <div>
-              <h3 className="text-heading font-display text-foreground">Gait Analysis</h3>
-              <p className="text-caption text-muted-foreground">
-                {latestSession
-                  ? `Latest · ${fmtDate(latestSession.startTime)} at ${fmtTime(latestSession.startTime)}`
-                  : "Loading…"}
-              </p>
-            </div>
+      <div className="rounded-2xl bg-card shadow-card overflow-hidden">
+        <div className="flex items-center gap-3 border-b border-border bg-gradient-to-r from-orange-50 to-amber-50 px-6 py-4">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-fall text-primary-foreground">
+            <Footprints className="h-5 w-5" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-heading font-display text-foreground">Gait Analysis</h3>
+            <p className="text-caption text-muted-foreground">
+              {latestSession
+                ? `Latest · ${fmtDate(latestSession.startTime)} at ${fmtTime(latestSession.startTime)}`
+                : "Loading…"}
+            </p>
           </div>
           {rLevels && (
-            <div className={`rounded-full px-4 py-2 ${levelColor[overall]}`}>
-              <span className="text-body font-medium">{overallLabel}</span>
+            <div className={`rounded-full px-3 py-1 ${levelColor[overall]}`}>
+              <span className="text-caption font-medium">{overallLabel}</span>
             </div>
           )}
         </div>
 
+        <div className="p-6">
         {/* Metric bars */}
         {latestSession ? (
           <div className="mb-4 space-y-3">
@@ -377,6 +376,7 @@ export function WalkingActivityChart() {
           <Button variant="outline" size="sm" className="flex-shrink-0" onClick={() => setOpen(true)}>
             View Details
           </Button>
+        </div>
         </div>
       </div>
 

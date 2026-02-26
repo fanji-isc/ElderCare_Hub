@@ -108,16 +108,14 @@ export function HeartRateChart() {
     });
 
   return (
-    <div className="rounded-2xl bg-card p-6 shadow-card">
-      <div className="mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-heart text-primary-foreground">
-            <Heart className="h-5 w-5" />
-          </div>
-          <div>
-            <h3 className="text-heading font-display text-foreground">Heart Rate Today</h3>
-            <p className="text-caption text-muted-foreground">Real-time from Garmin epochs</p>
-          </div>
+    <div className="rounded-2xl bg-card shadow-card overflow-hidden">
+      <div className="flex items-center gap-3 border-b border-border bg-gradient-to-r from-rose-50 to-red-50 px-6 py-4">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-heart text-primary-foreground">
+          <Heart className="h-5 w-5" />
+        </div>
+        <div className="flex-1">
+          <h3 className="text-heading font-display text-foreground">Heart Rate Today</h3>
+          <p className="text-caption text-muted-foreground">Real-time from Garmin epochs</p>
         </div>
         <div className="flex items-center gap-2">
           <span className="h-2.5 w-2.5 rounded-full bg-heart" />
@@ -125,6 +123,7 @@ export function HeartRateChart() {
         </div>
       </div>
 
+      <div className="p-6">
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -183,6 +182,7 @@ export function HeartRateChart() {
           No heartRate values found in epochArray.
         </p>
       )}
+      </div>
     </div>
   );
 }

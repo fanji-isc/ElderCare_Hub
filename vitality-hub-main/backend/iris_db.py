@@ -30,6 +30,7 @@ def main():
     dailySummary_text = safe_load("daily_summary.json")
     toilet_text = safe_load("toilet_hydration.json")
     gait_text = safe_load("gait.json")
+    fridge_text = safe_load("fridge.json")
 
     patient_id = "PATIENT_001"
 
@@ -66,7 +67,8 @@ def main():
             sleep_text,
             dailySummary_text,
             toilet_text,
-            gait_text
+            gait_text,
+            fridge_text
         )
         
     except Exception as e:
