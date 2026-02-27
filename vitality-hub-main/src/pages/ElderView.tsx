@@ -23,11 +23,13 @@ type Vitals = {
   stressLevel: number;
   sleepHours: number;
   hydrationNote: string;       // e.g. "well hydrated" | "mildly dehydrated"
-  hydrationColorLevel: number; // raw urine color level 1–7 (1=clear/hydrated, 7=dark/dehydrated)
+  hydrationColorLevel: number; // raw urine color level 1–8 (Armstrong scale: 1=clear, 8=brown/severely dehydrated)
   waterLiters: number;         // from fridge daily nutrition
   expiringItems: string[];  // fridge items expiring within 2 days
   currentItems: string[];
-  mealsCount: number;          // meals detected today
+  mealsCount: number;          // meals detected today by smart fridge
+  phoneCallMinutes: number;    // minutes on calls today
+  phoneCallTrend: number[];    // last 7 days total minutes (oldest → newest)
   gaitNote: string;            // gait risk summary, empty if no data
   fallRiskAlert: boolean;      // true when gait concern + dehydration combine
 };
@@ -63,8 +65,15 @@ function extractSleep(sleepJson: any): number {
   return (Number(latest.deepSleepSeconds ?? 0) + Number(latest.lightSleepSeconds ?? 0) + Number(latest.remSleepSeconds ?? 0)) / 3600;
 }
 
-// colorLevel: 1=very clear (excellent), 2=pale yellow (good), 3=yellow (fine),
-//             4=dark yellow (mild concern), 5=amber (dehydrated), 6+=dark amber/brown (severely dehydrated)
+// Armstrong urine color scale (1–8):
+//   1 = colorless / very clear     → very well hydrated
+//   2 = pale straw                 → well hydrated
+//   3 = pale yellow                → adequately hydrated
+//   4 = yellow                     → acceptable
+//   5 = dark yellow                → mildly dehydrated
+//   6 = amber / honey              → moderately dehydrated
+//   7 = dark amber / orange        → significantly dehydrated
+//   8 = brown / dark brown         → severely dehydrated — needs attention
 function extractHydration(toiletJson: any): { note: string; colorLevel: number } {
   if (!Array.isArray(toiletJson) || toiletJson.length === 0) return { note: "", colorLevel: 0 };
   const latest = pickLatest(toiletJson);
@@ -75,11 +84,12 @@ function extractHydration(toiletJson: any): { note: string; colorLevel: number }
   const level = Number(sorted[0]?.colorLevel ?? 0);
   if (level === 0) return { note: "", colorLevel: 0 };
   let note = "";
-  if (level <= 2) note = "well hydrated";
-  else if (level <= 3) note = "adequately hydrated";
-  else if (level <= 4) note = "mildly dehydrated — could drink more water";
-  else if (level <= 5) note = "moderately dehydrated — needs more fluids";
-  else note = "significantly dehydrated — drinking water is important right now";
+  if      (level <= 2) note = "well hydrated";
+  else if (level <= 4) note = "adequately hydrated";
+  else if (level === 5) note = "mildly dehydrated — could drink more water";
+  else if (level === 6) note = "moderately dehydrated — needs more fluids";
+  else if (level === 7) note = "significantly dehydrated — drinking water is important right now";
+  else                  note = "severely dehydrated — needs attention soon";
   return { note, colorLevel: level };
 }
 
@@ -103,6 +113,19 @@ function extractFridge(fridgeJson: any): { waterLiters: number; currentItems: st
     expiringItems,
     mealsCount: (latest.mealsDetected ?? []).length,
   };
+}
+
+// Returns today's call minutes + last-7-days trend (oldest→newest)
+function extractPhoneCalls(callJson: any): { minutes: number; trend: number[] } {
+  if (!Array.isArray(callJson) || callJson.length === 0) return { minutes: 0, trend: [] };
+  const sorted = [...callJson].sort((a, b) =>
+    String(a?.calendarDate || "").localeCompare(String(b?.calendarDate || ""))
+  );
+  const last7 = sorted.slice(-7);
+  const trend = last7.map((d: any) => Number(d?.totalMinutes ?? 0));
+  const todayEntry = pickLatest(callJson);
+  const minutes = Number(todayEntry?.totalMinutes ?? 0);
+  return { minutes, trend };
 }
 
 // Clinical fall-risk thresholds for elderly (longitudinal — all sessions across all dates):
@@ -155,7 +178,7 @@ type Panel = "health" | "activity" | "helping" | null;
 
 const ElderView = () => {
   const [openPanel, setOpenPanel] = useState<Panel>(null);
-  const emptyVitals: Vitals = { heartRate: 0, steps: 0, stressLevel: 0, sleepHours: 0, hydrationNote: "", hydrationColorLevel: 0, waterLiters: 0, expiringItems: [], currentItems: [], mealsCount: 0, gaitNote: "", fallRiskAlert: false };
+  const emptyVitals: Vitals = { heartRate: 0, steps: 0, stressLevel: 0, sleepHours: 0, hydrationNote: "", hydrationColorLevel: 0, waterLiters: 0, expiringItems: [], currentItems: [], mealsCount: 0, phoneCallMinutes: 0, phoneCallTrend: [], gaitNote: "", fallRiskAlert: false };
   const [vitals, setVitals] = useState<Vitals>(emptyVitals);
   const vitalsRef = useRef<Vitals>(emptyVitals);
   vitalsRef.current = vitals;
@@ -171,6 +194,7 @@ const ElderView = () => {
   const messagesRef = useRef<Msg[]>([]);
   messagesRef.current = messages;
   const runningRef = useRef(false);
+  const neighborhoodRef = useRef<string>("");  // pre-built RAG text for neighborhood activities
   const scrollBottomRef = useRef<HTMLDivElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioSourceRef = useRef<AudioBufferSourceNode | null>(null);
@@ -244,6 +268,13 @@ const ElderView = () => {
       }
     });
 
+  // Ensure text sent to TTS ends with terminal punctuation.
+  // Without it, TTS models treat the last word as mid-sentence and may clip or rush it.
+  const ttsReady = (text: string): string => {
+    const t = text.trimEnd();
+    return /[.!?]$/.test(t) ? t : t + ".";
+  };
+
   // For replaying single messages (Volume2 button) — still fetches all-at-once.
   const speakText = async (text: string) => {
     speakAbortRef.current?.abort();
@@ -267,7 +298,7 @@ const ElderView = () => {
     if (v.steps)        lines.push(`- Steps today: ${v.steps.toLocaleString()}`);
     if (v.stressLevel)  lines.push(`- Stress level: ${v.stressLevel}/100 (0 = very calm, 100 = very stressed)`);
     if (v.hydrationNote && v.hydrationColorLevel > 0) {
-      lines.push(`- Hydration (smart toilet urine color sensor): level ${v.hydrationColorLevel}/6 — ${v.hydrationNote}`);
+      lines.push(`- Hydration (smart toilet urine color sensor): level ${v.hydrationColorLevel}/8 — ${v.hydrationNote}`);
     }
     if (v.gaitNote)     lines.push(`- Gait / walking analysis: ${v.gaitNote}`);
     if (v.fallRiskAlert) lines.push(`- Combined fall risk alert: YES — gait irregularities combined with dehydration create elevated fall risk today`);
@@ -275,9 +306,16 @@ const ElderView = () => {
     if (v.currentItems.length) lines.push(`- Current fridge inventory: ${v.currentItems.join(", ")}`);
 
     if (v.expiringItems.length) lines.push(`- Fridge items expiring soon: ${v.expiringItems.join(", ")}`);
+
+    if (neighborhoodRef.current) {
+      lines.push("");
+      lines.push("Frank's neighborhood community (Oakwood Pines):");
+      lines.push(neighborhoodRef.current);
+    }
+
     lines.push("");
     lines.push(
-      "Use this personal health data to answer Frank's questions accurately and specifically. " +
+      "Use Frank's personal health data and neighborhood information to answer his questions accurately. " +
       "Be warm, clear, and use simple language suitable for an elderly person. " +
       "Keep answers brief (2–3 sentences). " +
       "Do not diagnose medical conditions. " +
@@ -345,12 +383,13 @@ const ElderView = () => {
     if (mode === "fall") {
       if (v.gaitNote) dataLines.push(`- Gait analysis: ${v.gaitNote}`);
       if (v.hydrationNote && v.hydrationColorLevel > 0) {
-        const colorDesc = v.hydrationColorLevel <= 2 ? "clear / pale yellow (good)"
-          : v.hydrationColorLevel <= 3 ? "yellow (acceptable)"
-          : v.hydrationColorLevel <= 4 ? "dark yellow (mild concern)"
-          : v.hydrationColorLevel <= 5 ? "amber (dehydrated)"
-          : "dark amber / brown (severely dehydrated)";
-        dataLines.push(`- Smart toilet urine color: level ${v.hydrationColorLevel}/6 — ${colorDesc} → ${v.hydrationNote}`);
+        const colorDesc = v.hydrationColorLevel <= 2 ? "colorless / pale straw (very well hydrated)"
+          : v.hydrationColorLevel <= 4 ? "pale to normal yellow (adequately hydrated)"
+          : v.hydrationColorLevel === 5 ? "dark yellow (mildly dehydrated)"
+          : v.hydrationColorLevel === 6 ? "amber / honey (moderately dehydrated)"
+          : v.hydrationColorLevel === 7 ? "dark amber / orange (significantly dehydrated)"
+          : "brown / dark brown (severely dehydrated)";
+        dataLines.push(`- Smart toilet urine color: level ${v.hydrationColorLevel}/8 — ${colorDesc} → ${v.hydrationNote}`);
       }
       if (v.fallRiskAlert) dataLines.push(`- COMBINED FALL RISK ALERT: gait irregularities together with dehydration significantly increase fall risk today`);
 
@@ -368,38 +407,88 @@ Keep it to 4–5 sentences. Address him as Frank.`
         : `You are NOHA. Warmly reassure Frank that his walking looks steady today and encourage him to keep moving safely. One sentence only. Address him as Frank.`;
 
     } else {
-      if (v.sleepHours)  dataLines.push(`- Sleep last night: ${v.sleepHours.toFixed(1)} hours`);
-      if (v.steps)       dataLines.push(`- Steps today: ${v.steps.toLocaleString()}`);
-      if (v.stressLevel) dataLines.push(`- Stress level: ${v.stressLevel}/100 (0 = very calm, 100 = very stressed)`);
+      // Sleep
+      if (v.sleepHours) {
+        const sleepQuality = v.sleepHours < 5 ? "very poor — only " + v.sleepHours.toFixed(1) + " hours, significantly below healthy range"
+          : v.sleepHours < 6.5 ? "below recommended — " + v.sleepHours.toFixed(1) + " hours"
+          : "good — " + v.sleepHours.toFixed(1) + " hours";
+        dataLines.push(`- Sleep last night: ${sleepQuality}`);
+      }
+      // Meals
+      const mealStatus = v.mealsCount === 0
+        ? "0 meals detected — Frank skipped all meals today (⚠️ appetite loss, possible depression signal)"
+        : v.mealsCount === 1
+        ? "only 1 meal detected (breakfast) — skipped lunch and dinner"
+        : `${v.mealsCount} meals detected (normal)`;
+      dataLines.push(`- Diet today (smart fridge): ${mealStatus}`);
+      // Steps
+      if (v.steps) {
+        dataLines.push(`- Steps today: ${v.steps.toLocaleString()} — ${v.steps < 2000 ? "very low, barely moved" : v.steps < 4000 ? "low activity" : "good"}`);
+      }
+      // Stress
+      if (v.stressLevel) {
+        dataLines.push(`- Stress level: ${v.stressLevel}/100`);
+      }
+      // Phone calls — real data
+      if (v.phoneCallTrend.length > 0) {
+        const trendStr = v.phoneCallTrend.join(" → ");
+        const declining = v.phoneCallTrend.length >= 3 &&
+          v.phoneCallTrend[v.phoneCallTrend.length - 1] < v.phoneCallTrend[0] * 0.4;
+        dataLines.push(
+          `- Phone / social contact (last ${v.phoneCallTrend.length} days, minutes): ${trendStr}` +
+          (v.phoneCallMinutes === 0 ? " — NO calls today" : ` — ${v.phoneCallMinutes} min today`) +
+          (declining ? " ⚠️ sharp decline in social contact" : "")
+        );
+      }
+      // Neighbourhood activities for suggestion
+      if (neighborhoodRef.current) {
+        dataLines.push(`- Upcoming neighbourhood activities Frank could join:\n${neighborhoodRef.current}`);
+      }
 
-      prompt = dataLines.length
-        ? `You are NOHA, a warm and caring companion for Frank, an elderly person living independently.
+      // Severity flags
+      const poorSleep  = v.sleepHours > 0 && v.sleepHours < 6;
+      const skippedMeals = v.mealsCount <= 1;
+      const socialWithdrawal = v.phoneCallTrend.length >= 3 &&
+        v.phoneCallTrend[v.phoneCallTrend.length - 1] < v.phoneCallTrend[0] * 0.4;
+      const concernCount = [poorSleep, skippedMeals, socialWithdrawal].filter(Boolean).length;
 
-Here is how Frank is doing today:
+      prompt = `You are NOHA, Frank's warm and caring AI companion. Frank is an elderly person living independently. You have been watching over him and you are genuinely concerned.
+
+Here is what you know about Frank today:
 ${dataLines.join("\n")}
 
-Talk to Frank gently and cheerfully — like a kind friend checking in. Use simple, short sentences. Comment briefly on how well he slept, how active he's been, and how relaxed or stressed he seems. If stress is high or sleep was poor, offer one simple, comforting suggestion (like a short walk, a cup of tea, or calling a friend). End with a warm, encouraging word. Keep it to 3–4 sentences. Address him as Frank.`
-        : `You are NOHA. Give Frank a warm, cheerful hello and ask how his day is going. One sentence only. Address him as Frank.`;
+${concernCount >= 2
+  ? `IMPORTANT CONTEXT: Frank appears to be going through a difficult time. The data shows he is not sleeping well, skipping meals, and has been calling family and friends much less than usual over the past week. These are signs he may be feeling down, depressed, or withdrawn. Do NOT just list data at him — approach this like a caring friend who has noticed he hasn't been himself lately.`
+  : poorSleep || skippedMeals
+  ? `IMPORTANT CONTEXT: Frank is showing some signs of low mood — poor sleep and skipped meals often go hand in hand with feeling down. Approach gently and warmly.`
+  : `Frank seems to be doing reasonably well today. Be warm and encouraging.`}
+
+Your response should:
+1. Open with a gentle, heartfelt greeting — like a friend who truly cares, not a check-box assistant.
+2. Tenderly acknowledge what you've noticed: poor sleep and skipped meals (name them directly but kindly — "I noticed you only had a small breakfast today" or "it looks like last night was a rough night for sleep").
+3. Ask Frank how he is really feeling — invite him to share, keep it open and safe.
+4. Offer one small, concrete step he can take right now to feel a little better (a warm meal, a short walk outside, or joining a specific neighbourhood activity by name and time).
+5. Close with a sincere reminder that he is not alone — you are here, and the people around him care about him.
+
+Tone: warm, gentle, direct, human — like a trusted friend, not a medical alert. Keep it to 4–5 sentences. Address him as Frank.`;
     }
 
-    // Add the bubble immediately (shows "Thinking…" until text arrives)
-    setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
+    // Abort any previous playback and set up a fresh TTS controller for this check-in
+    speakAbortRef.current?.abort();
+    const ttsCtrl = new AbortController();
+    speakAbortRef.current = ttsCtrl;
+    stopAudio();
+
+    // Start a fresh conversation for each check-in
+    setMessages([{ role: "assistant", content: "" }]);
 
     try {
-      let fullText = "";
-      fullText = await streamAnswer(
+      // Stream text internally — UI stays on "Thinking…" so text and audio can arrive together
+      const fullText = await streamAnswer(
         prompt,
         [],
-        () => { setIsThinking(false); },
-        (text) => {
-          setMessages((prev) => {
-            const msgs = [...prev];
-            if (msgs.length > 0 && msgs[msgs.length - 1].role === "assistant") {
-              msgs[msgs.length - 1] = { ...msgs[msgs.length - 1], content: text };
-            }
-            return msgs;
-          });
-        },
+        () => { /* keep Thinking… visible until TTS is ready */ },
+        () => { /* accumulate internally — don't update UI yet */ },
       );
 
       if (!fullText) {
@@ -410,8 +499,23 @@ Talk to Frank gently and cheerfully — like a kind friend checking in. Use simp
           }
           return msgs;
         });
+        return;
       }
-      if (fullText) speakText(fullText); // speak full response after streaming completes
+
+      // Fetch TTS for the full response — sending the entire string means no phrase is ever dropped
+      const buf = await fetchTTSBuffer(ttsReady(fullText), ttsCtrl.signal);
+
+      // Reveal text and start audio at the same moment — gap is now zero
+      setIsThinking(false);
+      setMessages((prev) => {
+        const msgs = [...prev];
+        if (msgs.length > 0 && msgs[msgs.length - 1].role === "assistant") {
+          msgs[msgs.length - 1] = { ...msgs[msgs.length - 1], content: fullText };
+        }
+        return msgs;
+      });
+
+      if (buf && !ttsCtrl.signal.aborted) await decodeAndPlay(buf, ttsCtrl.signal);
     } catch {
       setMessages((prev) => {
         const msgs = [...prev];
@@ -429,22 +533,61 @@ Talk to Frank gently and cheerfully — like a kind friend checking in. Use simp
   useEffect(() => {
     (async () => {
       try {
-        const [dailyRes, sleepRes, toiletRes, fridgeRes, gaitRes] = await Promise.all([
+        const [dailyRes, sleepRes, toiletRes, fridgeRes, gaitRes, neighborhoodRes, phoneCallRes] = await Promise.all([
           fetch(`${API_BASE}/api/dailySummary?patient_id=${encodeURIComponent(PATIENT_ID)}`),
           fetch(`${API_BASE}/api/sleep?patient_id=${encodeURIComponent(PATIENT_ID)}`),
           fetch(`${API_BASE}/api/toilet?patient_id=${encodeURIComponent(PATIENT_ID)}`),
           fetch(`${API_BASE}/api/fridge?patient_id=${encodeURIComponent(PATIENT_ID)}`),
           fetch(`${API_BASE}/api/gait?patient_id=${encodeURIComponent(PATIENT_ID)}`),
+          fetch(`${API_BASE}/api/neighborhood?patient_id=${encodeURIComponent(PATIENT_ID)}`),
+          fetch(`${API_BASE}/api/phone_calls?patient_id=${encodeURIComponent(PATIENT_ID)}`),
         ]);
-        const dailyJson = dailyRes.ok ? await dailyRes.json() : [];
-        const sleepJson = sleepRes.ok ? await sleepRes.json() : [];
-        const toiletJson = toiletRes.ok ? await toiletRes.json() : [];
-        const fridgeJson = fridgeRes.ok ? await fridgeRes.json() : [];
-        const gaitJson  = gaitRes.ok  ? await gaitRes.json()  : [];
+        const dailyJson        = dailyRes.ok        ? await dailyRes.json()        : [];
+        const sleepJson        = sleepRes.ok        ? await sleepRes.json()        : [];
+        const toiletJson       = toiletRes.ok       ? await toiletRes.json()       : [];
+        const fridgeJson       = fridgeRes.ok       ? await fridgeRes.json()       : [];
+        const gaitJson         = gaitRes.ok         ? await gaitRes.json()         : [];
+        const neighborhoodJson = neighborhoodRes.ok ? await neighborhoodRes.json() : [];
+        const phoneCallJson    = phoneCallRes.ok    ? await phoneCallRes.json()    : [];
+
+        // Build a pre-computed text summary so buildHealthContext stays pure/synchronous
+        const latest = Array.isArray(neighborhoodJson) && neighborhoodJson.length > 0
+          ? neighborhoodJson[0] : null;
+        if (latest) {
+          const lines: string[] = ["Neighborhood activities this week (each has a booking ID):"];
+          (latest.activities ?? []).forEach((a: any) => {
+            const attendeeNames = (a.attendees ?? []).map((x: any) => x.name).join(", ");
+            lines.push(`  • [ID:${a.id}] ${a.title}: ${a.date} at ${a.time}, ${a.location} (${a.duration})${attendeeNames ? ` — attending: ${attendeeNames}${a.extraCount > 0 ? ` +${a.extraCount} more` : ""}` : ""}`);
+          });
+          lines.push("Recent neighbor activity:");
+          (latest.feedItems ?? []).forEach((f: any) => {
+            lines.push(`  • ${f.name} ${f.activity} (${f.time})`);
+          });
+          const requests = (latest.helpPosts ?? []).filter((p: any) => p.type === "request");
+          const offers   = (latest.helpPosts ?? []).filter((p: any) => p.type === "offer");
+          if (requests.length) {
+            lines.push("Neighbors who need help:");
+            requests.forEach((p: any) => lines.push(`  • ${p.name} (${p.category}): ${p.message}`));
+          }
+          if (offers.length) {
+            lines.push("Neighbors offering help:");
+            offers.forEach((p: any) => lines.push(`  • ${p.name} (${p.category}): ${p.message}`));
+          }
+          lines.push("");
+          lines.push(
+            "BOOKING INSTRUCTION: If Frank asks to join, book, sign up for, or register for a specific activity, " +
+            "confirm enthusiastically in your normal response. Then, on a brand new line at the very end, " +
+            "append exactly: [[JOIN:ID]] where ID is that activity's booking ID number from the list above. " +
+            "Do NOT speak or mention [[JOIN:ID]] — it is a silent machine code only, never part of the conversation. " +
+            "Only append it when Frank explicitly asks to join or book an activity."
+          );
+          neighborhoodRef.current = lines.join("\n");
+        }
         const day = pickLatest(Array.isArray(dailyJson) ? dailyJson : []);
         const fridge = extractFridge(fridgeJson);
         const { note: hydrationNote, colorLevel: hydrationColorLevel } = extractHydration(toiletJson);
         const gait = extractGait(gaitJson);
+        const { minutes: phoneCallMinutes, trend: phoneCallTrend } = extractPhoneCalls(phoneCallJson);
         const dehydrated = hydrationNote.includes("dehydrated");
         const gaitConcern = gait !== null && gait.riskLevel !== "low";
         const loaded: Vitals = {
@@ -458,6 +601,8 @@ Talk to Frank gently and cheerfully — like a kind friend checking in. Use simp
           expiringItems: fridge.expiringItems,
           currentItems: fridge.currentItems,
           mealsCount: fridge.mealsCount,
+          phoneCallMinutes,
+          phoneCallTrend,
           gaitNote: gait?.note ?? "",
           fallRiskAlert: dehydrated && gaitConcern,
         };
@@ -533,20 +678,18 @@ Talk to Frank gently and cheerfully — like a kind friend checking in. Use simp
           setMessages([...nextMessages, { role: "assistant", content: "" }]);
           setIsThinking(true);
 
-          let fullAnswer = "";
-          fullAnswer = await streamAnswer(
+          // Abort any previous playback and set up a fresh TTS controller for this answer
+          speakAbortRef.current?.abort();
+          const ttsCtrl = new AbortController();
+          speakAbortRef.current = ttsCtrl;
+          stopAudio();
+
+          // Stream text internally — UI stays on "Thinking…" so text and audio arrive together
+          const fullAnswer = await streamAnswer(
             text,
             nextMessages,
-            () => { setIsThinking(false); },
-            (t) => {
-              setMessages((prev) => {
-                const msgs = [...prev];
-                if (msgs.length > 0 && msgs[msgs.length - 1].role === "assistant") {
-                  msgs[msgs.length - 1] = { ...msgs[msgs.length - 1], content: t };
-                }
-                return msgs;
-              });
-            },
+            () => { /* keep Thinking… visible until TTS is ready */ },
+            () => { /* accumulate internally — don't update UI yet */ },
             buildHealthContext(vitalsRef.current), // RAG: inject Frank's live health data
           );
 
@@ -558,8 +701,33 @@ Talk to Frank gently and cheerfully — like a kind friend checking in. Use simp
               }
               return msgs;
             });
+          } else {
+            // Parse silent booking action — [[JOIN:id]] is stripped before display & TTS
+            const joinMatch  = fullAnswer.match(/\[\[JOIN:(\d+)\]\]/i);
+            const displayAnswer = fullAnswer.replace(/\n?\s*\[\[JOIN:\d+\]\]/gi, "").trim();
+
+            // Fetch TTS for the clean response (no machine tag) — no phrase is ever dropped
+            const buf = await fetchTTSBuffer(ttsReady(displayAnswer), ttsCtrl.signal);
+
+            // Reveal text and start audio at the same moment — gap is now zero
+            setIsThinking(false);
+            setMessages((prev) => {
+              const msgs = [...prev];
+              if (msgs.length > 0 && msgs[msgs.length - 1].role === "assistant") {
+                msgs[msgs.length - 1] = { ...msgs[msgs.length - 1], content: displayAnswer };
+              }
+              return msgs;
+            });
+
+            if (buf && !ttsCtrl.signal.aborted) await decodeAndPlay(buf, ttsCtrl.signal);
+
+            // Fire the join action after audio starts so it feels like a natural confirmation
+            if (joinMatch) {
+              const activityId = parseInt(joinMatch[1], 10);
+              window.dispatchEvent(new CustomEvent("noha-join-activity", { detail: { id: activityId } }));
+              setOpenPanel("activity"); // open the activities panel so Frank sees the confirmation
+            }
           }
-          if (fullAnswer) speakText(fullAnswer); // speak full response after streaming completes
         } catch {
           setNohaStatus("Network error");
           setMessages((prev) => [...prev, { role: "assistant", content: "Sorry — network error." }]);

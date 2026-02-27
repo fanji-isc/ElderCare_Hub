@@ -184,6 +184,37 @@
         "restlessMomentCount": 31
     },
     {
-        "retro": false
+        "sleepStartTimestampGMT": "2026-02-26T01:52:00.0",
+        "sleepEndTimestampGMT": "2026-02-26T05:10:00.0",
+        "calendarDate": "2026-02-26",
+        "sleepWindowConfirmationType": "ENHANCED_CONFIRMED_FINAL",
+        "deepSleepSeconds": 900,
+        "lightSleepSeconds": 7320,
+        "remSleepSeconds": 1620,
+        "awakeSleepSeconds": 3960,
+        "unmeasurableSeconds": 600,
+        "averageRespiration": 16.2,
+        "lowestRespiration": 12.0,
+        "highestRespiration": 23.0,
+        "retro": false,
+        "awakeCount": 5,
+        "avgSleepStress": 48.3,
+        "sleepScores": {
+            "overallScore": 38,
+            "qualityScore": 32,
+            "durationScore": 28,
+            "recoveryScore": 24,
+            "deepScore": 18,
+            "remScore": 30,
+            "lightScore": 55,
+            "awakeningsCountScore": 22,
+            "awakeTimeScore": 18,
+            "combinedAwakeScore": 20,
+            "restfulnessScore": 28,
+            "interruptionsScore": 25,
+            "feedback": "NEGATIVE_TOO_SHORT",
+            "insight": "NEGATIVE_HIGH_STRESS"
+        },
+        "restlessMomentCount": 112
     }
 ]

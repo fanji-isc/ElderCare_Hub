@@ -9,5 +9,7 @@ Property DailySummaryData As %Library.DynamicObject;
 Property ToiletData As %Library.DynamicObject;
 Property GaitData As %Library.DynamicObject;
 Property FridgeData As %Library.DynamicObject;
+Property NeighborhoodData As %Library.DynamicObject;
+Property PhoneCallData As %Library.DynamicObject;
 Index IDIndex On PatientID;
 }

@@ -88,13 +88,13 @@
       "waterLiters": 1.9
     },
     "mealsDetected": [
-      { "time": "07:30", "meal": "Breakfast", "items": ["Greek Yogurt", "Strawberries"], "calories": 290 },
-      { "time": "12:45", "meal": "Lunch", "items": ["Turkey Slices", "Carrots"], "calories": 380 }
+      { "time": "09:15", "meal": "Breakfast", "items": ["Greek Yogurt"], "calories": 180 }
     ],
     "alerts": [
       { "type": "expiring", "item": "Milk", "message": "Expires tomorrow — use soon" },
       { "type": "expiring", "item": "Turkey Slices", "message": "Expires in 2 days" },
-      { "type": "nutrition", "message": "Only 2 meals detected so far today — dinner not yet logged" }
+      { "type": "nutrition", "message": "Only 1 meal detected today — lunch and dinner were skipped" },
+      { "type": "nutrition", "message": "Calorie intake very low — possible appetite loss" }
     ]
   }
 ]

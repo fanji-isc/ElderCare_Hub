@@ -120,6 +120,30 @@ def get_fridge(patient_id: str = ""):
         conn.close()
 
 
+@app.get("/api/neighborhood")
+def get_neighborhood(patient_id: str = ""):
+    conn = get_iris()
+    try:
+        irispy = iris.createIRIS(conn)
+        txt = irispy.classMethodValue("MyApp.Utils", "GetLatestJSONFile", patient_id)
+        data = json.loads(txt) if txt else {}
+        return data.get("neighborhood", [])
+    finally:
+        conn.close()
+
+
+@app.get("/api/phone_calls")
+def get_phone_calls(patient_id: str = ""):
+    conn = get_iris()
+    try:
+        irispy = iris.createIRIS(conn)
+        txt = irispy.classMethodValue("MyApp.Utils", "GetLatestJSONFile", patient_id)
+        data = json.loads(txt) if txt else {}
+        return data.get("phoneCalls", [])
+    finally:
+        conn.close()
+
+
 @app.get("/api/steps")
 def get_steps(patient_id: str = ""):
     conn = get_iris()

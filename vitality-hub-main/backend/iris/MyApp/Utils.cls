@@ -1,7 +1,7 @@
 Class MyApp.Utils
 {
 
-ClassMethod SavePatientData(pid As %String, ecgJson As %String = "", hrJson As %String = "", sleepJson As %String = "", dailySummaryJson As %String = "", toiletJson As %String = "", gaitJson As %String = "", fridgeJson As %String = "") As %Integer
+ClassMethod SavePatientData(pid As %String, ecgJson As %String = "", hrJson As %String = "", sleepJson As %String = "", dailySummaryJson As %String = "", toiletJson As %String = "", gaitJson As %String = "", fridgeJson As %String = "", neighborhoodJson As %String = "", phoneCallJson As %String = "") As %Integer
 {
     // Upsert: reuse existing record for this patient if one exists
     Set id = ""
@@ -22,6 +22,8 @@ ClassMethod SavePatientData(pid As %String, ecgJson As %String = "", hrJson As %
     If (toiletJson '= "") Set rec.ToiletData = {}.%FromJSON(toiletJson)
     If (gaitJson '= "") Set rec.GaitData = {}.%FromJSON(gaitJson)
     If (fridgeJson '= "") Set rec.FridgeData = {}.%FromJSON(fridgeJson)
+    If (neighborhoodJson '= "") Set rec.NeighborhoodData = {}.%FromJSON(neighborhoodJson)
+    If (phoneCallJson '= "") Set rec.PhoneCallData = {}.%FromJSON(phoneCallJson)
 
     Do rec.%Save()
     Quit rec.%Id()
@@ -75,6 +77,8 @@ ClassMethod GetLatestJSONFile(pid As %String = "") As %String
     Set response.toilet = rec.ToiletData
     Set response.gait = rec.GaitData
     Set response.fridge = rec.FridgeData
+    Set response.neighborhood = rec.NeighborhoodData
+    Set response.phoneCalls = rec.PhoneCallData
 
     Quit response.%ToJSON()
 }
