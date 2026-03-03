@@ -1,15 +1,17 @@
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, HTTPException, Body
 from fastapi.responses import Response, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi import HTTPException
 
 import iris
 import json
 import os
 import tempfile
+import requests as _requests
 from openai import OpenAI
-from config import IRIS_HOST, IRIS_PORT, IRIS_NAMESPACE, IRIS_USERNAME, IRIS_PASSWORD
-from fastapi import Body
+from backend.config import IRIS_HOST, IRIS_PORT, IRIS_NAMESPACE, IRIS_USERNAME, IRIS_PASSWORD
+FHIR_BASE = "http://localhost:52773/csp/healthshare/demo/fhir/r4"
+FHIR_AUTH = ("_SYSTEM", "demo")
+FHIR_HEADERS = {"Accept": "application/fhir+json"}
 
 app = FastAPI()
 
@@ -140,32 +142,6 @@ def get_phone_calls(patient_id: str = ""):
         txt = irispy.classMethodValue("MyApp.Utils", "GetLatestJSONFile", patient_id)
         data = json.loads(txt) if txt else {}
         return data.get("phoneCalls", [])
-    finally:
-        conn.close()
-
-
-@app.get("/api/steps")
-def get_steps(patient_id: str = ""):
-    conn = get_iris()
-    try:
-        irispy = iris.createIRIS(conn)
-        txt = irispy.classMethodValue("MyApp.Utils", "GetLatestJSONFile", patient_id)
-        data = json.loads(txt) if txt else {}
-
-        # dailySummary might be:
-        # - a dict
-        # - a list (like the JSON you pasted)
-        daily = data.get("dailySummary", {})
-
-        if isinstance(daily, list) and len(daily) > 0:
-            # pick the first record (or latest depending on your storage)
-            steps = daily[0].get("totalSteps", 0)
-        elif isinstance(daily, dict):
-            steps = daily.get("totalSteps", 0)
-        else:
-            steps = 0
-
-        return {"steps": steps}
     finally:
         conn.close()
 
@@ -305,3 +281,195 @@ async def speak(payload: dict = Body(...)):
     except Exception as e:
         print("TTS error:", repr(e))
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ── FHIR proxy endpoints ──────────────────────────────────────────────────────
+
+def _fhir_get(resource: str, params: dict = {}):
+    try:
+        r = _requests.get(
+            f"{FHIR_BASE}/{resource}",
+            params=params,
+            auth=FHIR_AUTH,
+            headers=FHIR_HEADERS,
+            timeout=10,
+        )
+        r.raise_for_status()
+        return r.json()
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"FHIR error: {e}")
+
+
+@app.get("/api/fhir/patient")
+def get_fhir_patient():
+    bundle = _fhir_get("Patient", {"_count": "1"})
+    entries = bundle.get("entry", [])
+    if not entries:
+        raise HTTPException(status_code=404, detail="No FHIR patient found")
+    p = entries[0]["resource"]
+    name = p.get("name", [{}])[0]
+    given = " ".join(name.get("given", []))
+    family = name.get("family", "")
+    mrn = next((i["value"] for i in p.get("identifier", [])
+                 if i.get("type", {}).get("coding", [{}])[0].get("code") == "MR"), None)
+    return {
+        "id": p.get("id"),
+        "name": f"{given} {family}".strip(),
+        "birthDate": p.get("birthDate"),
+        "gender": p.get("gender"),
+        "mrn": mrn,
+        "address": p.get("address", [{}])[0],
+    }
+
+
+@app.get("/api/fhir/conditions")
+def get_fhir_conditions(patient_id: str = ""):
+    bundle = _fhir_get("Condition", {"patient": patient_id, "_sort": "-onset-date", "_count": "50"})
+    results = []
+    for e in bundle.get("entry", []):
+        r = e["resource"]
+        coding = r.get("code", {}).get("coding", [{}])[0]
+        results.append({
+            "display": coding.get("display") or r.get("code", {}).get("text", "Unknown"),
+            "code": coding.get("code"),
+            "status": r.get("clinicalStatus", {}).get("coding", [{}])[0].get("code", "unknown"),
+            "onset": r.get("onsetDateTime", r.get("onsetPeriod", {}).get("start", "")),
+        })
+    return results
+
+
+@app.get("/api/fhir/medications")
+def get_fhir_medications(patient_id: str = ""):
+    bundle = _fhir_get("MedicationRequest", {"patient": patient_id, "_sort": "-authoredon", "_count": "50"})
+    results = []
+    for e in bundle.get("entry", []):
+        r = e["resource"]
+        med = r.get("medicationCodeableConcept", {})
+        coding = med.get("coding", [{}])[0]
+        dosage = r.get("dosageInstruction", [{}])[0]
+        results.append({
+            "drug": coding.get("display") or med.get("text", "Unknown"),
+            "status": r.get("status", "unknown"),
+            "authored": r.get("authoredOn", ""),
+            "dosage": dosage.get("text", ""),
+        })
+    return results
+
+
+@app.get("/api/fhir/vitals")
+def get_fhir_vitals(patient_id: str = ""):
+    bundle = _fhir_get("Observation", {
+        "patient": patient_id,
+        "category": "vital-signs",
+        "_sort": "-date",
+        "_count": "100",
+    })
+    results = []
+    for e in bundle.get("entry", []):
+        r = e["resource"]
+        coding = r.get("code", {}).get("coding", [{}])[0]
+        value_q = r.get("valueQuantity", {})
+        results.append({
+            "display": coding.get("display") or r.get("code", {}).get("text", "Unknown"),
+            "value": value_q.get("value"),
+            "unit": value_q.get("unit", ""),
+            "date": r.get("effectiveDateTime", ""),
+        })
+    return results
+
+
+@app.get("/api/fhir/labs")
+def get_fhir_labs(patient_id: str = ""):
+    bundle = _fhir_get("Observation", {
+        "patient": patient_id,
+        "category": "laboratory",
+        "_sort": "-date",
+        "_count": "100",
+    })
+    results = []
+    for e in bundle.get("entry", []):
+        r = e["resource"]
+        coding = r.get("code", {}).get("coding", [{}])[0]
+        value_q = r.get("valueQuantity", {})
+        results.append({
+            "display": coding.get("display") or r.get("code", {}).get("text", "Unknown"),
+            "value": value_q.get("value"),
+            "unit": value_q.get("unit", ""),
+            "date": r.get("effectiveDateTime", ""),
+        })
+    return results
+
+
+@app.get("/api/fhir/procedures")
+def get_fhir_procedures(patient_id: str = ""):
+    bundle = _fhir_get("Procedure", {"patient": patient_id, "_sort": "-date", "_count": "50"})
+    results = []
+    for e in bundle.get("entry", []):
+        r = e["resource"]
+        coding = r.get("code", {}).get("coding", [{}])[0]
+        performed = r.get("performedPeriod", {}).get("start") or r.get("performedDateTime", "")
+        results.append({
+            "display": coding.get("display") or r.get("code", {}).get("text", "Unknown"),
+            "status": r.get("status", "unknown"),
+            "date": performed,
+        })
+    return results
+
+
+@app.get("/api/fhir/immunizations")
+def get_fhir_immunizations(patient_id: str = ""):
+    bundle = _fhir_get("Immunization", {"patient": patient_id, "_sort": "-date", "_count": "50"})
+    results = []
+    for e in bundle.get("entry", []):
+        r = e["resource"]
+        coding = r.get("vaccineCode", {}).get("coding", [{}])[0]
+        results.append({
+            "vaccine": coding.get("display") or r.get("vaccineCode", {}).get("text", "Unknown"),
+            "status": r.get("status", "unknown"),
+            "date": r.get("occurrenceDateTime", ""),
+            "lotNumber": r.get("lotNumber", ""),
+        })
+    return results
+
+
+@app.get("/api/fhir/encounters")
+def get_fhir_encounters(patient_id: str = ""):
+    bundle = _fhir_get("Encounter", {"patient": patient_id, "_sort": "-date", "_count": "20"})
+    results = []
+    for e in bundle.get("entry", []):
+        r = e["resource"]
+        type_coding = r.get("type", [{}])[0].get("coding", [{}])[0]
+        provider = r.get("serviceProvider", {}).get("display", "")
+        results.append({
+            "type": type_coding.get("display") or r.get("type", [{}])[0].get("text", "Unknown"),
+            "status": r.get("status", "unknown"),
+            "date": r.get("period", {}).get("start", ""),
+            "provider": provider,
+        })
+    return results
+
+
+@app.get("/api/fhir/bp-trend")
+def get_fhir_bp_trend(patient_id: str = ""):
+    bundle = _fhir_get("Observation", {
+        "patient": patient_id,
+        "code": "85354-9",
+        "_sort": "date",
+        "_count": "100",
+    })
+    results = []
+    for e in bundle.get("entry", []):
+        r = e["resource"]
+        systolic = next(
+            (c["valueQuantity"]["value"] for c in r.get("component", [])
+             if c.get("code", {}).get("coding", [{}])[0].get("code") == "8480-6"), None)
+        diastolic = next(
+            (c["valueQuantity"]["value"] for c in r.get("component", [])
+             if c.get("code", {}).get("coding", [{}])[0].get("code") == "8462-4"), None)
+        if systolic and diastolic:
+            results.append({
+                "date": r.get("effectiveDateTime", ""),
+                "systolic": systolic,
+                "diastolic": diastolic,
+            })
+    return results

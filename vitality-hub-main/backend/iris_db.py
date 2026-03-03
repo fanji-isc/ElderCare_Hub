@@ -24,7 +24,7 @@ def main():
             print(f"--- Warning: {filename} not found.")
             return ""
 
-    ecg_text = safe_load("ecg.json")
+    ecg_text = safe_load("ECG.json")
     hr_text = safe_load("heart_rate.json")
     sleep_text = safe_load("sleep.json")
     dailySummary_text = safe_load("daily_summary.json")

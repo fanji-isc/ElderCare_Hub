@@ -1,114 +1,262 @@
-# Neighborhood Health Hub (NHH) — Demo Storyline: Fall Prevention
+# Neighborhood Health Hub (NHH) 
 
 ---
 
 ## The Character
 
-**Barbara, 78** — retired schoolteacher, lives alone in her apartment. She has a history of:
+**Frank, 74** — retired engineer, lives alone. His wife Carol passed away 14 months ago. Since then:
 
-- Right knee replacement surgery (8 months ago — recovery went well, but her gait never fully returned to normal)
-- Mild osteoporosis (diagnosed 2022)
-- Atrial fibrillation (managed with blood thinners — warfarin)
-- Two prior falls (2023, 2024 — no fractures, but significant anxiety and reduced confidence walking afterward)
-- Moderate dehydration tendencies (chronic, often doesn't feel thirst)
+- Rarely leaves the apartment
+- Skips meals or eats the same simple things
+- Sleeps irregularly — wakes at 2–3am, can't fall back asleep, stays in bed until late
+- Tells his son **David** he's "fine" every Sunday phone call — the calls have been getting shorter
+- Was recently screened for mild depression by **Dr. Kim** — not on medication yet, but being monitored
 
-Her daughter **Linda** lives 45 minutes away. Her primary care provider is **NP Davis**.
+**Medical background:**
+- Right knee replacement surgery (10 months ago — recovery went well, but his gait has never fully returned to normal)
+- Mild hypertension — on **metoprolol** (beta-blocker) + **hydrochlorothiazide** (diuretic): a combination known to cause orthostatic dizziness, especially when standing up quickly after lying down
+- One prior fall (2024 — no fractures, but his confidence navigating the apartment at night dropped sharply)
+
+
+**Smart home & wearable devices:**
+- **Smart watch** — continuous heart rate, sleep tracking, gait & movement analysis (velocity, stride symmetry, cadence), daily step count
+- **Smart toilet** — urine hydration sensor (color index + frequency)
+- **Smart fridge** — door open/close log, meal frequency tracking, inventory awareness
+
+
+This is two days NHH caught what everyone else missed.
+
+---
+
+---
+
+# Day 1 — Tuesday: Fall Prevention
 
 ---
 
 ## The Setup — Tuesday Morning, 7:00am
 
-Barbara hasn't even gotten out of bed yet. NHH has already been working overnight — and Noha, her AI health companion, is about to start her day.
+Frank hasn't gotten out of bed yet. NHH has been working overnight — and NOHA, his AI health companion, is about to start his day.
 
 ---
 
-## Noha's Morning Check-In (Proactive — No Prompt Needed)
+## Panel 1 — Care Provider View (Dr. Kim's Dashboard)
 
-At 7:02am, before Barbara says a word, Noha speaks:
-
-> "Good morning, Barbara! It's Tuesday, and I've been keeping an eye on you overnight. I want to share a few things. You had a restless night — only about 3 hours of deep sleep, which is lower than your usual. Your heart also worked a little harder than normal around 3am. And this morning your body is telling me it needs water — please drink a full glass before you do anything else. I also noticed your movement yesterday afternoon looked a little different from your usual — your steps were slower and a bit uneven, so I want you to be extra careful getting out of bed this morning. Your care team has already been notified, and Linda left you a message. How are you feeling right now?"
-
-Barbara didn't have to ask anything. Noha came to her.
+> "Here's what Dr. Kim sees when she logs in — two sections: Frank's full medical record on the left, NOHA's AI summary on the right."
 
 ---
 
-## Panel 1 — Care Provider View (NP Davis's Dashboard)
+### Medical Record
 
-> "Here's what NP Davis sees when she logs in."
+**Patient:** Frank, 74 · Male · DOB: March 1951
+**Primary care:** Dr. Kim · Last visit: 6 weeks ago
+**Next scheduled:** 3 weeks out
 
-**Overnight risk alert, auto-generated:**
+**Diagnoses on file:**
+- Right knee replacement surgery — 10 months ago (right knee, cemented total knee arthroplasty; post-op PT completed; residual gait asymmetry noted at 6-month follow-up)
+- Mild hypertension — controlled
+- Prior fall — January 2024 (no fracture; home safety assessment completed)
+- Mild depression screening — flagged 3 weeks ago; watchful waiting; no medication initiated
 
-- **Sleep quality: Poor** — 3.2 hrs deep + REM (7-day average: 5.1 hrs)
-- **Heart rate during sleep: Elevated** — resting HR peaked at 94 bpm at 3am (baseline: 62)
-- **Gait & Movement Alert (flagged yesterday, 4:15pm):**
-  - Walking velocity dropped to 0.6 m/s (her personal baseline: 0.95 m/s)
-  - Stride asymmetry index: 18% — right leg (surgical side) bearing less weight than usual
-  - Cadence variability: high — irregular step timing, a known predictor of near-term falls
-  - NHH classification: Suspicious gait pattern detected — post-surgical compensation behavior
-- **Daily Steps (Yesterday):** 1,840 steps — 54% below her daily average, suggesting fatigue or pain-avoidance
-- **ECG History** — Last user-recorded ECG (February 4th) shows AFib-consistent pattern; available for comparison
-- **Smart toilet (6:45am):** Urine color index dark amber — significant dehydration
+**Current medications:**
+- Metoprolol succinate 25 mg — once daily (beta-blocker; hypertension)
+- Hydrochlorothiazide 12.5 mg — once daily (diuretic; hypertension)
+- *Known interaction flag: diuretic + low fluid intake → dehydration risk; beta-blocker → blunted orthostatic heart rate compensation*
 
-**Composite fall-risk score: CRITICAL (91/100)**
-*(Gait anomaly + dehydration + post-surgical history + poor sleep = highest-risk combination)*
+**Recent vitals (last visit):**
+- BP: 128/78 · HR: 64 · Weight: 172 lbs · BMI: 24.8
 
-NP Davis clicks Noha's summary:
-
-> "Barbara had disrupted sleep, an elevated overnight heart rate, and significant dehydration this morning. Most notably, her wearable detected an abnormal gait pattern at 4:15pm yesterday — reduced walking speed, asymmetric weight distribution favoring the left leg, and irregular step timing. Combined with her right knee replacement 8 months ago and her fall history, this pattern is a recognized pre-fall indicator. I recommend contacting her physical therapist and scheduling a gait assessment this week."
+**Relevant history:**
+- No diabetes, no cardiac arrhythmia on record
+- Osteoporosis screening: mild bone density reduction (T-score –1.4, 2023)
+- Physical therapy discharge note (4 months ago): "Gait asymmetry persists; recommend continued home exercise; patient compliance reported as low"
 
 ---
-Dr. Patel sends a care note to her file and flags it for her home nurse.
 
+### NOHA AI Summary & Suggestions
 
-## Panel 2 — Family View (Linda's App)
+> **Summary (based on medical record):**
+> Frank is a 74-year-old male, 10 months post right total knee arthroplasty, with residual gait asymmetry documented at his 6-month follow-up and low reported compliance with home exercise. His PT discharge note flagged persistent gait compensation that has not self-resolved — placing him at elevated fall risk, compounded by his prior fall in January 2024 and mild bone density reduction (T-score –1.4).
+>
+> He is currently on metoprolol succinate and hydrochlorothiazide. This combination is a known contributor to orthostatic hypotension and dizziness on standing — a significant concern for a post-surgical patient with a compromised gait pattern. His last recorded BP was 128/78, suggesting the regimen is effective but leaves limited tolerance for any hemodynamic or fluid stress.
+>
+> He was flagged for mild depression screening 3 weeks ago with no medication initiated. Reduced physical activity and social withdrawal are known accelerants of depressive progression in this population, and may also be contributing to declining self-care.
 
-> "Meanwhile, Linda gets a gentle notification — not alarming, but informative."
+> **Suggested actions:**
+> 1. **Call Frank today** — assess current knee pain, stiffness, and any recent dizziness on standing; correlate with medication timing
+> 2. **Physical therapy referral** — urgent gait reassessment; right-leg compensation has persisted beyond expected post-op recovery window
+> 3. **Medication review** — evaluate hydrochlorothiazide dose appropriateness; consider orthostatic BP check at next visit
+> 4. **Home safety follow-up** — prior assessment was 14 months ago; confirm grab bars, cane use, and night-time pathway safety
+> 5. **Behavioral health coordination** — depression screening from 3 weeks ago warrants follow-up; consider referral or structured social engagement plan
 
-- **Yesterday afternoon:** "Barbara's walking pattern looked a little off — she was moving more slowly and unevenly than usual."
-- **Last night's sleep:** Below average
-- **Steps yesterday:** Low activity day
+---
+
+Dr. Kim sends a care note to Frank's file, places a call flag for this morning, and submits the PT referral.
+
+---
+
+## Panel 2 — Family View (David's App)
+
+> "Meanwhile, David gets a gentle notification — not alarming, but informative."
+
+- **Monday afternoon:** "Frank's walking pattern looked a little off — he was moving more slowly and unevenly than usual."
+- **Last night's sleep:** Below average — woke around 2:30am
+- **Steps Monday:** Very low activity day
 - **This morning:** Hydration reminder sent
-- **Today's risk level:** High — "Barbara's care team has been notified. Noha checked in with her at 7am."
+- **Today's risk level:** Elevated — "Frank's care team has been notified. NOHA checked in with him at 7am."
 
-Linda sends Barbara a voice message through the app: "Morning Mom, saw you had a rough night — call me when you're up?"
+David texts: *"Hey Dad — saw you had a rough night. Give me a call when you're up?"*
 
-She doesn't need to know the clinical details. She just knows to check in.
+He doesn't need the clinical details. He just knows to check in.
 
 ---
 
-## Panel 3 — Patient View (Barbara talking with Noha)
+## Panel 3 — Patient View (Frank talking with NOHA)
 
-> "After Noha's morning check-in, Barbara has questions. Here are the real things patients ask:"
+### NOHA's Morning Check-In (Proactive — No Prompt Needed)
 
-**"Noha, my knee feels stiff this morning — is that normal?"**
+At 7:02am, before Frank says a word, NOHA speaks:
 
-> "Some stiffness after a night of rest is common after knee surgery, especially 8 months out. But I did notice yesterday your walking was a bit uneven — your right leg seemed to be doing less of the work. That's a signal I take seriously for someone with your history. I've let NP Davis know. Try some gentle ankle circles before you stand up, and use the armrest to push yourself up slowly."
+> "Good morning, Frank. It's Tuesday, and I've been keeping an eye on you overnight. A few things I want to share. You had a restless night — you woke around 2:30am and your heart was working harder than usual. I also noticed yesterday afternoon your walking looked different — slower and uneven, with your right leg doing less of the work than usual. I suspect your knee is bothering you. Now, before you get up — your smart toilet detected this morning that you're significantly dehydrated. Please drink a full glass of water right now, before you do anything else. This is important because your metoprolol can cause dizziness when you stand up, and being dehydrated makes that dizziness much more likely to happen. Drinking water first can help prevent a dizzy spell when you get out of bed. Dr. Kim has been notified, and David left you a message. Take your time getting up — don't rush. How are you feeling right now?"
 
-**"Is it okay for me to go for my morning walk?"**
+Frank didn't have to ask anything. NOHA came to him.
 
-> "I'd say yes, but a shorter one today — and please use your walking cane. Your sleep was low, you're a little dehydrated, and yesterday's gait data showed your balance was off. Flat ground only, no rushing. If your knee starts to feel unstable or you feel dizzy, stop and sit down right away."
+---
 
+**"NOHA, my knee feels stiff this morning — is that normal?"**
+
+
+**"Should I still go for my walk today?"**
+
+---
 
 ## The Twist — What Could Have Happened
 
 **Without NHH:**
 
-- Gait changes from Monday afternoon go unnoticed
-- Barbara is dehydrated and under-slept Tuesday morning
-- She gets up quickly, her right knee gives slightly, she reaches for the wall — falls
-- Hip fracture. ER. $40,000 hospitalization. Potential re-injury to the surgical knee. 6-month setback.
+- Monday's gait changes go unnoticed — no one sees the right leg compensating
+- Frank's smart toilet and fridge data sit unread
+- Tuesday morning: dehydrated, under-slept, metoprolol on board — he stands up fast out of habit
+- Orthostatic dizziness kicks in; his surgical knee buckles slightly as he reaches for the wall — he misses
+- Hip fracture. Emergency room. $40,000 hospitalization. Months of rehabilitation. His isolation deepens further, possibly permanently.
 
 **With NHH:**
 
-- Gait anomaly flagged Monday at 4:15pm — 15 hours before the high-risk window
-- Noha checked in at 7am unprompted — hydration addressed, cane recommended, family alerted
-- NP Davis reviewed the gait data and ECG history before her first patient
-- Physical therapist appointment booked for Thursday
-- Barbara took a short, careful walk. Used her cane. Drank her water. Called Linda.
+- Right-leg gait asymmetry flagged Monday at 3:45pm — 15 hours before the high-risk window
+- Smart toilet confirmed dehydration at 6:45am; fridge data showed two days of minimal fluid intake
+- NOHA checked in at 7am unprompted — named the medication risk, addressed hydration, advised slow movement, alerted David
+- Dr. Kim reviewed the full picture before her first patient — PT referral sent, hydration plan added to file
+- Frank got up slowly, drank his water, took a short careful walk. Used his cane. Called David.
 
 ---
 
-## The Closing Message
+---
 
-"Falls are the #1 cause of injury death in adults over 65. Most falls are preventable — but only if you see the warning signs before they happen. Neighborhood Health Hub connects the dots between a bad night's sleep, an irregular heartbeat, and a glass of water — so a Tuesday morning doesn't become a Tuesday emergency."
+# Day 2 — Mental Health & Community Connection
 
+---
+
+## What NHH Monitors Every Day
+
+Four signals, checked daily — and this week, all four are declining:
+
+| Signal | This Week | Flag |
+|--------|-----------|------|
+| **Steps** | 1,240 → 860 → 600 → 480 → 390 | Declining trend |
+| **Sleep** | 4.8 hrs avg, waking 3–4x/night | Below target (7–8 hrs) |
+| **Smart Fridge** | 1–2 meals/day, no real meal cooked in 4 days | Low nutrition variety |
+| **Phone Calls** | 6 min total this week (1 call from David) | Declining month-over-month |
+
+The fall risk has been addressed. But the numbers tell a different story — one that won't end with a physical therapy appointment.
+
+---
+
+## NOHA's Proactive Daily Check-Ins
+
+Every morning, NOHA reviews all four signals and sends Frank two short check-ins — one for movement and rest, one for groceries and getting out.
+
+### Check-In 1 — Steps & Sleep
+
+> "Good morning, Frank. You only got about 5 hours last night and your steps have been low all week. I know the days can feel long sometimes. There's a chair yoga session this Saturday at 9am — Marcus from a few floors down is going, small group, very gentle, good for strength and balance. Want me to sign you up and arrange a Lyft to get you there?"
+
+Frank: *"...Maybe the yoga. I'll try."*
+
+> "Done. I'll have your Lyft outside at 8:40am Saturday — plenty of time. I'll send you a reminder the night before."
+
+### Check-In 2 — Groceries
+
+> "Frank, your fridge is looking a little light — I noticed you haven't had much to eat the past few days. I put together a short list: eggs, tomatoes, bread, soup, fruit, chicken, olive oil. Seven things. Want me to place a DoorDash order? It'll be at your door in about 30 minutes."
+
+Frank: *"That'd actually be helpful, yeah."*
+
+> "Perfect — order placed. You'll get a notification when it's on the way."
+
+---
+
+## Frank's Dashboard — Community Tab
+
+Next to his health metrics, Frank sees upcoming neighborhood activities and **who's going**:
+
+| Time | Activity | Neighbors joining |
+|------|----------|-------------------|
+| Sat 9am | Chair Yoga · Community Center | 6 neighbors · beginner friendly |
+| Sun 2pm | Neighborhood Walk · Riverside Path | 4 signed up · 45 min easy pace |
+| Tue 10am | Meditation Circle · Online or in-person | NHH volunteer-hosted |
+| Next Fri | Group Hiking Trip · City Nature Reserve | Sign-ups open |
+
+Not strangers — familiar faces from his building. That's the difference.
+
+---
+
+## Saturday — The Numbers Shift
+
+Frank goes to yoga. Stays for coffee afterward. Step count: **2,400** — his highest in three weeks.
+
+That evening he cooks pasta for the first time since Carol died. He calls David — not to say he's fine, just to say the class was good. The call runs **22 minutes**.
+
+Monday morning, NOHA: *"Last week looked a lot better — more steps, better sleep, and you cooked. How are you feeling?"*
+
+Frank: *"I'll try the Sunday walk too."*
+
+---
+
+
+## David's View
+
+David's panel shows yoga Saturday, walk Sunday, meals and sleep improving, and an unexpected call from Dad on Saturday night.
+
+NOHA's note: *"Frank is reconnecting. Keep reaching out — your calls matter to him."*
+
+David texts: *"Hey Dad — heard you've been getting out more."*
+Frank: *"Met a few good people. Might go again next week."*
+
+---
+
+## The Twist — What Could Have Happened
+
+**Without NHH:**
+- Declining steps, sleep, and appetite go unnoticed between Sunday calls
+- Physical deconditioning continues — fall risk grows again
+- Isolation deepens silently — mild depression becomes clinical
+- A crisis eventually brings Frank to the hospital, and this time it might be both
+
+**With NHH:**
+- NOHA catches the pattern early and acts — a Lyft to yoga, a DoorDash for groceries
+- Frank reconnects with neighbors; his numbers improve before the next appointment
+- David knows his dad is okay — not because Frank said so, but because the data shows it
+
+---
+
+---
+
+# The Closing Message
+
+Falls are the #1 cause of injury death in adults over 65. Loneliness carries the same health risk as smoking 15 cigarettes a day. And for someone like Frank, they don't arrive separately — they arrive together, quietly, in a week of slow steps and a fridge that hasn't been opened.
+
+NHH connects the dots between a bad night's sleep, an irregular heartbeat, a glass of water, and an empty fridge — so a Tuesday morning doesn't become a Tuesday emergency, and a Saturday yoga class doesn't stay empty.
+
+Because sometimes the most powerful intervention isn't a prescription. It's NOHA noticing that the fridge hasn't been opened since Tuesday and asking — gently, without alarm — *"How are you really doing today, Frank?"*
+
+And a familiar face at a yoga class who says: *"I'm glad you came."*
+
+> **"NHH doesn't just monitor your heart. It watches out for the part of you that doesn't show up on a chart."**
