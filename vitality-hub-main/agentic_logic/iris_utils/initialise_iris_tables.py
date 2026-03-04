@@ -493,7 +493,7 @@ def main():
     elderly_appliance_dataset(beginning_date, end_date, inpatient_periods, anomaly_days, "BlackBox", "ApplianceData")
     # Initialise BlackBox.WebsiteData table
     create_new_table("BlackBox", "WebsiteData", "UpdateDateTime, Widget, ApplianceData, UpdateRole", ["DATETIME", "VARCHAR(50)", "DECIMAL(3,2)", "VARCHAR(10)"])
-    # Initialise Chatbot.History
+    # Initialise Chatbot.History table
     create_new_table("Chatbot", "History", "SessionID, MessageRole, MessageContent, Timestamp", ["INT", "VARCHAR(10)", "VARCHAR(255)", "DATETIME"])
 
 if __name__ == "__main__":

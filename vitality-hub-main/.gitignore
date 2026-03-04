@@ -29,3 +29,4 @@ vite.config.ts.timestamp-*
 # ignore the environment files
 agentic_logic/.env
 agentic_logic/hidden/
+agentic_logic/utils/voice_chat/voice_model/

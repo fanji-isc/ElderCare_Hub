@@ -1,7 +1,6 @@
 import os, sys
 import iris
 import time
-import asyncio
 import ssl
 import smtplib
 import pytz
@@ -13,9 +12,9 @@ from dotenv import load_dotenv
 from openai import OpenAI
 from agents import set_default_openai_key, set_tracing_disabled
 from agents import Agent, Runner, ModelSettings, function_tool
-from agents.extensions.memory import AdvancedSQLiteSession
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from iris_utils.sql_context import get_schemas_metadata
+from iris_utils.parse_garmin import get_ecgdata, get_hrdata, get_sleepdata
 
 def _find_condition(file_path: str, target_condition: str) -> dict | None:
     condition_names = itemgetter("condition_names")
@@ -295,7 +294,137 @@ def get_FHIR(file_path: str) -> dict:
     except Exception as e:
         return {"status": "error", "message": f"The following error was found: {e}."}
 
-# Tools to be written:
+@function_tool
+def interprete_garmin(yesterday_datetime: datetime) -> dict:
+    """This function retrieves a summary of the Patient's ECG, HR, and Sleep Data from their Garmin Watch of the week ending on the given datetime.
+
+    arguments:
+    yesterday_datetime: The last day of the week that is to be analysed (usually yesterday).
+    
+    returns: Status of the execution of this function, and a dictionary of the 'ECG Summary', 'HR Summary', and 'Sleep Summary' of the week ending on the given date"""
+    sleep_coach = f"""
+    # ROLE: Garmin Sleep Performance Coach
+
+    # CONTEXT:
+    You are an expert physiological analyst specialized in interpreting Garmin's Firstbeat Analytics sleep data. You translate raw JSON metrics into elite-level coaching insights. You prioritize Heart Rate Variability (HRV), sleep architecture, and stress markers.
+
+    # DATA INTERPRETATION RULES:
+
+    1. RELIABILITY CHECK (The 'retro' Key):
+    - If "retro": true -> The data is a manual entry or server-side estimate. Advise the patient that sleep stage accuracy (Deep/REM) is lower.
+    - If "retro": false -> High-fidelity sensor data. Trust the metrics fully.
+
+    2. SCORE GRADIENT:
+    - 90-100: Elite/Optimal (Rare, peak recovery).
+    - 80-89: Good (Productive, healthy recovery).
+    - 60-79: Fair (Functional but sub-optimal; "The Gray Zone").
+    - Below 60: Poor (High strain, illness, or significant sleep debt).
+
+    3. METRIC DEFINITIONS:
+    - overallScore: The executive summary of the night's quality.
+    - recoveryScore: Derived from HRV. High = Nervous system is calm. Low = Systemic stress/illness.
+    - restfulnessScore: Physical movement. Low = Tossing/turning or poor sleep environment.
+
+    4. FEEDBACK ENUM MAPPING:
+
+    - [HIGH-PERFORMANCE / POSITIVE]
+        - POSITIVE_HIGHLY_RECOVERING: Exceptional HRV; the body is aggressively shedding stress.
+        - POSITIVE_RECOVERY_EXCELLENT: Peak readiness for physical or mental high-intensity tasks.
+        - POSITIVE_LONG_AND_DEEP: Prioritize physical repair; excellent for post-workout recovery.
+        - POSITIVE_LONG_AND_REFRESHING: High efficiency in clearing brain "sleep pressure" (adenosine).
+        - POSITIVE_LONG_AND_CONTINUOUS: Elite sleep efficiency; no interruptions or fragmentation.
+        - POSITIVE_OPTIMAL_STRUCTURE: Perfect ratios of Light, Deep, and REM sleep.
+        - POSITIVE_RESTFUL_EVENING: Immediate descent into recovery; no pre-sleep cortisol spikes.
+
+    - [INTERFERENCE / NEGATIVE]
+        - NEGATIVE_ALCOHOL_DETECTED: Physiological impairment; high sleeping HR and suppressed HRV.
+        - NEGATIVE_HIGH_STRESS: "Fight or Flight" mode during sleep; possible overtraining or illness.
+        - NEGATIVE_STRESSFUL_DAY: Daytime stress inhibited the transition into deep recovery.
+        - NEGATIVE_UNBALANCED_RECOVERY: Chaotic sleep cycles; usually environmental (noise/heat).
+        - NEGATIVE_LONG_AWAKE: High WASO (Wake After Sleep Onset); fragmented sleep.
+        - NEGATIVE_LATE_BEDTIME: Circadian disruption; missed the optimal hormonal sleep window.
+
+    # RESPONSE STRUCTURE:
+    1. THE HEADLINE: A punchy, one-sentence summary about {yesterday_datetime}'s sleep (e.g., "An elite recovery night with perfect structural balance." or "A restless night with higher strain than normal.")
+    2. THE "WIN": Identify the highest sub-score and explain why it's a physiological victory.
+    3. THE "BOTTLENECK": Identify the lowest sub-score. Explain the "Why" (referencing ENUMs) and the "So What" (how the patient will feel today).
+    4. THE COACH'S ADVICE: Provide one specific, actionable habit change based on the data.
+
+    When providing data, such as total hours of sleep, cross reference it against the patient's baseline / 7-day average to give the patient context for the data.
+
+    # TONE:
+    Professional and data-driven. These insights are being interpreted by an orchestrator agent as part of a wider health monitoring system. Therefore, avoid "fluff"; focus on biological impact. Refer to the patient in the third person.
+
+    # INPUT: 
+
+    """
+    ecg_analyst = f"""
+    # ROLE: ECG Precision Analyst
+
+    # CONTEXT: 
+    You are a specialist in cardiac electrophysiology. Your goal is to interpret processed Lead I ECG dictionary data to identify rhythm stability and autonomic balance.
+
+    # DATA INTERPRETATION RULES:
+    1. **Rhythm Stability:** 
+    - Analyze `sdnn_hrv_ms` and `rr_variance`. High variance in a resting state suggests a healthy "Sinus Arrhythmia," whereas extremely low variance might indicate overtraining or high stress.
+    2. **Classification Check:** 
+    - Validate the `device_classification`. If it says `SINUS_NORMAL` but `rr_variance` is high, explain the role of the Vagus nerve in heart rate modulation.
+    3. **Clinical Context:** 
+    - Explain that a Lead I ECG (from a wrist-worn device) is a snapshot of the heart's electrical activity from the left to right arm. Focus on the "timing" of the beats rather than diagnosing structural heart disease.
+
+    # TONE:
+    Clinical, precise, and objective. These insights are being interpreted by an orchestrator agent as part of a wider health monitoring system. Therefore, avoid medical jargon unless accompanied by a brief explanation. Refer to the patient in the third person. 
+
+    # INPUT: 
+
+    """
+    hr_coach = f"""
+    # ROLE: Autonomic Recovery Coach (Time-series Specialist)
+
+    # CONTEXT: 
+    You are an expert in autonomic nervous system (ANS) physiology. Your task is to interpret a structured HR analysis report to determine a user's physiological load, stress resilience, and respiratory stability.
+
+    # DATA INTERPRETATION RULES:
+    1. **The HR/Stress Correlation:** 
+    - Look at `hr_stress_correlation`. 
+        - **High (>0.7):** HR is driving stress (physical load/exercise).
+        - **Low (<0.3):** Stress is likely psychological or chemical (caffeine, anxiety), as HR and stress are "decoupled."
+    2. **Stress Extremes:** 
+    - If `is_high_stress_event` is `True`, look at the `stress_score_0_100` max value. Determine if this was a momentary spike or a sustained period of high sympathetic activation.
+    3. **Oxygen & Breathing:** 
+    - Evaluate `blood_oxygen_spo2` and `respiration_breaths_per_min`. 
+        - Flag any `spo2` averages below 95% as potential recovery inhibitors.
+        - Note if `respiration` min/max range is wide, which may indicate periods of breath-holding or intense focus ("screen apnea").
+    4. **Temporal Context:** 
+    - Use the `time_window` to orient your advice. A 60-minute window of high stress in the morning (focus) is different from a 60-minute window of high stress at midnight (poor recovery).
+
+    # TONE:
+    Insightful, analytical, and highly personalized. Translate the "Summary Metrics" into a narrative about the patient's day. These insights are being interpreted by an orchestrator agent as part of a wider health monitoring system. Therefore, avoid medical jargon unless accompanied by a brief explanation. Refer to the patient in the third person. 
+
+    # INPUT: 
+
+    """
+    try:
+        ecg_data = get_ecgdata(end_datetime=yesterday_datetime)
+        ecg_response = client.responses.create(
+            model="gpt-5.2",
+            input= ecg_analyst + json.dumps(ecg_data)
+        )
+        hr_data = get_hrdata(end_datetime=yesterday_datetime)
+        hr_response = client.responses.create(
+            model="gpt-5.2",
+            input= hr_coach + json.dumps(hr_data)
+        )
+        sleep_data = get_sleepdata(end_datetime=yesterday_datetime)
+        sleep_response = client.responses.create(
+            model="gpt-5.2",
+            input= sleep_coach + json.dumps(sleep_data)
+        )
+        return {"status": "success", "data": {"ECG Summary": ecg_response.output_text, "HR Summary": hr_response.output_text, "Sleep Summary": sleep_response.output_text}}
+    except Exception as e:
+        return {"status": "error", "message": f"The following error was found: {e}."}
+
+# TODO: Tools to be written:
 @function_tool
 def get_agent_reports() -> dict:
     """This function retrieves the Appliance Agent and Wellbeing Agent's latest daily report.
@@ -303,7 +432,6 @@ def get_agent_reports() -> dict:
     returns: Status of the execution of this function, the Appliance Agent report, and the Wellbeing Agent report"""
     return {"status": "error", "message": "Neither of the two agents have written daily reports yet."}
 
-# Also for the short summary for the wellbeing agent
 @function_tool
 def generate_report(file_path: str) -> dict:
     """This function saves the agents latest daily report to the given file path.
@@ -312,6 +440,7 @@ def generate_report(file_path: str) -> dict:
     file_path: The file to be written to.
     
     returns: Status of the execution of this function"""
+    # Also for the short summary for the wellbeing agent
     # (rn just save to a txt file, eventually store in IRIS DocDB)
     return {"status": "error", "message": "This function has not been implemented yet."}
 
@@ -326,7 +455,7 @@ wellbeing_agent = Agent(
 appliance_agent = Agent(
     name="Appliance Agent",
     instructions=appliance_desc,
-    tools=[read_sql_db, generate_report, get_agent_reports],
+    tools=[read_sql_db, interprete_garmin, generate_report, get_agent_reports],
     handoffs=[wellbeing_agent],
     model="gpt-5-mini",
     handoff_description="The Appliance Agent has access to data about the household's smart devices (lights, kettle) and the patient's Garmin watch, and is able to analyse these to look out for signs of the clinical risks."
@@ -349,108 +478,3 @@ coordinator = Agent(
     handoffs=[clinical_agent, appliance_agent, wellbeing_agent],
     model="gpt-5-mini"
 )
-
-def simulate_system(today):
-    while today <= datetime.now():
-        session = AdvancedSQLiteSession(
-            session_id="daily_monitoring",
-            create_tables=True,
-        )
-
-        check_fall_risk = f"""
-        Goal: Validate whether the given patient is a Fall Risk using the given dictionary as your window of context. If there exists agent reports, you should include those in your analysis.
-
-        High-level requirements:
-        - The format of the answer returned should be a dictionary where the first key is 'fall_risk' for the Boolean of whether the patient is or is not. The second is 'reasoning'.
-
-        Constraints:
-        - Only use the given dictionary. Do not make any inferences based on knowledge from other sources.
-
-        Dictionary: 
-        {falls_condition}
-        """
-
-        async def get_clinical_risks():
-            try:
-                result = await Runner.run(clinical_agent, check_fall_risk)
-                fall_risk_result = result.final_output
-                return {"status": "success", "risk_dict": json.loads(fall_risk_result)}
-            except Exception as e:
-                return {"status": "error", "message": f"The following error was found: {e}."}
-
-        result = asyncio.run(get_clinical_risks())
-        if result.get("status") == "success":
-            dict_result =  result.get("risk_dict")
-            is_fall_risk = dict_result.get("fall_risk")
-            reason =  dict_result.get("fall_risk")
-            print(f"The given patient has been identified as {is_fall_risk} wrt being a fall risk. The reason was: \n{reason}")
-        else:
-            print(f"Failed to query the clinical agent. {result.get("message")}")
-            exit()
-
-        if is_fall_risk:
-            # Patient requires aggressive monitoring
-            # TODO: Check the time in the script and get the orchestrator to query them to request a report is generated of the session.
-            # TODO: before calling the appliance agent, generate a summary of the patients lifestyle habits for it to monitor today against
-            appliance_tasklist = """"
-            Goal: Monitor this high fall risk patient to ensure they do not fall.
-
-            High-level requirements:
-            - Analyse the last 24 hours of smart-home logs: light on/off timestamps and kettle use times.
-            - Monitor daily Garmin data: total steps, resting heart rate, sleep duration, incident/fall alerts, and nighttime PulseOx if available.
-            - Determine a simple 7-day baseline for steps and resting heart rate. 
-                - Flag if their step count drops >30% vs baseline for 2 consecutive days.
-                - Flag if resting heart rate is >10 bpm above baseline for 2 consecutive days (possible illness/deconditioning).
-            - Flag if no steps AND no light/kettle activity by 10:00 local (possible immobility/fall).
-            - Flag if steps detected at night without any lights turning on (walking in the dark).
-            - Flag any watch incident/fall alert immediately.
-            - Flag if 3 or more light activations occur between 22:00-06:00 (possible nocturia/night wandering).
-
-            - Send a concise daily summary and any active flags to the wellbeing agent; send immediate high-priority alerts for possible fall/no-activity or incident alerts.
-            """
-            wellbeing_tasklist = """"
-            Goal: Monitor this high fall risk patient to ensure they do not fall.
-
-            High-level requirements:
-            - Check in with the patient in the morning before they get up with a summary of their previous nights sleep and previous days activities in order to advise how to best behave today.
-            - On any possible fall/no-activity or incident alert: attempt immediate check-in to confirm safety; if unresponsive or responds requesting aid, provide comfort then alert their care team.
-            - Based on the appliance agent's previous day's summary:
-                - On step-count drop or elevated resting heart rate: ask about feeling unwell, dizziness, new cough/fever; suggest rest, fluids, and contacting their care team if symptoms persist or worsen.
-                - On frequent night-time lights or dark walking: advise keeping night-lights on, clearing paths to bathroom, using the walking aid, and rising slowly from bed.
-            - Falls/orthostatic prevention tips (use in check-ins and weekly nudge): rise slowly, pause seated before standing, ankle pumps before walking, adequate daytime fluids; keep walking stick within reach; wear non-slip footwear; keep floors/clutter clear.
-            - Document patient responses and acknowledge preferences to adjust future advice and check-in timing.
-            """
-        else:
-            # Patient requires passive monitoring
-            appliance_tasklist = ""
-            wellbeing_tasklist = ""
-        
-        today += timedelta(days=1)
-        
-if __name__ == "__main__":
-    start_day = datetime.now() - timedelta(days=1)
-    simulate_system(start_day)
-
-# def get_agent_tasklist(clinical_risks):
-#     response = client.chat.completions.create(
-#         model="gpt-5", 
-#         messages=[
-#             {
-#                 "role": "system", 
-#                 "content": "You are an orchestrator agent. When given a list of clinical risks, determine what each agent's tasklist should be. "
-#                             "These tasklists should be as basic as possible. These agents have limited independency. "
-#                             "Format your answer as a dictionary with each key being an agents name, and the value is their respective tasklist. Don't duplicate the object keys, define their tasklist in a single instruction set."
-#             },
-#             {
-#                 "role": "system", 
-#                 "content": "You are an orchestrator agent for an appliance agent and a wellbeing agent. These agents have patient consent to perform the following roles: "
-#                             " - The appliance agent has access to data about the household's smart devices (lights, kettle) and the patient's Garmin watch, and is able to analyse these to look out for signs of the clinical risks. "
-#                             " - The wellbeing agent is able to interact with the patient directly through a chat interface to give them advice to avoid their clinical risks. They cannot begin an interaction and so their tasklist should be about what to look out for during sessions."
-#             },
-#             {
-#                 "role": "user", 
-#                 "content": f"Analyze this short summary of the patient's clinical risks:\n\n{clinical_risks}"
-#             }
-#         ]
-#     )
-#     return response.choices[0].message.content
