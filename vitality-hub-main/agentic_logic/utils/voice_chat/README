@@ -1,0 +1,9 @@
+This agent is proven to work on a windows machine.
+If working on linux, apply the following fix:
+
+```bash
+sudo apt update
+sudo apt install -y portaudio19-dev
+pip uninstall sounddevice -y
+pip install sounddevice
+```

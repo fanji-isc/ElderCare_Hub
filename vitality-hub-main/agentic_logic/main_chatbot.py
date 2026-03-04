@@ -11,6 +11,7 @@ from agents import set_default_openai_key, set_tracing_disabled
 from agents.extensions.memory import AdvancedSQLiteSession
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from iris_utils.sql_context import get_schemas_metadata
+from utils.voice_chat.voice_record import record_from_mic
 
 intersystems_logo = "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d2/InterSystems_logo_%282016%29.svg/2560px-InterSystems_logo_%282016%29.svg.png"
 icon = "https://logosandtypes.com/wp-content/uploads/2020/07/intersystems.svg"
