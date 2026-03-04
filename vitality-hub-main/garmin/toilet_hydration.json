@@ -1,0 +1,32 @@
+[
+  {
+    "calendarDate": "2026-01-15",
+    "deviceId": "SMART_TOILET_001",
+    "patientId": "PATIENT_001",
+    "readings": [
+      { "timestamp": "2026-01-15T06:34:00.0", "colorLevel": 6 },
+      { "timestamp": "2026-01-15T10:15:00.0", "colorLevel": 4 },
+      { "timestamp": "2026-01-15T14:02:00.0", "colorLevel": 3 },
+      { "timestamp": "2026-01-15T19:45:00.0", "colorLevel": 3 }
+    ]
+  },
+  {
+    "calendarDate": "2026-01-16",
+    "deviceId": "SMART_TOILET_001",
+    "patientId": "PATIENT_001",
+    "readings": [
+      { "timestamp": "2026-01-16T07:08:00.0", "colorLevel": 6 },
+      { "timestamp": "2026-01-16T11:30:00.0", "colorLevel": 5 },
+      { "timestamp": "2026-01-16T15:20:00.0", "colorLevel": 4 },
+      { "timestamp": "2026-01-16T20:10:00.0", "colorLevel": 3 }
+    ]
+  },
+  {
+    "calendarDate": "2026-01-17",
+    "deviceId": "SMART_TOILET_001",
+    "patientId": "PATIENT_001",
+    "readings": [
+      { "timestamp": "2026-01-17T06:52:00.0", "colorLevel": 6 }
+    ]
+  }
+]

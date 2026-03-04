@@ -1,0 +1,311 @@
+[
+  {
+    "date": "2026-02-26",
+    "activities": [
+      {
+        "id": 1,
+        "title": "Chair Yoga Session",
+        "subtitle": "Beginner friendly · Low impact",
+        "date": "Sat, Mar 1",
+        "time": "9:00 AM",
+        "location": "Oakwood Community Center, Room 3",
+        "duration": "45 min",
+        "category": "exercise",
+        "attendees": [
+          { "name": "Barbara",  "initials": "B", "color": "rose" },
+          { "name": "Eleanor",  "initials": "E", "color": "violet" },
+          { "name": "Dorothy",  "initials": "D", "color": "pink" },
+          { "name": "Ruth",     "initials": "R", "color": "amber" }
+        ],
+        "extraCount": 3,
+        "badge": "NOHA Recommends",
+        "badgeColor": "teal",
+        "highlighted": true
+      },
+      {
+        "id": 2,
+        "title": "Neighborhood Walk",
+        "subtitle": "Easy pace · Riverside Path",
+        "date": "Sun, Mar 2",
+        "time": "7:30 AM",
+        "location": "Riverside Park — main entrance",
+        "duration": "45 min",
+        "category": "walk",
+        "attendees": [
+          { "name": "George",   "initials": "G", "color": "blue" },
+          { "name": "Frances",  "initials": "F", "color": "purple" },
+          { "name": "Harold",   "initials": "H", "color": "amber" }
+        ],
+        "extraCount": 2,
+        "badge": null,
+        "badgeColor": null,
+        "highlighted": false
+      },
+      {
+        "id": 3,
+        "title": "Meditation Circle",
+        "subtitle": "Online or in-person · All welcome",
+        "date": "Tue, Mar 4",
+        "time": "10:00 AM",
+        "location": "Community Center / Zoom",
+        "duration": "30 min",
+        "category": "meditation",
+        "attendees": [
+          { "name": "Dorothy",  "initials": "D", "color": "pink" },
+          { "name": "Harold",   "initials": "H", "color": "amber" },
+          { "name": "Margaret", "initials": "M", "color": "emerald" }
+        ],
+        "extraCount": 5,
+        "badge": null,
+        "badgeColor": null,
+        "highlighted": false
+      },
+      {
+        "id": 4,
+        "title": "Nature Hiking Trip",
+        "subtitle": "Moderate trail · Group outing",
+        "date": "Fri, Mar 7",
+        "time": "9:00 AM",
+        "location": "Oakwood City Nature Reserve",
+        "duration": "2 hrs",
+        "category": "hiking",
+        "attendees": [
+          { "name": "Robert",   "initials": "R", "color": "teal" }
+        ],
+        "extraCount": 10,
+        "badge": "Spots available",
+        "badgeColor": "emerald",
+        "highlighted": false
+      },
+      {
+        "id": 5,
+        "title": "Card Games Afternoon",
+        "subtitle": "Bridge, Rummy & more · All welcome",
+        "date": "Wed, Mar 5",
+        "time": "2:00 PM",
+        "location": "Senior Lounge, Room 4",
+        "duration": "2 hrs",
+        "category": "games",
+        "attendees": [
+          { "name": "Ruth",     "initials": "R", "color": "amber" },
+          { "name": "Harold",   "initials": "H", "color": "amber" },
+          { "name": "Frances",  "initials": "F", "color": "purple" }
+        ],
+        "extraCount": 3,
+        "badge": "Weekly favourite",
+        "badgeColor": "amber",
+        "highlighted": false
+      },
+      {
+        "id": 6,
+        "title": "Memory & Storytelling",
+        "subtitle": "Share stories · Build connections",
+        "date": "Thu, Mar 6",
+        "time": "11:00 AM",
+        "location": "Community Center, Hall B",
+        "duration": "1 hr",
+        "category": "storytelling",
+        "attendees": [
+          { "name": "Margaret", "initials": "M", "color": "emerald" },
+          { "name": "Dorothy",  "initials": "D", "color": "pink" }
+        ],
+        "extraCount": 4,
+        "badge": "New session",
+        "badgeColor": "rose",
+        "highlighted": false
+      },
+      {
+        "id": 7,
+        "title": "Community Garden Club",
+        "subtitle": "Spring planting · All skill levels",
+        "date": "Sat, Mar 1",
+        "time": "10:30 AM",
+        "location": "Oakwood Community Gardens",
+        "duration": "1.5 hrs",
+        "category": "gardening",
+        "attendees": [
+          { "name": "Eleanor",  "initials": "E", "color": "violet" },
+          { "name": "George",   "initials": "G", "color": "blue" }
+        ],
+        "extraCount": 6,
+        "badge": "Spots available",
+        "badgeColor": "emerald",
+        "highlighted": false
+      },
+      {
+        "id": 8,
+        "title": "Healthy Soup Cooking Demo",
+        "subtitle": "Nutritious & easy recipes",
+        "date": "Thu, Feb 26",
+        "time": "11:00 AM",
+        "location": "Community Kitchen, Ground Floor",
+        "duration": "1 hr",
+        "category": "cooking",
+        "attendees": [
+          { "name": "Barbara",  "initials": "B", "color": "rose" },
+          { "name": "Frances",  "initials": "F", "color": "purple" },
+          { "name": "Margaret", "initials": "M", "color": "emerald" }
+        ],
+        "extraCount": 2,
+        "badge": "Today!",
+        "badgeColor": "violet",
+        "highlighted": true
+      }
+    ],
+    "feedItems": [
+      {
+        "id": 1,
+        "name": "Barbara",
+        "initials": "B",
+        "color": "rose",
+        "activity": "completed her morning walk — 2,100 steps before breakfast!",
+        "time": "32 min ago",
+        "icon": "walk"
+      },
+      {
+        "id": 2,
+        "name": "Marcus",
+        "initials": "M",
+        "color": "teal",
+        "activity": "had a great night of sleep — 7.5 hours, sleep score 88.",
+        "time": "1 hr ago",
+        "icon": "sleep"
+      },
+      {
+        "id": 3,
+        "name": "Eleanor",
+        "initials": "E",
+        "color": "violet",
+        "activity": "signed up for Saturday's Chair Yoga. \"See you there!\"",
+        "time": "2 hrs ago",
+        "icon": "event"
+      },
+      {
+        "id": 4,
+        "name": "Harold",
+        "initials": "H",
+        "color": "amber",
+        "activity": "stayed well hydrated all day — 8 glasses of water logged.",
+        "time": "3 hrs ago",
+        "icon": "health"
+      },
+      {
+        "id": 5,
+        "name": "Dorothy",
+        "initials": "D",
+        "color": "pink",
+        "activity": "joined the Tuesday Meditation Circle. First session next week!",
+        "time": "4 hrs ago",
+        "icon": "social"
+      },
+      {
+        "id": 6,
+        "name": "George",
+        "initials": "G",
+        "color": "blue",
+        "activity": "helped Ruth carry her groceries up three flights — great neighbour!",
+        "time": "Yesterday",
+        "icon": "helping"
+      },
+      {
+        "id": 7,
+        "name": "Margaret",
+        "initials": "M",
+        "color": "emerald",
+        "activity": "baked lemon muffins and left a tray in the lobby for everyone to enjoy.",
+        "time": "Yesterday",
+        "icon": "social"
+      }
+    ],
+    "helpPosts": [
+      {
+        "id": 1,
+        "type": "request",
+        "name": "Margaret",
+        "initials": "M",
+        "color": "violet",
+        "message": "Could use a ride to my eye doctor this Thursday at 2pm — Oak Street Clinic.",
+        "date": "Mon, Feb 24",
+        "time": "9:12 AM",
+        "category": "Ride"
+      },
+      {
+        "id": 101,
+        "type": "offer",
+        "name": "Barbara",
+        "initials": "B",
+        "color": "rose",
+        "message": "Happy to give rides Tues & Thurs — I pass right by the clinic and pharmacy.",
+        "date": "Mon, Feb 24",
+        "time": "8:45 AM",
+        "category": "Ride"
+      },
+      {
+        "id": 2,
+        "type": "request",
+        "name": "Harold",
+        "initials": "H",
+        "color": "amber",
+        "message": "Looking for a walking buddy Mon & Wed mornings around 7am. Any takers?",
+        "date": "Mon, Feb 24",
+        "time": "7:30 AM",
+        "category": "Companionship"
+      },
+      {
+        "id": 102,
+        "type": "offer",
+        "name": "George",
+        "initials": "G",
+        "color": "blue",
+        "message": "Made too much soup this weekend — happy to share with a neighbour!",
+        "date": "Mon, Feb 24",
+        "time": "6:50 AM",
+        "category": "Meal"
+      },
+      {
+        "id": 3,
+        "type": "request",
+        "name": "Ruth",
+        "initials": "R",
+        "color": "pink",
+        "message": "Need help carrying groceries up 3 flights — the elevator is broken this week.",
+        "date": "Sun, Feb 23",
+        "time": "4:15 PM",
+        "category": "Groceries"
+      },
+      {
+        "id": 103,
+        "type": "offer",
+        "name": "Frances",
+        "initials": "F",
+        "color": "indigo",
+        "message": "Can help set up phones, tablets, or apps on weekends. Just knock or call!",
+        "date": "Sun, Feb 23",
+        "time": "11:00 AM",
+        "category": "Tech Help"
+      },
+      {
+        "id": 4,
+        "type": "request",
+        "name": "Eleanor",
+        "initials": "E",
+        "color": "purple",
+        "message": "Anyone have a good mystery novel to lend? I've finished mine.",
+        "date": "Sat, Feb 22",
+        "time": "3:30 PM",
+        "category": "Other"
+      },
+      {
+        "id": 104,
+        "type": "offer",
+        "name": "Dorothy",
+        "initials": "D",
+        "color": "pink",
+        "message": "Free to chat over the phone any afternoon this week. Could use the company too!",
+        "date": "Sat, Feb 22",
+        "time": "1:00 PM",
+        "category": "Companionship"
+      }
+    ]
+  }
+]

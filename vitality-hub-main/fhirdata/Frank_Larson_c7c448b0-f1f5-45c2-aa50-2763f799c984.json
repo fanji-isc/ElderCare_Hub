@@ -1,0 +1,2929 @@
+{
+  "resourceType": "Bundle",
+  "type": "transaction",
+  "entry": [
+    {
+      "fullUrl": "urn:uuid:c7c448b0-f1f5-45c2-aa50-2763f799c984",
+      "resource": {
+        "resourceType": "Patient",
+        "id": "c7c448b0-f1f5-45c2-aa50-2763f799c984",
+        "text": {
+          "status": "generated",
+          "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\">Frank Larson, DOB 1951-07-14, retired engineer, widowed.</div>"
+        },
+        "extension": [
+          {
+            "url": "http://hl7.org/fhir/StructureDefinition/patient-birthPlace",
+            "valueAddress": {
+              "city": "Springfield",
+              "state": "Massachusetts",
+              "country": "US"
+            }
+          },
+          {
+            "url": "http://synthetichealth.github.io/synthea/occupation",
+            "valueString": "Retired Civil Engineer"
+          }
+        ],
+        "identifier": [
+          {
+            "type": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+                  "code": "MR",
+                  "display": "Medical Record Number"
+                }
+              ],
+              "text": "Medical Record Number"
+            },
+            "system": "http://hospital.smarthealthit.org",
+            "value": "c7c448b0-f1f5-45c2-aa50-2763f799c984"
+          },
+          {
+            "type": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+                  "code": "SS",
+                  "display": "Social Security Number"
+                }
+              ],
+              "text": "Social Security Number"
+            },
+            "system": "http://hl7.org/fhir/sid/us-ssn",
+            "value": "999-54-3821"
+          }
+        ],
+        "name": [
+          {
+            "use": "official",
+            "family": "Larson",
+            "given": [
+              "Frank"
+            ],
+            "prefix": [
+              "Mr."
+            ]
+          }
+        ],
+        "telecom": [
+          {
+            "system": "phone",
+            "value": "508-774-2291",
+            "use": "home"
+          }
+        ],
+        "gender": "male",
+        "birthDate": "1951-07-14",
+        "address": [
+          {
+            "line": [
+              "48 Birchwood Drive"
+            ],
+            "city": "Medfield",
+            "state": "Massachusetts",
+            "postalCode": "02052",
+            "country": "US"
+          }
+        ],
+        "maritalStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/v3-MaritalStatus",
+              "code": "W",
+              "display": "Widowed"
+            }
+          ],
+          "text": "Widowed"
+        },
+        "contact": [
+          {
+            "relationship": [
+              {
+                "coding": [
+                  {
+                    "system": "http://terminology.hl7.org/CodeSystem/v2-0131",
+                    "code": "N",
+                    "display": "Next-of-kin"
+                  }
+                ],
+                "text": "Son"
+              }
+            ],
+            "name": {
+              "family": "Larson",
+              "given": [
+                "David"
+              ]
+            },
+            "telecom": [
+              {
+                "system": "phone",
+                "value": "617-555-0148",
+                "use": "mobile"
+              }
+            ]
+          }
+        ],
+        "communication": [
+          {
+            "language": {
+              "coding": [
+                {
+                  "system": "urn:ietf:bcp:47",
+                  "code": "en-US",
+                  "display": "English"
+                }
+              ],
+              "text": "English"
+            }
+          }
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "url": "Patient"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:74818344-d9f5-32ad-b922-8527e2e5dfda",
+      "resource": {
+        "resourceType": "Organization",
+        "id": "74818344-d9f5-32ad-b922-8527e2e5dfda",
+        "active": true,
+        "type": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/organization-type",
+                "code": "prov",
+                "display": "Healthcare Provider"
+              }
+            ],
+            "text": "Healthcare Provider"
+          }
+        ],
+        "name": "Medfield Family Health Center",
+        "telecom": [
+          {
+            "system": "phone",
+            "value": "508-359-2100"
+          }
+        ],
+        "address": [
+          {
+            "line": [
+              "110 North Street"
+            ],
+            "city": "Medfield",
+            "state": "MA",
+            "postalCode": "02052",
+            "country": "US"
+          }
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "url": "Organization"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:ed0a1145-608a-3d0b-a4ac-6a90194702bd",
+      "resource": {
+        "resourceType": "Practitioner",
+        "id": "ed0a1145-608a-3d0b-a4ac-6a90194702bd",
+        "identifier": [
+          {
+            "system": "http://hl7.org/fhir/sid/us-npi",
+            "value": "9999801234"
+          }
+        ],
+        "active": true,
+        "name": [
+          {
+            "family": "Mitchell",
+            "given": [
+              "Sarah"
+            ],
+            "prefix": [
+              "Dr."
+            ]
+          }
+        ],
+        "telecom": [
+          {
+            "system": "email",
+            "value": "sarah.mitchell@medfieldfhc.org",
+            "use": "work"
+          }
+        ],
+        "address": [
+          {
+            "line": [
+              "110 North Street"
+            ],
+            "city": "Medfield",
+            "state": "MA",
+            "postalCode": "02052",
+            "country": "US"
+          }
+        ],
+        "gender": "female",
+        "qualification": [
+          {
+            "code": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/v2-0360",
+                  "code": "MD",
+                  "display": "Doctor of Medicine"
+                }
+              ],
+              "text": "Doctor of Medicine"
+            }
+          }
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "url": "Practitioner"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:cda49e83-fa83-4198-a1d5-e7a5400aa0b5",
+      "resource": {
+        "resourceType": "RelatedPerson",
+        "id": "cda49e83-fa83-4198-a1d5-e7a5400aa0b5",
+        "patient": {
+          "reference": "urn:uuid:c7c448b0-f1f5-45c2-aa50-2763f799c984",
+          "display": "Mr. Frank Larson"
+        },
+        "relationship": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/v3-RoleCode",
+                "code": "SONC",
+                "display": "natural son"
+              }
+            ],
+            "text": "Son"
+          }
+        ],
+        "name": [
+          {
+            "family": "Larson",
+            "given": [
+              "David"
+            ]
+          }
+        ],
+        "telecom": [
+          {
+            "system": "phone",
+            "value": "617-555-0148",
+            "use": "mobile"
+          }
+        ],
+        "gender": "male"
+      },
+      "request": {
+        "method": "POST",
+        "url": "RelatedPerson"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:1520a721-af48-4e9b-aa00-3abeab5e442d",
+      "resource": {
+        "resourceType": "Encounter",
+        "id": "1520a721-af48-4e9b-aa00-3abeab5e442d",
+        "status": "finished",
+        "class": {
+          "system": "http://terminology.hl7.org/CodeSystem/v3-ActCode",
+          "code": "AMB"
+        },
+        "type": [
+          {
+            "coding": [
+              {
+                "system": "http://snomed.info/sct",
+                "code": "444971000124105",
+                "display": "Annual wellness visit"
+              }
+            ],
+            "text": "Annual wellness visit"
+          }
+        ],
+        "subject": {
+          "reference": "urn:uuid:c7c448b0-f1f5-45c2-aa50-2763f799c984",
+          "display": "Mr. Frank Larson"
+        },
+        "participant": [
+          {
+            "individual": {
+              "reference": "urn:uuid:ed0a1145-608a-3d0b-a4ac-6a90194702bd",
+              "display": "Dr. Sarah Mitchell"
+            }
+          }
+        ],
+        "period": {
+          "start": "2022-08-15T09:00:00-05:00",
+          "end": "2022-08-15T09:45:00-05:00"
+        },
+        "reasonCode": [
+          {
+            "coding": [
+              {
+                "system": "http://snomed.info/sct",
+                "code": "57296003",
+                "display": "Osteoarthritis of knee"
+              }
+            ],
+            "text": "Annual checkup; progressive knee pain"
+          }
+        ],
+        "serviceProvider": {
+          "reference": "urn:uuid:74818344-d9f5-32ad-b922-8527e2e5dfda",
+          "display": "Medfield Family Health Center"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "url": "Encounter"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:3b183a46-0f2d-4dcd-b987-3be00d9952b7",
+      "resource": {
+        "resourceType": "Encounter",
+        "id": "3b183a46-0f2d-4dcd-b987-3be00d9952b7",
+        "status": "finished",
+        "class": {
+          "system": "http://terminology.hl7.org/CodeSystem/v3-ActCode",
+          "code": "AMB"
+        },
+        "type": [
+          {
+            "coding": [
+              {
+                "system": "http://snomed.info/sct",
+                "code": "11429006",
+                "display": "Consultation"
+              }
+            ],
+            "text": "Pre-operative orthopedic consultation"
+          }
+        ],
+        "subject": {
+          "reference": "urn:uuid:c7c448b0-f1f5-45c2-aa50-2763f799c984",
+          "display": "Mr. Frank Larson"
+        },
+        "participant": [
+          {
+            "individual": {
+              "reference": "urn:uuid:ed0a1145-608a-3d0b-a4ac-6a90194702bd",
+              "display": "Dr. Sarah Mitchell"
+            }
+          }
+        ],
+        "period": {
+          "start": "2023-11-20T10:00:00-05:00",
+          "end": "2023-11-20T10:45:00-05:00"
+        },
+        "reasonCode": [
+          {
+            "text": "Pre-operative assessment for total knee replacement. Right knee OA grade IV. Pain 8/10. Approved for surgery."
+          }
+        ],
+        "serviceProvider": {
+          "reference": "urn:uuid:74818344-d9f5-32ad-b922-8527e2e5dfda",
+          "display": "Medfield Family Health Center"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "url": "Encounter"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:39f2a292-e06d-4ca8-a7f8-eba4c3362c65",
+      "resource": {
+        "resourceType": "Encounter",
+        "id": "39f2a292-e06d-4ca8-a7f8-eba4c3362c65",
+        "status": "finished",
+        "class": {
+          "system": "http://terminology.hl7.org/CodeSystem/v3-ActCode",
+          "code": "IMP",
+          "display": "inpatient encounter"
+        },
+        "type": [
+          {
+            "coding": [
+              {
+                "system": "http://snomed.info/sct",
+                "code": "11429006",
+                "display": "Consultation"
+              }
+            ],
+            "text": "Total knee arthroplasty - inpatient admission"
+          }
+        ],
+        "subject": {
+          "reference": "urn:uuid:c7c448b0-f1f5-45c2-aa50-2763f799c984",
+          "display": "Mr. Frank Larson"
+        },
+        "participant": [
+          {
+            "individual": {
+              "reference": "urn:uuid:ed0a1145-608a-3d0b-a4ac-6a90194702bd",
+              "display": "Dr. Sarah Mitchell"
+            }
+          }
+        ],
+        "period": {
+          "start": "2024-03-12T07:30:00-05:00",
+          "end": "2024-03-15T14:00:00-05:00"
+        },
+        "hospitalization": {
+          "dischargeDisposition": {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/discharge-disposition",
+                "code": "home",
+                "display": "Home"
+              }
+            ]
+          }
+        },
+        "serviceProvider": {
+          "reference": "urn:uuid:74818344-d9f5-32ad-b922-8527e2e5dfda",
+          "display": "Medfield Family Health Center"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "url": "Encounter"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:6e0d588a-8fd5-4d3a-9701-737f8d91ca46",
+      "resource": {
+        "resourceType": "Encounter",
+        "id": "6e0d588a-8fd5-4d3a-9701-737f8d91ca46",
+        "status": "finished",
+        "class": {
+          "system": "http://terminology.hl7.org/CodeSystem/v3-ActCode",
+          "code": "AMB"
+        },
+        "type": [
+          {
+            "coding": [
+              {
+                "system": "http://snomed.info/sct",
+                "code": "390906007",
+                "display": "Follow-up encounter"
+              }
+            ],
+            "text": "Post-operative follow-up - 3 months"
+          }
+        ],
+        "subject": {
+          "reference": "urn:uuid:c7c448b0-f1f5-45c2-aa50-2763f799c984",
+          "display": "Mr. Frank Larson"
+        },
+        "participant": [
+          {
+            "individual": {
+              "reference": "urn:uuid:ed0a1145-608a-3d0b-a4ac-6a90194702bd",
+              "display": "Dr. Sarah Mitchell"
+            }
+          }
+        ],
+        "period": {
+          "start": "2024-06-15T09:30:00-05:00",
+          "end": "2024-06-15T10:00:00-05:00"
+        },
+        "reasonCode": [
+          {
+            "text": "Patient reports dizziness when standing. Adjusted antihypertensive dosing. Knee pain well-controlled at 2/10. Completing physical therapy."
+          }
+        ],
+        "serviceProvider": {
+          "reference": "urn:uuid:74818344-d9f5-32ad-b922-8527e2e5dfda",
+          "display": "Medfield Family Health Center"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "url": "Encounter"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:9a18f742-c8d0-43bd-82d7-f679275288ff",
+      "resource": {
+        "resourceType": "Encounter",
+        "id": "9a18f742-c8d0-43bd-82d7-f679275288ff",
+        "status": "finished",
+        "class": {
+          "system": "http://terminology.hl7.org/CodeSystem/v3-ActCode",
+          "code": "AMB"
+        },
+        "type": [
+          {
+            "coding": [
+              {
+                "system": "http://snomed.info/sct",
+                "code": "444971000124105",
+                "display": "Annual wellness visit"
+              }
+            ],
+            "text": "Annual wellness visit"
+          }
+        ],
+        "subject": {
+          "reference": "urn:uuid:c7c448b0-f1f5-45c2-aa50-2763f799c984",
+          "display": "Mr. Frank Larson"
+        },
+        "participant": [
+          {
+            "individual": {
+              "reference": "urn:uuid:ed0a1145-608a-3d0b-a4ac-6a90194702bd",
+              "display": "Dr. Sarah Mitchell"
+            }
+          }
+        ],
+        "period": {
+          "start": "2025-02-10T09:00:00-05:00",
+          "end": "2025-02-10T09:50:00-05:00"
+        },
+        "reasonCode": [
+          {
+            "text": "Annual visit. Patient recently lost wife Carole (January 2025). Reports low mood, poor appetite, disrupted sleep. Initiated antidepressant therapy."
+          }
+        ],
+        "serviceProvider": {
+          "reference": "urn:uuid:74818344-d9f5-32ad-b922-8527e2e5dfda",
+          "display": "Medfield Family Health Center"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "url": "Encounter"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:597bfc7a-aa67-480b-a683-c7be04ba1475",
+      "resource": {
+        "resourceType": "Encounter",
+        "id": "597bfc7a-aa67-480b-a683-c7be04ba1475",
+        "status": "finished",
+        "class": {
+          "system": "http://terminology.hl7.org/CodeSystem/v3-ActCode",
+          "code": "AMB"
+        },
+        "type": [
+          {
+            "coding": [
+              {
+                "system": "http://snomed.info/sct",
+                "code": "390906007",
+                "display": "Follow-up encounter"
+              }
+            ],
+            "text": "Follow-up: dizziness and dehydration concerns"
+          }
+        ],
+        "subject": {
+          "reference": "urn:uuid:c7c448b0-f1f5-45c2-aa50-2763f799c984",
+          "display": "Mr. Frank Larson"
+        },
+        "participant": [
+          {
+            "individual": {
+              "reference": "urn:uuid:ed0a1145-608a-3d0b-a4ac-6a90194702bd",
+              "display": "Dr. Sarah Mitchell"
+            }
+          }
+        ],
+        "period": {
+          "start": "2026-01-20T10:00:00-05:00",
+          "end": "2026-01-20T10:40:00-05:00"
+        },
+        "reasonCode": [
+          {
+            "text": "Recurring dizziness on standing, two near-falls in past month. Possible orthostatic hypotension from HCTZ + metoprolol combination. Mild dehydration suspected; serum sodium borderline elevated. Son David concerned about father living alone."
+          }
+        ],
+        "serviceProvider": {
+          "reference": "urn:uuid:74818344-d9f5-32ad-b922-8527e2e5dfda",
+          "display": "Medfield Family Health Center"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "url": "Encounter"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:442481f6-cb8a-4fa8-be78-3bb13862e0cd",
+      "resource": {
+        "resourceType": "Condition",
+        "id": "442481f6-cb8a-4fa8-be78-3bb13862e0cd",
+        "clinicalStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+              "code": "active"
+            }
+          ]
+        },
+        "verificationStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status",
+              "code": "confirmed"
+            }
+          ]
+        },
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/condition-category",
+                "code": "problem-list-item",
+                "display": "Problem List Item"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "code": "59621000",
+              "display": "Hypertension"
+            }
+          ],
+          "text": "Hypertension"
+        },
+        "subject": {
+          "reference": "urn:uuid:c7c448b0-f1f5-45c2-aa50-2763f799c984"
+        },
+        "onsetDateTime": "2005-03-15",
+        "recordedDate": "2005-03-15",
+        "note": [
+          {
+            "text": "Stage 1 hypertension, managed with HCTZ, lisinopril, and metoprolol."
+          }
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "url": "Condition"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:b929f619-e144-4daa-b900-3364e1ba62cf",
+      "resource": {
+        "resourceType": "Condition",
+        "id": "b929f619-e144-4daa-b900-3364e1ba62cf",
+        "clinicalStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+              "code": "active"
+            }
+          ]
+        },
+        "verificationStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status",
+              "code": "confirmed"
+            }
+          ]
+        },
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/condition-category",
+                "code": "problem-list-item",
+                "display": "Problem List Item"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "code": "55822004",
+              "display": "Hyperlipidemia"
+            }
+          ],
+          "text": "Hyperlipidemia"
+        },
+        "subject": {
+          "reference": "urn:uuid:c7c448b0-f1f5-45c2-aa50-2763f799c984"
+        },
+        "onsetDateTime": "2010-06-20",
+        "recordedDate": "2010-06-20",
+        "note": [
+          {
+            "text": "Managed with atorvastatin 40 mg. LDL within target range."
+          }
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "url": "Condition"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:ade45697-8f81-4b88-9c44-667d637b2059",
+      "resource": {
+        "resourceType": "Condition",
+        "id": "ade45697-8f81-4b88-9c44-667d637b2059",
+        "clinicalStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+              "code": "active"
+            }
+          ]
+        },
+        "verificationStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status",
+              "code": "confirmed"
+            }
+          ]
+        },
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/condition-category",
+                "code": "problem-list-item",
+                "display": "Problem List Item"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "code": "44054006",
+              "display": "Type 2 diabetes mellitus"
+            }
+          ],
+          "text": "Type 2 Diabetes Mellitus"
+        },
+        "subject": {
+          "reference": "urn:uuid:c7c448b0-f1f5-45c2-aa50-2763f799c984"
+        },
+        "onsetDateTime": "2012-09-10",
+        "recordedDate": "2012-09-10",
+        "note": [
+          {
+            "text": "Managed with metformin. HbA1c borderline elevated. Dehydration worsens glucose control."
+          }
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "url": "Condition"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:1ea41bc0-5b60-4ae5-8884-5f97a6598fcf",
+      "resource": {
+        "resourceType": "Condition",
+        "id": "1ea41bc0-5b60-4ae5-8884-5f97a6598fcf",
+        "clinicalStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+              "code": "active"
+            }
+          ]
+        },
+        "verificationStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status",
+              "code": "confirmed"
+            }
+          ]
+        },
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/condition-category",
+                "code": "problem-list-item",
+                "display": "Problem List Item"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "code": "57296003",
+              "display": "Osteoarthritis of knee"
+            }
+          ],
+          "text": "Osteoarthritis of the right knee"
+        },
+        "subject": {
+          "reference": "urn:uuid:c7c448b0-f1f5-45c2-aa50-2763f799c984"
+        },
+        "onsetDateTime": "2015-11-05",
+        "recordedDate": "2015-11-05",
+        "note": [
+          {
+            "text": "Progressed to grade IV. Total knee arthroplasty performed March 2024. Post-operative neuropathic pain managed with gabapentin."
+          }
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "url": "Condition"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:5fdba4e5-5144-4aed-960c-066289b3056d",
+      "resource": {
+        "resourceType": "Condition",
+        "id": "5fdba4e5-5144-4aed-960c-066289b3056d",
+        "clinicalStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+              "code": "active"
+            }
+          ]
+        },
+        "verificationStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status",
+              "code": "confirmed"
+            }
+          ]
+        },
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/condition-category",
+                "code": "problem-list-item",
+                "display": "Problem List Item"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "code": "370143000",
+              "display": "Major depressive disorder"
+            }
+          ],
+          "text": "Major Depressive Disorder - grief related"
+        },
+        "subject": {
+          "reference": "urn:uuid:c7c448b0-f1f5-45c2-aa50-2763f799c984"
+        },
+        "onsetDateTime": "2025-01-15",
+        "recordedDate": "2025-02-10",
+        "note": [
+          {
+            "text": "Onset following death of spouse Carole Larson on 2025-01-08. Reports low mood, anhedonia, poor appetite, disrupted sleep, social withdrawal. Initiated sertraline 50 mg."
+          }
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "url": "Condition"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:b15e3ab3-faac-4fc3-925f-263ef8a8f160",
+      "resource": {
+        "resourceType": "Procedure",
+        "id": "b15e3ab3-faac-4fc3-925f-263ef8a8f160",
+        "status": "completed",
+        "code": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "code": "609588000",
+              "display": "Total knee replacement"
+            }
+          ],
+          "text": "Total knee arthroplasty, right knee"
+        },
+        "subject": {
+          "reference": "urn:uuid:c7c448b0-f1f5-45c2-aa50-2763f799c984",
+          "display": "Mr. Frank Larson"
+        },
+        "encounter": {
+          "reference": "urn:uuid:39f2a292-e06d-4ca8-a7f8-eba4c3362c65"
+        },
+        "performedPeriod": {
+          "start": "2024-03-12T08:00:00-05:00",
+          "end": "2024-03-12T11:30:00-05:00"
+        },
+        "performer": [
+          {
+            "actor": {
+              "reference": "urn:uuid:ed0a1145-608a-3d0b-a4ac-6a90194702bd",
+              "display": "Dr. Sarah Mitchell"
+            }
+          }
+        ],
+        "reasonReference": [
+          {
+            "reference": "urn:uuid:1ea41bc0-5b60-4ae5-8884-5f97a6598fcf"
+          }
+        ],
+        "note": [
+          {
+            "text": "Uncomplicated total knee arthroplasty. Cemented prosthesis. 3-day inpatient stay. Discharged home with PT referral and gabapentin for neuropathic pain management."
+          }
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "url": "Procedure"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:81f9d21b-c68f-444d-8e21-19c851b75eec",
+      "resource": {
+        "resourceType": "Procedure",
+        "id": "81f9d21b-c68f-444d-8e21-19c851b75eec",
+        "status": "completed",
+        "code": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "code": "229070002",
+              "display": "Physical therapy procedure"
+            }
+          ],
+          "text": "Post-operative physical therapy - right knee"
+        },
+        "subject": {
+          "reference": "urn:uuid:c7c448b0-f1f5-45c2-aa50-2763f799c984",
+          "display": "Mr. Frank Larson"
+        },
+        "performedPeriod": {
+          "start": "2024-04-01",
+          "end": "2024-08-30"
+        },
+        "reasonReference": [
+          {
+            "reference": "urn:uuid:b15e3ab3-faac-4fc3-925f-263ef8a8f160"
+          }
+        ],
+        "note": [
+          {
+            "text": "20 sessions of outpatient PT. Achieved functional range of motion. Gait normalized. Patient cleared for independent ambulation."
+          }
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "url": "Procedure"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:c6397f62-4f7a-4d65-a45b-a205f1f7e440",
+      "resource": {
+        "resourceType": "MedicationRequest",
+        "id": "c6397f62-4f7a-4d65-a45b-a205f1f7e440",
+        "status": "active",
+        "intent": "order",
+        "medicationCodeableConcept": {
+          "coding": [
+            {
+              "system": "http://www.nlm.nih.gov/research/umls/rxnorm",
+              "code": "866514",
+              "display": "Metoprolol Succinate 50 MG Extended Release Oral Tablet"
+            }
+          ],
+          "text": "Metoprolol Succinate 50 MG Extended Release Oral Tablet"
+        },
+        "subject": {
+          "reference": "urn:uuid:c7c448b0-f1f5-45c2-aa50-2763f799c984"
+        },
+        "encounter": {
+          "reference": "urn:uuid:6e0d588a-8fd5-4d3a-9701-737f8d91ca46"
+        },
+        "authoredOn": "2024-06-15",
+        "requester": {
+          "reference": "urn:uuid:ed0a1145-608a-3d0b-a4ac-6a90194702bd",
+          "display": "Dr. Sarah Mitchell"
+        },
+        "reasonReference": [
+          {
+            "reference": "urn:uuid:442481f6-cb8a-4fa8-be78-3bb13862e0cd"
+          }
+        ],
+        "dosageInstruction": [
+          {
+            "text": "Take 1 tablet by mouth once daily. May cause dizziness \u2014 rise slowly from sitting or lying position.",
+            "timing": {
+              "repeat": {
+                "frequency": 1,
+                "period": 1.0,
+                "periodUnit": "d"
+              }
+            },
+            "asNeededBoolean": false,
+            "doseAndRate": [
+              {
+                "doseQuantity": {
+                  "value": 50,
+                  "unit": "MG",
+                  "system": "http://unitsofmeasure.org",
+                  "code": "mg"
+                }
+              }
+            ]
+          }
+        ],
+        "note": [
+          {
+            "text": "Side effects: dizziness, bradycardia, fatigue. Monitor heart rate. Advise patient not to stop abruptly."
+          }
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "url": "MedicationRequest"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:17a235a9-7f57-44bb-923d-d6e4034ab0f4",
+      "resource": {
+        "resourceType": "MedicationRequest",
+        "id": "17a235a9-7f57-44bb-923d-d6e4034ab0f4",
+        "status": "active",
+        "intent": "order",
+        "medicationCodeableConcept": {
+          "coding": [
+            {
+              "system": "http://www.nlm.nih.gov/research/umls/rxnorm",
+              "code": "314077",
+              "display": "Lisinopril 10 MG Oral Tablet"
+            }
+          ],
+          "text": "Lisinopril 10 MG Oral Tablet"
+        },
+        "subject": {
+          "reference": "urn:uuid:c7c448b0-f1f5-45c2-aa50-2763f799c984"
+        },
+        "encounter": {
+          "reference": "urn:uuid:1520a721-af48-4e9b-aa00-3abeab5e442d"
+        },
+        "authoredOn": "2022-08-15",
+        "requester": {
+          "reference": "urn:uuid:ed0a1145-608a-3d0b-a4ac-6a90194702bd",
+          "display": "Dr. Sarah Mitchell"
+        },
+        "reasonReference": [
+          {
+            "reference": "urn:uuid:442481f6-cb8a-4fa8-be78-3bb13862e0cd"
+          }
+        ],
+        "dosageInstruction": [
+          {
+            "text": "Take 1 tablet by mouth once daily. May cause dizziness, especially with first dose.",
+            "timing": {
+              "repeat": {
+                "frequency": 1,
+                "period": 1.0,
+                "periodUnit": "d"
+              }
+            },
+            "asNeededBoolean": false,
+            "doseAndRate": [
+              {
+                "doseQuantity": {
+                  "value": 10,
+                  "unit": "MG",
+                  "system": "http://unitsofmeasure.org",
+                  "code": "mg"
+                }
+              }
+            ]
+          }
+        ],
+        "note": [
+          {
+            "text": "ACE inhibitor. Side effects: dizziness, dry cough, hyperkalemia. Combined with HCTZ increases dehydration and dizziness risk."
+          }
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "url": "MedicationRequest"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:100fd0d0-414d-48ab-8660-9ee289a33f4c",
+      "resource": {
+        "resourceType": "MedicationRequest",
+        "id": "100fd0d0-414d-48ab-8660-9ee289a33f4c",
+        "status": "active",
+        "intent": "order",
+        "medicationCodeableConcept": {
+          "coding": [
+            {
+              "system": "http://www.nlm.nih.gov/research/umls/rxnorm",
+              "code": "310798",
+              "display": "Hydrochlorothiazide 25 MG Oral Tablet"
+            }
+          ],
+          "text": "Hydrochlorothiazide 25 MG Oral Tablet"
+        },
+        "subject": {
+          "reference": "urn:uuid:c7c448b0-f1f5-45c2-aa50-2763f799c984"
+        },
+        "encounter": {
+          "reference": "urn:uuid:1520a721-af48-4e9b-aa00-3abeab5e442d"
+        },
+        "authoredOn": "2005-03-15",
+        "requester": {
+          "reference": "urn:uuid:ed0a1145-608a-3d0b-a4ac-6a90194702bd",
+          "display": "Dr. Sarah Mitchell"
+        },
+        "reasonReference": [
+          {
+            "reference": "urn:uuid:442481f6-cb8a-4fa8-be78-3bb13862e0cd"
+          }
+        ],
+        "dosageInstruction": [
+          {
+            "text": "Take 1 tablet by mouth every morning. Causes increased urination \u2014 ensure adequate fluid intake to prevent dehydration.",
+            "timing": {
+              "repeat": {
+                "frequency": 1,
+                "period": 1.0,
+                "periodUnit": "d"
+              }
+            },
+            "asNeededBoolean": false,
+            "doseAndRate": [
+              {
+                "doseQuantity": {
+                  "value": 25,
+                  "unit": "MG",
+                  "system": "http://unitsofmeasure.org",
+                  "code": "mg"
+                }
+              }
+            ]
+          }
+        ],
+        "note": [
+          {
+            "text": "Thiazide diuretic. PRIMARY dehydration risk. Causes electrolyte loss, orthostatic hypotension, dizziness. Patient must drink 8+ glasses of water daily. Monitor serum sodium and potassium."
+          }
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "url": "MedicationRequest"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:f6098271-7bbc-4cee-990f-87ab50346310",
+      "resource": {
+        "resourceType": "MedicationRequest",
+        "id": "f6098271-7bbc-4cee-990f-87ab50346310",
+        "status": "active",
+        "intent": "order",
+        "medicationCodeableConcept": {
+          "coding": [
+            {
+              "system": "http://www.nlm.nih.gov/research/umls/rxnorm",
+              "code": "310429",
+              "display": "Gabapentin 300 MG Oral Capsule"
+            }
+          ],
+          "text": "Gabapentin 300 MG Oral Capsule"
+        },
+        "subject": {
+          "reference": "urn:uuid:c7c448b0-f1f5-45c2-aa50-2763f799c984"
+        },
+        "encounter": {
+          "reference": "urn:uuid:39f2a292-e06d-4ca8-a7f8-eba4c3362c65"
+        },
+        "authoredOn": "2024-03-15",
+        "requester": {
+          "reference": "urn:uuid:ed0a1145-608a-3d0b-a4ac-6a90194702bd",
+          "display": "Dr. Sarah Mitchell"
+        },
+        "reasonReference": [
+          {
+            "reference": "urn:uuid:1ea41bc0-5b60-4ae5-8884-5f97a6598fcf"
+          }
+        ],
+        "dosageInstruction": [
+          {
+            "text": "Take 1 capsule by mouth three times daily for neuropathic pain. Take with or without food. Avoid driving if dizzy.",
+            "timing": {
+              "repeat": {
+                "frequency": 3,
+                "period": 1.0,
+                "periodUnit": "d"
+              }
+            },
+            "asNeededBoolean": false,
+            "doseAndRate": [
+              {
+                "doseQuantity": {
+                  "value": 300,
+                  "unit": "MG",
+                  "system": "http://unitsofmeasure.org",
+                  "code": "mg"
+                }
+              }
+            ]
+          }
+        ],
+        "note": [
+          {
+            "text": "Post-operative neuropathic pain control. Strong dizziness and sedation side effects especially in elderly. HIGH fall risk when combined with other CNS-active drugs. Review for dose reduction."
+          }
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "url": "MedicationRequest"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:2ee564bd-0b9f-4832-821f-af95ad1dd7b6",
+      "resource": {
+        "resourceType": "MedicationRequest",
+        "id": "2ee564bd-0b9f-4832-821f-af95ad1dd7b6",
+        "status": "active",
+        "intent": "order",
+        "medicationCodeableConcept": {
+          "coding": [
+            {
+              "system": "http://www.nlm.nih.gov/research/umls/rxnorm",
+              "code": "861007",
+              "display": "Metformin HCl 500 MG Oral Tablet"
+            }
+          ],
+          "text": "Metformin HCl 500 MG Oral Tablet"
+        },
+        "subject": {
+          "reference": "urn:uuid:c7c448b0-f1f5-45c2-aa50-2763f799c984"
+        },
+        "encounter": {
+          "reference": "urn:uuid:1520a721-af48-4e9b-aa00-3abeab5e442d"
+        },
+        "authoredOn": "2012-09-10",
+        "requester": {
+          "reference": "urn:uuid:ed0a1145-608a-3d0b-a4ac-6a90194702bd",
+          "display": "Dr. Sarah Mitchell"
+        },
+        "reasonReference": [
+          {
+            "reference": "urn:uuid:ade45697-8f81-4b88-9c44-667d637b2059"
+          }
+        ],
+        "dosageInstruction": [
+          {
+            "text": "Take 1 tablet by mouth twice daily with meals.",
+            "timing": {
+              "repeat": {
+                "frequency": 2,
+                "period": 1.0,
+                "periodUnit": "d"
+              }
+            },
+            "asNeededBoolean": false,
+            "doseAndRate": [
+              {
+                "doseQuantity": {
+                  "value": 500,
+                  "unit": "MG",
+                  "system": "http://unitsofmeasure.org",
+                  "code": "mg"
+                }
+              }
+            ]
+          }
+        ],
+        "note": [
+          {
+            "text": "Caution: dehydration from HCTZ can increase lactic acidosis risk with metformin. Ensure adequate hydration."
+          }
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "url": "MedicationRequest"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:1c87e38c-3146-4632-800c-daecefb36ddf",
+      "resource": {
+        "resourceType": "MedicationRequest",
+        "id": "1c87e38c-3146-4632-800c-daecefb36ddf",
+        "status": "active",
+        "intent": "order",
+        "medicationCodeableConcept": {
+          "coding": [
+            {
+              "system": "http://www.nlm.nih.gov/research/umls/rxnorm",
+              "code": "617310",
+              "display": "Atorvastatin 40 MG Oral Tablet"
+            }
+          ],
+          "text": "Atorvastatin 40 MG Oral Tablet"
+        },
+        "subject": {
+          "reference": "urn:uuid:c7c448b0-f1f5-45c2-aa50-2763f799c984"
+        },
+        "encounter": {
+          "reference": "urn:uuid:1520a721-af48-4e9b-aa00-3abeab5e442d"
+        },
+        "authoredOn": "2010-06-20",
+        "requester": {
+          "reference": "urn:uuid:ed0a1145-608a-3d0b-a4ac-6a90194702bd",
+          "display": "Dr. Sarah Mitchell"
+        },
+        "reasonReference": [
+          {
+            "reference": "urn:uuid:b929f619-e144-4daa-b900-3364e1ba62cf"
+          }
+        ],
+        "dosageInstruction": [
+          {
+            "text": "Take 1 tablet by mouth once daily at bedtime.",
+            "timing": {
+              "repeat": {
+                "frequency": 1,
+                "period": 1.0,
+                "periodUnit": "d"
+              }
+            },
+            "asNeededBoolean": false,
+            "doseAndRate": [
+              {
+                "doseQuantity": {
+                  "value": 40,
+                  "unit": "MG",
+                  "system": "http://unitsofmeasure.org",
+                  "code": "mg"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "url": "MedicationRequest"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:1024a241-2e61-46f9-83a8-a32b37b936e3",
+      "resource": {
+        "resourceType": "MedicationRequest",
+        "id": "1024a241-2e61-46f9-83a8-a32b37b936e3",
+        "status": "active",
+        "intent": "order",
+        "medicationCodeableConcept": {
+          "coding": [
+            {
+              "system": "http://www.nlm.nih.gov/research/umls/rxnorm",
+              "code": "312940",
+              "display": "Sertraline 50 MG Oral Tablet"
+            }
+          ],
+          "text": "Sertraline 50 MG Oral Tablet"
+        },
+        "subject": {
+          "reference": "urn:uuid:c7c448b0-f1f5-45c2-aa50-2763f799c984"
+        },
+        "encounter": {
+          "reference": "urn:uuid:9a18f742-c8d0-43bd-82d7-f679275288ff"
+        },
+        "authoredOn": "2025-02-10",
+        "requester": {
+          "reference": "urn:uuid:ed0a1145-608a-3d0b-a4ac-6a90194702bd",
+          "display": "Dr. Sarah Mitchell"
+        },
+        "reasonReference": [
+          {
+            "reference": "urn:uuid:5fdba4e5-5144-4aed-960c-066289b3056d"
+          }
+        ],
+        "dosageInstruction": [
+          {
+            "text": "Take 1 tablet by mouth once daily in the morning with food. May cause dizziness, especially in the first few weeks.",
+            "timing": {
+              "repeat": {
+                "frequency": 1,
+                "period": 1.0,
+                "periodUnit": "d"
+              }
+            },
+            "asNeededBoolean": false,
+            "doseAndRate": [
+              {
+                "doseQuantity": {
+                  "value": 50,
+                  "unit": "MG",
+                  "system": "http://unitsofmeasure.org",
+                  "code": "mg"
+                }
+              }
+            ]
+          }
+        ],
+        "note": [
+          {
+            "text": "SSRI initiated for bereavement-related depression after loss of spouse Carole. Common side effects: dizziness, nausea, insomnia. Additive dizziness risk with other medications."
+          }
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "url": "MedicationRequest"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:d9bf93e4-b535-4ea8-8c27-cc9e9aed76d8",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "d9bf93e4-b535-4ea8-8c27-cc9e9aed76d8",
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "vital-signs",
+                "display": "Vital Signs"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "85354-9",
+              "display": "Blood pressure panel"
+            }
+          ],
+          "text": "Blood pressure"
+        },
+        "subject": {
+          "reference": "urn:uuid:c7c448b0-f1f5-45c2-aa50-2763f799c984"
+        },
+        "encounter": {
+          "reference": "urn:uuid:1520a721-af48-4e9b-aa00-3abeab5e442d"
+        },
+        "effectiveDateTime": "2022-08-15T09:10:00-05:00",
+        "component": [
+          {
+            "code": {
+              "coding": [
+                {
+                  "system": "http://loinc.org",
+                  "code": "8480-6",
+                  "display": "Systolic blood pressure"
+                }
+              ]
+            },
+            "valueQuantity": {
+              "value": 148,
+              "unit": "mmHg",
+              "system": "http://unitsofmeasure.org",
+              "code": "mm[Hg]"
+            }
+          },
+          {
+            "code": {
+              "coding": [
+                {
+                  "system": "http://loinc.org",
+                  "code": "8462-4",
+                  "display": "Diastolic blood pressure"
+                }
+              ]
+            },
+            "valueQuantity": {
+              "value": 92,
+              "unit": "mmHg",
+              "system": "http://unitsofmeasure.org",
+              "code": "mm[Hg]"
+            }
+          }
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "url": "Observation"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:aca9a388-d140-409e-941c-36351c581361",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "aca9a388-d140-409e-941c-36351c581361",
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "vital-signs",
+                "display": "Vital Signs"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "85354-9",
+              "display": "Blood pressure panel"
+            }
+          ],
+          "text": "Blood pressure"
+        },
+        "subject": {
+          "reference": "urn:uuid:c7c448b0-f1f5-45c2-aa50-2763f799c984"
+        },
+        "encounter": {
+          "reference": "urn:uuid:6e0d588a-8fd5-4d3a-9701-737f8d91ca46"
+        },
+        "effectiveDateTime": "2024-06-15T09:35:00-05:00",
+        "component": [
+          {
+            "code": {
+              "coding": [
+                {
+                  "system": "http://loinc.org",
+                  "code": "8480-6",
+                  "display": "Systolic blood pressure"
+                }
+              ]
+            },
+            "valueQuantity": {
+              "value": 135,
+              "unit": "mmHg",
+              "system": "http://unitsofmeasure.org",
+              "code": "mm[Hg]"
+            }
+          },
+          {
+            "code": {
+              "coding": [
+                {
+                  "system": "http://loinc.org",
+                  "code": "8462-4",
+                  "display": "Diastolic blood pressure"
+                }
+              ]
+            },
+            "valueQuantity": {
+              "value": 84,
+              "unit": "mmHg",
+              "system": "http://unitsofmeasure.org",
+              "code": "mm[Hg]"
+            }
+          }
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "url": "Observation"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:abc711d1-ec3b-4b3d-a6a2-7fde97d12660",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "abc711d1-ec3b-4b3d-a6a2-7fde97d12660",
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "vital-signs",
+                "display": "Vital Signs"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "85354-9",
+              "display": "Blood pressure panel"
+            }
+          ],
+          "text": "Blood pressure"
+        },
+        "subject": {
+          "reference": "urn:uuid:c7c448b0-f1f5-45c2-aa50-2763f799c984"
+        },
+        "encounter": {
+          "reference": "urn:uuid:597bfc7a-aa67-480b-a683-c7be04ba1475"
+        },
+        "effectiveDateTime": "2026-01-20T10:05:00-05:00",
+        "component": [
+          {
+            "code": {
+              "coding": [
+                {
+                  "system": "http://loinc.org",
+                  "code": "8480-6",
+                  "display": "Systolic blood pressure"
+                }
+              ]
+            },
+            "valueQuantity": {
+              "value": 140,
+              "unit": "mmHg",
+              "system": "http://unitsofmeasure.org",
+              "code": "mm[Hg]"
+            }
+          },
+          {
+            "code": {
+              "coding": [
+                {
+                  "system": "http://loinc.org",
+                  "code": "8462-4",
+                  "display": "Diastolic blood pressure"
+                }
+              ]
+            },
+            "valueQuantity": {
+              "value": 88,
+              "unit": "mmHg",
+              "system": "http://unitsofmeasure.org",
+              "code": "mm[Hg]"
+            }
+          }
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "url": "Observation"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:3478b411-a64a-4ea3-9303-0eb65c58381a",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "3478b411-a64a-4ea3-9303-0eb65c58381a",
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "vital-signs"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "8867-4",
+              "display": "Heart rate"
+            }
+          ],
+          "text": "Heart rate"
+        },
+        "subject": {
+          "reference": "urn:uuid:c7c448b0-f1f5-45c2-aa50-2763f799c984"
+        },
+        "encounter": {
+          "reference": "urn:uuid:1520a721-af48-4e9b-aa00-3abeab5e442d"
+        },
+        "effectiveDateTime": "2022-08-15T09:10:00-05:00",
+        "valueQuantity": {
+          "value": 78,
+          "unit": "/min",
+          "system": "http://unitsofmeasure.org",
+          "code": "/min"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "url": "Observation"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:311bab1f-a2b3-433b-a0e6-27fc79588772",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "311bab1f-a2b3-433b-a0e6-27fc79588772",
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "vital-signs"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "8867-4",
+              "display": "Heart rate"
+            }
+          ],
+          "text": "Heart rate"
+        },
+        "subject": {
+          "reference": "urn:uuid:c7c448b0-f1f5-45c2-aa50-2763f799c984"
+        },
+        "encounter": {
+          "reference": "urn:uuid:6e0d588a-8fd5-4d3a-9701-737f8d91ca46"
+        },
+        "effectiveDateTime": "2024-06-15T09:35:00-05:00",
+        "valueQuantity": {
+          "value": 62,
+          "unit": "/min",
+          "system": "http://unitsofmeasure.org",
+          "code": "/min"
+        },
+        "note": [
+          {
+            "text": "Rate controlled on metoprolol."
+          }
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "url": "Observation"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:1fde967c-3da4-49bc-b207-15017ac8d3e3",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "1fde967c-3da4-49bc-b207-15017ac8d3e3",
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "vital-signs"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "8867-4",
+              "display": "Heart rate"
+            }
+          ],
+          "text": "Heart rate"
+        },
+        "subject": {
+          "reference": "urn:uuid:c7c448b0-f1f5-45c2-aa50-2763f799c984"
+        },
+        "encounter": {
+          "reference": "urn:uuid:597bfc7a-aa67-480b-a683-c7be04ba1475"
+        },
+        "effectiveDateTime": "2026-01-20T10:05:00-05:00",
+        "valueQuantity": {
+          "value": 64,
+          "unit": "/min",
+          "system": "http://unitsofmeasure.org",
+          "code": "/min"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "url": "Observation"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:88f75525-0b91-4cd2-bb54-4ee362288b00",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "88f75525-0b91-4cd2-bb54-4ee362288b00",
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "vital-signs"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "9279-1",
+              "display": "Respiratory rate"
+            }
+          ],
+          "text": "Respiratory rate"
+        },
+        "subject": {
+          "reference": "urn:uuid:c7c448b0-f1f5-45c2-aa50-2763f799c984"
+        },
+        "encounter": {
+          "reference": "urn:uuid:597bfc7a-aa67-480b-a683-c7be04ba1475"
+        },
+        "effectiveDateTime": "2026-01-20T10:05:00-05:00",
+        "valueQuantity": {
+          "value": 15,
+          "unit": "/min",
+          "system": "http://unitsofmeasure.org",
+          "code": "/min"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "url": "Observation"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:2bc18f5f-5190-40a7-b793-a2174348ccf3",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "2bc18f5f-5190-40a7-b793-a2174348ccf3",
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "vital-signs"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "29463-7",
+              "display": "Body Weight"
+            }
+          ],
+          "text": "Body weight"
+        },
+        "subject": {
+          "reference": "urn:uuid:c7c448b0-f1f5-45c2-aa50-2763f799c984"
+        },
+        "encounter": {
+          "reference": "urn:uuid:1520a721-af48-4e9b-aa00-3abeab5e442d"
+        },
+        "effectiveDateTime": "2022-08-15T09:10:00-05:00",
+        "valueQuantity": {
+          "value": 91.2,
+          "unit": "kg",
+          "system": "http://unitsofmeasure.org",
+          "code": "kg"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "url": "Observation"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:37ea53f8-29cc-4023-ac2d-b5505538589b",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "37ea53f8-29cc-4023-ac2d-b5505538589b",
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "vital-signs"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "29463-7",
+              "display": "Body Weight"
+            }
+          ],
+          "text": "Body weight"
+        },
+        "subject": {
+          "reference": "urn:uuid:c7c448b0-f1f5-45c2-aa50-2763f799c984"
+        },
+        "encounter": {
+          "reference": "urn:uuid:6e0d588a-8fd5-4d3a-9701-737f8d91ca46"
+        },
+        "effectiveDateTime": "2024-06-15T09:35:00-05:00",
+        "valueQuantity": {
+          "value": 89.0,
+          "unit": "kg",
+          "system": "http://unitsofmeasure.org",
+          "code": "kg"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "url": "Observation"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:749da41a-a472-445b-beee-55e219f4349e",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "749da41a-a472-445b-beee-55e219f4349e",
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "vital-signs"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "29463-7",
+              "display": "Body Weight"
+            }
+          ],
+          "text": "Body weight"
+        },
+        "subject": {
+          "reference": "urn:uuid:c7c448b0-f1f5-45c2-aa50-2763f799c984"
+        },
+        "encounter": {
+          "reference": "urn:uuid:597bfc7a-aa67-480b-a683-c7be04ba1475"
+        },
+        "effectiveDateTime": "2026-01-20T10:05:00-05:00",
+        "valueQuantity": {
+          "value": 88.2,
+          "unit": "kg",
+          "system": "http://unitsofmeasure.org",
+          "code": "kg"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "url": "Observation"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:a5a49c23-0750-4ce0-a9fb-dec13ea9050c",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "a5a49c23-0750-4ce0-a9fb-dec13ea9050c",
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "vital-signs"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "39156-5",
+              "display": "Body mass index (BMI) [Ratio]"
+            }
+          ],
+          "text": "BMI"
+        },
+        "subject": {
+          "reference": "urn:uuid:c7c448b0-f1f5-45c2-aa50-2763f799c984"
+        },
+        "encounter": {
+          "reference": "urn:uuid:597bfc7a-aa67-480b-a683-c7be04ba1475"
+        },
+        "effectiveDateTime": "2026-01-20T10:05:00-05:00",
+        "valueQuantity": {
+          "value": 28.4,
+          "unit": "kg/m2",
+          "system": "http://unitsofmeasure.org",
+          "code": "kg/m2"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "url": "Observation"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:3ed7cce8-6bdf-4ad2-be18-14b390c47b69",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "3ed7cce8-6bdf-4ad2-be18-14b390c47b69",
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "survey"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "72514-3",
+              "display": "Pain severity - 0-10 verbal numeric rating [Score] - Reported"
+            }
+          ],
+          "text": "Pain severity (0-10)"
+        },
+        "subject": {
+          "reference": "urn:uuid:c7c448b0-f1f5-45c2-aa50-2763f799c984"
+        },
+        "encounter": {
+          "reference": "urn:uuid:1520a721-af48-4e9b-aa00-3abeab5e442d"
+        },
+        "effectiveDateTime": "2022-08-15T09:10:00-05:00",
+        "valueQuantity": {
+          "value": 6,
+          "unit": "{score}",
+          "system": "http://unitsofmeasure.org",
+          "code": "{score}"
+        },
+        "note": [
+          {
+            "text": "Right knee pain, worse with stairs and prolonged walking."
+          }
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "url": "Observation"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:940065fd-8d52-441f-93eb-4a8f7c118826",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "940065fd-8d52-441f-93eb-4a8f7c118826",
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "survey"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "72514-3",
+              "display": "Pain severity - 0-10 verbal numeric rating [Score] - Reported"
+            }
+          ],
+          "text": "Pain severity (0-10)"
+        },
+        "subject": {
+          "reference": "urn:uuid:c7c448b0-f1f5-45c2-aa50-2763f799c984"
+        },
+        "encounter": {
+          "reference": "urn:uuid:6e0d588a-8fd5-4d3a-9701-737f8d91ca46"
+        },
+        "effectiveDateTime": "2024-06-15T09:35:00-05:00",
+        "valueQuantity": {
+          "value": 2,
+          "unit": "{score}",
+          "system": "http://unitsofmeasure.org",
+          "code": "{score}"
+        },
+        "note": [
+          {
+            "text": "Post-TKA, well controlled on gabapentin. Mild residual stiffness in the morning."
+          }
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "url": "Observation"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:1d2a2f10-fe59-4428-8934-73da5cbd0370",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "1d2a2f10-fe59-4428-8934-73da5cbd0370",
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "survey"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "72514-3",
+              "display": "Pain severity - 0-10 verbal numeric rating [Score] - Reported"
+            }
+          ],
+          "text": "Pain severity (0-10)"
+        },
+        "subject": {
+          "reference": "urn:uuid:c7c448b0-f1f5-45c2-aa50-2763f799c984"
+        },
+        "encounter": {
+          "reference": "urn:uuid:597bfc7a-aa67-480b-a683-c7be04ba1475"
+        },
+        "effectiveDateTime": "2026-01-20T10:05:00-05:00",
+        "valueQuantity": {
+          "value": 2,
+          "unit": "{score}",
+          "system": "http://unitsofmeasure.org",
+          "code": "{score}"
+        },
+        "note": [
+          {
+            "text": "Knee pain stable. Main complaint today is dizziness on standing."
+          }
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "url": "Observation"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:948135e1-8e40-4d9b-a646-771a3800cf49",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "948135e1-8e40-4d9b-a646-771a3800cf49",
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "laboratory"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "2951-2",
+              "display": "Sodium [Moles/volume] in Serum or Plasma"
+            }
+          ],
+          "text": "Serum Sodium"
+        },
+        "subject": {
+          "reference": "urn:uuid:c7c448b0-f1f5-45c2-aa50-2763f799c984"
+        },
+        "encounter": {
+          "reference": "urn:uuid:597bfc7a-aa67-480b-a683-c7be04ba1475"
+        },
+        "effectiveDateTime": "2026-01-20T10:15:00-05:00",
+        "valueQuantity": {
+          "value": 146,
+          "unit": "mmol/L",
+          "system": "http://unitsofmeasure.org",
+          "code": "mmol/L"
+        },
+        "interpretation": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/v3-ObservationInterpretation",
+                "code": "H",
+                "display": "High"
+              }
+            ]
+          }
+        ],
+        "referenceRange": [
+          {
+            "low": {
+              "value": 135,
+              "unit": "mmol/L"
+            },
+            "high": {
+              "value": 145,
+              "unit": "mmol/L"
+            },
+            "text": "Normal: 135-145 mmol/L"
+          }
+        ],
+        "note": [
+          {
+            "text": "Borderline hypernatremia. Consistent with mild dehydration. Patient reports not drinking enough water. HCTZ contributing to fluid loss."
+          }
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "url": "Observation"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:893023cf-24a6-4ac8-86b7-ab631c654d19",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "893023cf-24a6-4ac8-86b7-ab631c654d19",
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "laboratory"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "2160-0",
+              "display": "Creatinine [Mass/volume] in Serum or Plasma"
+            }
+          ],
+          "text": "Serum Creatinine"
+        },
+        "subject": {
+          "reference": "urn:uuid:c7c448b0-f1f5-45c2-aa50-2763f799c984"
+        },
+        "encounter": {
+          "reference": "urn:uuid:597bfc7a-aa67-480b-a683-c7be04ba1475"
+        },
+        "effectiveDateTime": "2026-01-20T10:15:00-05:00",
+        "valueQuantity": {
+          "value": 1.3,
+          "unit": "mg/dL",
+          "system": "http://unitsofmeasure.org",
+          "code": "mg/dL"
+        },
+        "interpretation": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/v3-ObservationInterpretation",
+                "code": "H",
+                "display": "High"
+              }
+            ]
+          }
+        ],
+        "referenceRange": [
+          {
+            "low": {
+              "value": 0.7,
+              "unit": "mg/dL"
+            },
+            "high": {
+              "value": 1.2,
+              "unit": "mg/dL"
+            },
+            "text": "Normal male: 0.7-1.2 mg/dL"
+          }
+        ],
+        "note": [
+          {
+            "text": "Mildly elevated creatinine, consistent with pre-renal azotemia from dehydration. Trend from 1.0 (2024)."
+          }
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "url": "Observation"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:b569569f-e10f-4f3c-aaae-ae8c21d46a4c",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "b569569f-e10f-4f3c-aaae-ae8c21d46a4c",
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "laboratory"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "2339-0",
+              "display": "Glucose [Mass/volume] in Blood"
+            }
+          ],
+          "text": "Blood Glucose"
+        },
+        "subject": {
+          "reference": "urn:uuid:c7c448b0-f1f5-45c2-aa50-2763f799c984"
+        },
+        "encounter": {
+          "reference": "urn:uuid:597bfc7a-aa67-480b-a683-c7be04ba1475"
+        },
+        "effectiveDateTime": "2026-01-20T10:15:00-05:00",
+        "valueQuantity": {
+          "value": 148,
+          "unit": "mg/dL",
+          "system": "http://unitsofmeasure.org",
+          "code": "mg/dL"
+        },
+        "interpretation": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/v3-ObservationInterpretation",
+                "code": "H",
+                "display": "High"
+              }
+            ]
+          }
+        ],
+        "referenceRange": [
+          {
+            "low": {
+              "value": 70,
+              "unit": "mg/dL"
+            },
+            "high": {
+              "value": 100,
+              "unit": "mg/dL"
+            },
+            "text": "Fasting normal: 70-100 mg/dL"
+          }
+        ],
+        "note": [
+          {
+            "text": "Elevated fasting glucose. Dehydration concentrating blood glucose. Reinforce hydration and metformin adherence."
+          }
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "url": "Observation"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:5836792e-2928-4450-a4d3-3bf62de0aba1",
+      "resource": {
+        "resourceType": "CareTeam",
+        "id": "5836792e-2928-4450-a4d3-3bf62de0aba1",
+        "status": "active",
+        "subject": {
+          "reference": "urn:uuid:c7c448b0-f1f5-45c2-aa50-2763f799c984"
+        },
+        "period": {
+          "start": "2024-06-15"
+        },
+        "participant": [
+          {
+            "role": [
+              {
+                "coding": [
+                  {
+                    "system": "http://snomed.info/sct",
+                    "code": "116154003",
+                    "display": "Patient"
+                  }
+                ],
+                "text": "Patient"
+              }
+            ],
+            "member": {
+              "reference": "urn:uuid:c7c448b0-f1f5-45c2-aa50-2763f799c984",
+              "display": "Mr. Frank Larson"
+            }
+          },
+          {
+            "role": [
+              {
+                "coding": [
+                  {
+                    "system": "http://snomed.info/sct",
+                    "code": "446050000",
+                    "display": "Primary care physician"
+                  }
+                ],
+                "text": "Primary Care Physician"
+              }
+            ],
+            "member": {
+              "reference": "urn:uuid:ed0a1145-608a-3d0b-a4ac-6a90194702bd",
+              "display": "Dr. Sarah Mitchell"
+            }
+          },
+          {
+            "role": [
+              {
+                "text": "Son / Family Contact"
+              }
+            ],
+            "member": {
+              "reference": "urn:uuid:cda49e83-fa83-4198-a1d5-e7a5400aa0b5",
+              "display": "David Larson (Son)"
+            }
+          }
+        ],
+        "reasonCode": [
+          {
+            "text": "Elderly patient with multimorbidity, post-knee replacement, dizziness from polypharmacy, dehydration risk, and bereavement-related depression. Living alone."
+          }
+        ],
+        "managingOrganization": [
+          {
+            "reference": "urn:uuid:74818344-d9f5-32ad-b922-8527e2e5dfda",
+            "display": "Medfield Family Health Center"
+          }
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "url": "CareTeam"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:c75d6be6-7aab-4305-9a4e-e2afca7e76c6",
+      "resource": {
+        "resourceType": "CarePlan",
+        "id": "c75d6be6-7aab-4305-9a4e-e2afca7e76c6",
+        "text": {
+          "status": "generated",
+          "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\">Care Plan for Mr. Frank Larson: management of hypertension, T2DM, post-TKA recovery, polypharmacy dizziness, dehydration risk, and depression.</div>"
+        },
+        "status": "active",
+        "intent": "order",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://snomed.info/sct",
+                "code": "736368001",
+                "display": "Ongoing care plan"
+              }
+            ],
+            "text": "Comprehensive elderly care plan"
+          }
+        ],
+        "subject": {
+          "reference": "urn:uuid:c7c448b0-f1f5-45c2-aa50-2763f799c984"
+        },
+        "period": {
+          "start": "2024-06-15"
+        },
+        "careTeam": [
+          {
+            "reference": "urn:uuid:5836792e-2928-4450-a4d3-3bf62de0aba1"
+          }
+        ],
+        "addresses": [
+          {
+            "reference": "urn:uuid:442481f6-cb8a-4fa8-be78-3bb13862e0cd"
+          },
+          {
+            "reference": "urn:uuid:1ea41bc0-5b60-4ae5-8884-5f97a6598fcf"
+          },
+          {
+            "reference": "urn:uuid:5fdba4e5-5144-4aed-960c-066289b3056d"
+          },
+          {
+            "reference": "urn:uuid:ade45697-8f81-4b88-9c44-667d637b2059"
+          }
+        ],
+        "activity": [
+          {
+            "detail": {
+              "code": {
+                "text": "Monitor blood pressure and orthostatic vitals at every visit"
+              },
+              "status": "in-progress"
+            }
+          },
+          {
+            "detail": {
+              "code": {
+                "text": "Hydration education: minimum 8 glasses water daily to counter HCTZ-induced fluid loss"
+              },
+              "status": "in-progress"
+            }
+          },
+          {
+            "detail": {
+              "code": {
+                "text": "Fall prevention program: dizziness review, home safety assessment, grab bars recommended"
+              },
+              "status": "in-progress"
+            }
+          },
+          {
+            "detail": {
+              "code": {
+                "text": "Medication reconciliation: review gabapentin dose reduction as post-op pain resolves"
+              },
+              "status": "in-progress"
+            }
+          },
+          {
+            "detail": {
+              "code": {
+                "text": "Mental health support: monthly check-ins for depression following bereavement"
+              },
+              "status": "in-progress"
+            }
+          },
+          {
+            "detail": {
+              "code": {
+                "text": "Family engagement: coordinate care updates with son David Larson (617-555-0148)"
+              },
+              "status": "in-progress"
+            }
+          },
+          {
+            "detail": {
+              "code": {
+                "text": "Knee rehabilitation: continue home exercise program post-PT discharge"
+              },
+              "status": "in-progress"
+            }
+          },
+          {
+            "detail": {
+              "code": {
+                "text": "Diabetes management: monitor blood glucose, encourage dietary adherence, annual HbA1c"
+              },
+              "status": "in-progress"
+            }
+          }
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "url": "CarePlan"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:dbeb507a-b85c-49ba-bae1-c4799d80ce06",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "dbeb507a-b85c-49ba-bae1-c4799d80ce06",
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "vital-signs",
+                "display": "Vital Signs"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "85354-9",
+              "display": "Blood pressure panel"
+            }
+          ],
+          "text": "Blood pressure"
+        },
+        "subject": {
+          "reference": "urn:uuid:c7c448b0-f1f5-45c2-aa50-2763f799c984"
+        },
+        "effectiveDateTime": "2019-03-10T08:45:00-05:00",
+        "component": [
+          {
+            "code": {
+              "coding": [
+                {
+                  "system": "http://loinc.org",
+                  "code": "8480-6",
+                  "display": "Systolic blood pressure"
+                }
+              ]
+            },
+            "valueQuantity": {
+              "value": 158,
+              "unit": "mmHg",
+              "system": "http://unitsofmeasure.org",
+              "code": "mm[Hg]"
+            }
+          },
+          {
+            "code": {
+              "coding": [
+                {
+                  "system": "http://loinc.org",
+                  "code": "8462-4",
+                  "display": "Diastolic blood pressure"
+                }
+              ]
+            },
+            "valueQuantity": {
+              "value": 98,
+              "unit": "mmHg",
+              "system": "http://unitsofmeasure.org",
+              "code": "mm[Hg]"
+            }
+          }
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "url": "Observation"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:42c46bc1-72c4-47e0-9dc7-47884b44f2ce",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "42c46bc1-72c4-47e0-9dc7-47884b44f2ce",
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "vital-signs",
+                "display": "Vital Signs"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "85354-9",
+              "display": "Blood pressure panel"
+            }
+          ],
+          "text": "Blood pressure"
+        },
+        "subject": {
+          "reference": "urn:uuid:c7c448b0-f1f5-45c2-aa50-2763f799c984"
+        },
+        "effectiveDateTime": "2020-05-14T09:20:00-05:00",
+        "component": [
+          {
+            "code": {
+              "coding": [
+                {
+                  "system": "http://loinc.org",
+                  "code": "8480-6",
+                  "display": "Systolic blood pressure"
+                }
+              ]
+            },
+            "valueQuantity": {
+              "value": 154,
+              "unit": "mmHg",
+              "system": "http://unitsofmeasure.org",
+              "code": "mm[Hg]"
+            }
+          },
+          {
+            "code": {
+              "coding": [
+                {
+                  "system": "http://loinc.org",
+                  "code": "8462-4",
+                  "display": "Diastolic blood pressure"
+                }
+              ]
+            },
+            "valueQuantity": {
+              "value": 96,
+              "unit": "mmHg",
+              "system": "http://unitsofmeasure.org",
+              "code": "mm[Hg]"
+            }
+          }
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "url": "Observation"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:c53b6705-1244-49a1-84c9-b79d08b6fba5",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "c53b6705-1244-49a1-84c9-b79d08b6fba5",
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "vital-signs",
+                "display": "Vital Signs"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "85354-9",
+              "display": "Blood pressure panel"
+            }
+          ],
+          "text": "Blood pressure"
+        },
+        "subject": {
+          "reference": "urn:uuid:c7c448b0-f1f5-45c2-aa50-2763f799c984"
+        },
+        "effectiveDateTime": "2021-09-22T10:00:00-05:00",
+        "component": [
+          {
+            "code": {
+              "coding": [
+                {
+                  "system": "http://loinc.org",
+                  "code": "8480-6",
+                  "display": "Systolic blood pressure"
+                }
+              ]
+            },
+            "valueQuantity": {
+              "value": 150,
+              "unit": "mmHg",
+              "system": "http://unitsofmeasure.org",
+              "code": "mm[Hg]"
+            }
+          },
+          {
+            "code": {
+              "coding": [
+                {
+                  "system": "http://loinc.org",
+                  "code": "8462-4",
+                  "display": "Diastolic blood pressure"
+                }
+              ]
+            },
+            "valueQuantity": {
+              "value": 93,
+              "unit": "mmHg",
+              "system": "http://unitsofmeasure.org",
+              "code": "mm[Hg]"
+            }
+          }
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "url": "Observation"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:55c541e7-0488-44a7-b093-384df986a819",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "55c541e7-0488-44a7-b093-384df986a819",
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "vital-signs",
+                "display": "Vital Signs"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "85354-9",
+              "display": "Blood pressure panel"
+            }
+          ],
+          "text": "Blood pressure"
+        },
+        "subject": {
+          "reference": "urn:uuid:c7c448b0-f1f5-45c2-aa50-2763f799c984"
+        },
+        "effectiveDateTime": "2023-04-05T08:55:00-05:00",
+        "component": [
+          {
+            "code": {
+              "coding": [
+                {
+                  "system": "http://loinc.org",
+                  "code": "8480-6",
+                  "display": "Systolic blood pressure"
+                }
+              ]
+            },
+            "valueQuantity": {
+              "value": 143,
+              "unit": "mmHg",
+              "system": "http://unitsofmeasure.org",
+              "code": "mm[Hg]"
+            }
+          },
+          {
+            "code": {
+              "coding": [
+                {
+                  "system": "http://loinc.org",
+                  "code": "8462-4",
+                  "display": "Diastolic blood pressure"
+                }
+              ]
+            },
+            "valueQuantity": {
+              "value": 89,
+              "unit": "mmHg",
+              "system": "http://unitsofmeasure.org",
+              "code": "mm[Hg]"
+            }
+          }
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "url": "Observation"
+      }
+    }
+  ]
+}

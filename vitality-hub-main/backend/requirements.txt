@@ -3,3 +3,4 @@ uvicorn
 intersystems-irispython
 openai
 python-multipart
+requests

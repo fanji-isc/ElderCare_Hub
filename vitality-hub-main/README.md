@@ -1,6 +1,6 @@
 Welcome..
 
-## How to this project?
+## How to run this project?
 Create .env file in the root folder, and add OPENAI_API_KEY=sk-XXXXXXXXXX
 
 Simply run 'docker compose up --build'
