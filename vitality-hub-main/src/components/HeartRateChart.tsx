@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Heart } from "lucide-react";
 import { Area, AreaChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts";
 
 type EpochDescriptor = { key: string; index: number };
@@ -133,21 +134,23 @@ export function HeartRateChart() {
     new Date(ts).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit", second: "2-digit" });
 
   return (
-    <div className="rounded-2xl bg-card p-6 shadow-card">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h3 className="text-heading font-display text-foreground">Heart Rate Today</h3>
-          <p className="text-body-sm text-muted-foreground">Real time from epoch timestamps</p>
+    <div className="rounded-2xl bg-card shadow-card overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center gap-3 border-b border-border bg-gradient-to-r from-red-50 to-rose-50 px-5 py-3.5">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-heart text-primary-foreground">
+          <Heart className="h-4 w-4" />
         </div>
-
-        <div className="flex gap-4 text-body-sm">
-          <div className="flex items-center gap-2">
-            <span className="h-3 w-3 rounded-full bg-heart" />
-            <span className="text-muted-foreground">{rangeText}</span>
-          </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-foreground leading-tight">Heart Rate</p>
+          <p className="text-xs text-muted-foreground truncate">Continuous BPM · Garmin</p>
+        </div>
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          <span className="h-2 w-2 rounded-full bg-heart" />
+          <span className="text-xs text-muted-foreground">{rangeText}</span>
         </div>
       </div>
 
+      <div className="p-5">
       {error && (
         <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">
           HeartRate API error: {error}
@@ -217,6 +220,7 @@ export function HeartRateChart() {
           No heartRate values found in epochArray (or API returned empty data).
         </p>
       )}
+      </div>
     </div>
   );
 }

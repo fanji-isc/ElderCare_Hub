@@ -87,34 +87,34 @@ export function SleepChart({ patientId = "PATIENT_001" }: { patientId?: string }
 
   if (loading) return (
     <div className="rounded-2xl bg-card shadow-card overflow-hidden">
-      <div className="flex items-center gap-3 border-b border-border bg-gradient-to-r from-indigo-50 to-violet-50 px-6 py-4">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sleep text-primary-foreground">
-          <Moon className="h-5 w-5" />
+      <div className="flex items-center gap-3 border-b border-border bg-gradient-to-r from-indigo-50 to-violet-50 px-5 py-3.5">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sleep text-primary-foreground">
+          <Moon className="h-4 w-4" />
         </div>
         <div className="flex-1">
-          <h3 className="text-heading font-display text-foreground">Sleep Analysis</h3>
-          <p className="text-caption text-muted-foreground">Sleep stages from Garmin</p>
+          <h3 className="text-sm font-semibold text-foreground leading-tight">Sleep Analysis</h3>
+          <p className="text-xs text-muted-foreground">Sleep stages from Garmin</p>
         </div>
       </div>
       <div className="flex items-center justify-center h-48">
-        <p className="text-body-sm text-muted-foreground">Loading sleep data…</p>
+        <p className="text-sm text-muted-foreground">Loading sleep data…</p>
       </div>
     </div>
   );
 
   if (error || !rows.length) return (
     <div className="rounded-2xl bg-card shadow-card overflow-hidden">
-      <div className="flex items-center gap-3 border-b border-border bg-gradient-to-r from-indigo-50 to-violet-50 px-6 py-4">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sleep text-primary-foreground">
-          <Moon className="h-5 w-5" />
+      <div className="flex items-center gap-3 border-b border-border bg-gradient-to-r from-indigo-50 to-violet-50 px-5 py-3.5">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sleep text-primary-foreground">
+          <Moon className="h-4 w-4" />
         </div>
         <div className="flex-1">
-          <h3 className="text-heading font-display text-foreground">Sleep Analysis</h3>
-          <p className="text-caption text-muted-foreground">Sleep stages from Garmin</p>
+          <h3 className="text-sm font-semibold text-foreground leading-tight">Sleep Analysis</h3>
+          <p className="text-xs text-muted-foreground">Sleep stages from Garmin</p>
         </div>
       </div>
       <div className="flex items-center justify-center h-48">
-        <p className="text-body-sm text-muted-foreground">{error ?? "No sleep data available"}</p>
+        <p className="text-sm text-muted-foreground">{error ?? "No sleep data available"}</p>
       </div>
     </div>
   );
@@ -122,31 +122,31 @@ export function SleepChart({ patientId = "PATIENT_001" }: { patientId?: string }
   return (
     <div className="rounded-2xl bg-card shadow-card overflow-hidden">
       {/* Header */}
-      <div className="flex items-center gap-3 border-b border-border bg-gradient-to-r from-indigo-50 to-violet-50 px-6 py-4">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sleep text-primary-foreground">
-          <Moon className="h-5 w-5" />
+      <div className="flex items-center gap-3 border-b border-border bg-gradient-to-r from-indigo-50 to-violet-50 px-5 py-3.5">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sleep text-primary-foreground">
+          <Moon className="h-4 w-4" />
         </div>
         <div className="flex-1">
-          <h3 className="text-heading font-display text-foreground">Sleep Analysis</h3>
-          <p className="text-caption text-muted-foreground">Sleep stages from Garmin</p>
+          <h3 className="text-sm font-semibold text-foreground leading-tight">Sleep Analysis</h3>
+          <p className="text-xs text-muted-foreground">Sleep stages from Garmin</p>
         </div>
-        <div className="text-right">
-          <div className="text-heading font-display text-foreground">{avgTotal}h</div>
-          <div className="text-caption text-muted-foreground">Avg · Score {avgScore}</div>
+        <div className="text-right flex-shrink-0">
+          <div className="text-sm font-bold text-foreground">{avgTotal}h</div>
+          <div className="text-xs text-muted-foreground">Avg · Score {avgScore}</div>
         </div>
       </div>
 
-      <div className="p-6">
+      <div className="p-5">
         {/* Latest night stage breakdown */}
         {latest && (
           <div className="mb-4 grid grid-cols-3 divide-x divide-border rounded-xl border border-border">
             {(["deep", "rem", "light"] as const).map((stage) => (
               <div key={stage} className="flex flex-col items-center gap-1 py-3">
                 <span className="h-2 w-8 rounded-full" style={{ backgroundColor: STAGE[stage].color }} />
-                <span className="text-heading font-display text-foreground">
+                <span className="text-xl font-bold text-foreground">
                   {latest[stage].toFixed(1)}h
                 </span>
-                <span className="text-caption text-muted-foreground">{STAGE[stage].label}</span>
+                <span className="text-xs text-muted-foreground">{STAGE[stage].label}</span>
               </div>
             ))}
           </div>
@@ -185,7 +185,7 @@ export function SleepChart({ patientId = "PATIENT_001" }: { patientId?: string }
           {(["deep", "rem", "light"] as const).map((stage) => (
             <div key={stage} className="flex items-center gap-1.5">
               <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: STAGE[stage].color }} />
-              <span className="text-caption text-muted-foreground">{STAGE[stage].label}</span>
+              <span className="text-xs text-muted-foreground">{STAGE[stage].label}</span>
             </div>
           ))}
         </div>

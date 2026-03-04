@@ -89,8 +89,8 @@ function MetricBar({ label, display, value, scale, normalRange, level, normalLab
   return (
     <div className="space-y-1">
       <div className="flex items-baseline justify-between gap-2">
-        <span className="text-body-sm font-medium text-foreground">{label}</span>
-        <span className={`text-body-sm font-bold tabular-nums shrink-0 ${valueColor}`}>{display}</span>
+        <span className="text-sm font-medium text-foreground">{label}</span>
+        <span className={`text-sm font-bold tabular-nums shrink-0 ${valueColor}`}>{display}</span>
       </div>
       <div className="relative h-2.5 w-full rounded-full bg-muted/70">
         {/* Normal zone — green band */}
@@ -134,12 +134,12 @@ function MiniChart({
       <div className="flex items-center justify-between px-4 pt-3 pb-1">
         <div className="flex items-center gap-2">
           <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: accentColor }} />
-          <span className="text-body-sm font-semibold text-foreground">{title}</span>
+          <span className="text-sm font-semibold text-foreground">{title}</span>
         </div>
         <div className="text-right">
-          <span className="text-caption text-muted-foreground">Avg </span>
-          <span className="text-body-sm font-bold text-foreground">{avgLabel}</span>
-          <span className="text-caption text-muted-foreground ml-1">{unit}</span>
+          <span className="text-xs text-muted-foreground">Avg </span>
+          <span className="text-sm font-bold text-foreground">{avgLabel}</span>
+          <span className="text-xs text-muted-foreground ml-1">{unit}</span>
         </div>
       </div>
       <div className="px-2 pb-3">
@@ -281,13 +281,13 @@ export function WalkingActivityChart() {
     <>
       {/* ── Concise overview card ── */}
       <div className="rounded-2xl bg-card shadow-card overflow-hidden">
-        <div className="flex items-center gap-3 border-b border-border bg-gradient-to-r from-orange-50 to-amber-50 px-6 py-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-fall text-primary-foreground">
-            <Footprints className="h-5 w-5" />
+        <div className="flex items-center gap-3 border-b border-border bg-gradient-to-r from-orange-50 to-amber-50 px-5 py-3.5">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-fall text-primary-foreground">
+            <Footprints className="h-4 w-4" />
           </div>
           <div className="flex-1">
-            <h3 className="text-heading font-display text-foreground">Gait Analysis</h3>
-            <p className="text-caption text-muted-foreground">
+            <h3 className="text-sm font-semibold text-foreground leading-tight">Gait Analysis</h3>
+            <p className="text-xs text-muted-foreground">
               {latestSession
                 ? `Latest · ${fmtDate(latestSession.startTime)} at ${fmtTime(latestSession.startTime)}`
                 : "Loading…"}
@@ -295,12 +295,12 @@ export function WalkingActivityChart() {
           </div>
           {rLevels && (
             <div className={`rounded-full px-3 py-1 ${levelColor[overall]}`}>
-              <span className="text-caption font-medium">{overallLabel}</span>
+              <span className="text-xs font-medium">{overallLabel}</span>
             </div>
           )}
         </div>
 
-        <div className="p-6">
+        <div className="p-5">
         {/* Metric bars */}
         {latestSession ? (
           <div className="mb-4 space-y-3">
@@ -367,7 +367,7 @@ export function WalkingActivityChart() {
         <div className="flex items-center justify-between gap-4 rounded-xl bg-destructive/5 px-4 py-3">
           <div className="flex items-center gap-2">
             <AlertTriangle className="h-4 w-4 flex-shrink-0 text-destructive" />
-            <p className="text-body-sm text-foreground">
+            <p className="text-sm text-foreground">
               {highCount > 0 || medCount > 0
                 ? <><strong>{highCount} high</strong>{medCount > 0 ? `, ${medCount} moderate` : ""} risk patterns — {worseStrideSide}-side guarding detected.</>
                 : "Gait metrics within acceptable range."}
@@ -384,8 +384,8 @@ export function WalkingActivityChart() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-heading font-display">Gait Analysis — Details</DialogTitle>
-            <p className="text-body-sm text-muted-foreground">
+            <DialogTitle className="text-base font-semibold">Gait Analysis — Details</DialogTitle>
+            <p className="text-sm text-muted-foreground">
               {latestSession
                 ? `${fmtDate(latestSession.startTime)} · ${fmtTime(latestSession.startTime)} · ${allSessions.length} sessions`
                 : "Loading…"}
@@ -411,11 +411,11 @@ export function WalkingActivityChart() {
                       <RiskIcon level={p.level} />
                     </span>
                     <div>
-                      <p className="text-body font-medium text-foreground">{p.name}</p>
-                      <p className="text-caption text-muted-foreground">{p.detail}</p>
+                      <p className="text-sm font-medium text-foreground">{p.name}</p>
+                      <p className="text-xs text-muted-foreground">{p.detail}</p>
                     </div>
                   </div>
-                  <span className={`ml-3 flex-shrink-0 rounded-full px-2 py-0.5 text-caption font-medium capitalize ${levelColor[p.level]}`}>
+                  <span className={`ml-3 flex-shrink-0 rounded-full px-2 py-0.5 text-xs font-medium capitalize ${levelColor[p.level]}`}>
                     {p.level}
                   </span>
                 </div>
@@ -425,7 +425,7 @@ export function WalkingActivityChart() {
             {/* Sessions table */}
             <TabsContent value="sessions">
               <div className="overflow-x-auto rounded-xl border border-border">
-                <table className="w-full text-caption">
+                <table className="w-full text-xs">
                   <thead>
                     <tr className="border-b border-border bg-muted/50">
                       {["Date / Time", "Cadence", "Speed", "Stride L/R (cm)", "GCT L/R (ms)", "Symmetry", "Variability"].map((h) => (
@@ -440,7 +440,7 @@ export function WalkingActivityChart() {
                         <tr key={i} className={`border-b border-border last:border-0 ${isLatest ? "bg-primary/5 font-medium" : "hover:bg-muted/30"}`}>
                           <td className="px-3 py-2 text-foreground whitespace-nowrap">
                             {fmtDate(s.startTime)} {fmtTime(s.startTime)}
-                            {isLatest && <span className="ml-1 text-caption text-primary">(latest)</span>}
+                            {isLatest && <span className="ml-1 text-xs text-primary">(latest)</span>}
                           </td>
                           <td className={`px-3 py-2 ${riskCadence(s.cadence) !== "low" ? "text-warning" : "text-muted-foreground"}`}>{s.cadence}</td>
                           <td className={`px-3 py-2 ${riskSpeed(s.speed) !== "low" ? "text-warning" : "text-muted-foreground"}`}>{(s.speed as number).toFixed(2)}</td>
@@ -458,7 +458,7 @@ export function WalkingActivityChart() {
 
             {/* Trends */}
             <TabsContent value="trends" className="space-y-3">
-              <p className="text-caption text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 {allSessions.length} sessions · {gaitDays[0]?.calendarDate} – {latestDay?.calendarDate}
               </p>
 
@@ -545,11 +545,11 @@ export function WalkingActivityChart() {
                 {metrics.map((m) => (
                   <div key={m.label} className="flex items-center justify-between px-4 py-3">
                     <div>
-                      <p className="text-body-sm font-medium text-foreground">{m.label}</p>
-                      <p className="text-caption text-muted-foreground">Normal: {m.normal}</p>
+                      <p className="text-sm font-medium text-foreground">{m.label}</p>
+                      <p className="text-xs text-muted-foreground">Normal: {m.normal}</p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-body-sm font-semibold text-foreground">{m.value}</span>
+                      <span className="text-sm font-semibold text-foreground">{m.value}</span>
                       <span className={`h-2 w-2 rounded-full ${levelDot[m.level]}`} />
                     </div>
                   </div>

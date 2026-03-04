@@ -25,3 +25,13 @@ dist-ssr
 
 data/
 vite.config.ts.timestamp-*
+
+# Vite cache
+.vite/
+
+# Claude Code
+.claude/
+
+# Python cache
+**/__pycache__/
+**/*.pyc

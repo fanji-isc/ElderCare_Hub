@@ -300,13 +300,7 @@ def _fhir_get(resource: str, params: dict = {}):
         raise HTTPException(status_code=502, detail=f"FHIR error: {e}")
 
 
-@app.get("/api/fhir/patient")
-def get_fhir_patient():
-    bundle = _fhir_get("Patient", {"_count": "1"})
-    entries = bundle.get("entry", [])
-    if not entries:
-        raise HTTPException(status_code=404, detail="No FHIR patient found")
-    p = entries[0]["resource"]
+def _parse_patient(p: dict) -> dict:
     name = p.get("name", [{}])[0]
     given = " ".join(name.get("given", []))
     family = name.get("family", "")
@@ -320,6 +314,23 @@ def get_fhir_patient():
         "mrn": mrn,
         "address": p.get("address", [{}])[0],
     }
+
+
+@app.get("/api/fhir/patients")
+def get_fhir_patients():
+    bundle = _fhir_get("Patient", {"_count": "100"})
+    patients = [_parse_patient(e["resource"]) for e in bundle.get("entry", [])]
+    patients.sort(key=lambda p: (p["name"].split() or [""])[-1])
+    return patients
+
+
+@app.get("/api/fhir/patient")
+def get_fhir_patient():
+    bundle = _fhir_get("Patient", {"_count": "1"})
+    entries = bundle.get("entry", [])
+    if not entries:
+        raise HTTPException(status_code=404, detail="No FHIR patient found")
+    return _parse_patient(entries[0]["resource"])
 
 
 @app.get("/api/fhir/conditions")

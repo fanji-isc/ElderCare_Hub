@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Droplets } from "lucide-react";
 
-// Urine color scale (1–8) used clinically to assess hydration.
 const COLOR_SCALE = [
   { level: 1, hex: "#FEFBE4", label: "Pale Straw",  status: "Excellent",        statusColor: "text-success" },
   { level: 2, hex: "#F5EB6E", label: "Straw",        status: "Well Hydrated",    statusColor: "text-success" },
@@ -32,9 +31,7 @@ function getTimeOfDay(timestamp: string): string {
     if (hour < 18) return "Afternoon";
     if (hour < 21) return "Evening";
     return "Night";
-  } catch {
-    return "";
-  }
+  } catch { return ""; }
 }
 
 function formatDateTime(timestamp: string): { date: string; time: string } {
@@ -44,9 +41,7 @@ function formatDateTime(timestamp: string): { date: string; time: string } {
       date: d.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }),
       time: d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     };
-  } catch {
-    return { date: "—", time: "—" };
-  }
+  } catch { return { date: "—", time: "—" }; }
 }
 
 export function HydrationIndicator() {
@@ -59,9 +54,7 @@ export function HydrationIndicator() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(
-          `${API_BASE}/api/toilet?patient_id=${encodeURIComponent(PATIENT_ID)}`
-        );
+        const res = await fetch(`${API_BASE}/api/toilet?patient_id=${encodeURIComponent(PATIENT_ID)}`);
         const json = res.ok ? await res.json() : [];
         const latest = pickLatestByCalendarDate(Array.isArray(json) ? json : []);
         if (latest) {
@@ -88,86 +81,91 @@ export function HydrationIndicator() {
   return (
     <div className="rounded-2xl bg-card shadow-card overflow-hidden">
       {/* Header */}
-      <div className="flex items-center gap-3 border-b border-border bg-gradient-to-r from-cyan-50 to-sky-50 px-6 py-4">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-stress text-primary-foreground">
-          <Droplets className="h-5 w-5" />
+      <div className="flex items-center gap-3 border-b border-border bg-gradient-to-r from-cyan-50 to-sky-50 px-5 py-3.5">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-stress text-primary-foreground">
+          <Droplets className="h-4 w-4" />
         </div>
         <div className="flex-1">
-          <h3 className="text-heading font-display text-foreground">Hydration Level</h3>
-          <p className="text-caption text-muted-foreground">Smart toilet · urine color detection</p>
+          <h3 className="text-sm font-semibold text-foreground leading-tight">Hydration Level</h3>
+          <p className="text-xs text-muted-foreground">Smart toilet · urine color detection</p>
         </div>
+        {!loading && (
+          <div className="flex-shrink-0 rounded-full px-2.5 py-1 text-xs font-medium"
+            style={{ backgroundColor: detected.hex + "55", color: detected.hex === "#FEFBE4" ? "#a0900a" : detected.hex }}>
+            Lvl {detectedLevel}
+          </div>
+        )}
       </div>
 
-      <div className="p-6">
+      <div className="p-5">
         {loading ? (
-          <div className="flex items-center justify-center py-12 text-muted-foreground text-sm">
-            Loading…
-          </div>
+          <div className="flex items-center justify-center py-10 text-muted-foreground text-sm">Loading…</div>
         ) : (
-          <>
-            {/* Color scale */}
-            <div className="py-4">
-              <div className="mb-2 flex gap-1">
+          <div className="space-y-4">
+
+            {/* Color scale strip */}
+            <div>
+              <div className="flex gap-1 mb-1">
                 {COLOR_SCALE.map((c) => (
-                  <div key={c.level} className="flex flex-1 flex-col items-center gap-1">
+                  <div key={c.level} className="relative flex flex-1 flex-col items-center">
                     <div
-                      className="relative h-8 w-full rounded-md"
+                      className="h-7 w-full rounded-md transition-all"
                       style={{
                         backgroundColor: c.hex,
-                        border: c.level === detectedLevel
-                          ? "2px solid hsl(var(--foreground))"
-                          : "2px solid transparent",
+                        outline: c.level === detectedLevel ? "2px solid hsl(var(--foreground))" : "none",
+                        outlineOffset: "1px",
+                        transform: c.level === detectedLevel ? "scaleY(1.15)" : "scaleY(1)",
                       }}
-                    >
-                      {c.level === detectedLevel && (
-                        <div className="absolute -top-2 left-1/2 -translate-x-1/2">
-                          <div className="h-0 w-0 border-x-4 border-b-4 border-x-transparent border-b-foreground" />
-                        </div>
-                      )}
-                    </div>
-                    <span className="text-[10px] text-muted-foreground">{c.level}</span>
+                    />
+                    {c.level === detectedLevel && (
+                      <div className="absolute -bottom-2.5">
+                        <div className="h-0 w-0 border-x-[4px] border-t-[5px] border-x-transparent border-t-foreground" />
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
-              <div className="flex justify-between text-[10px] text-muted-foreground">
+              <div className="mt-3 flex justify-between text-[10px] text-muted-foreground px-0.5">
                 <span>Well hydrated</span>
-                <span>Dehydrated</span>
+                <span>See a doctor</span>
               </div>
             </div>
 
-            {/* Current reading */}
+            {/* Current status badge */}
             <div
-              className="mb-4 flex items-center gap-3 rounded-xl p-3"
-              style={{ backgroundColor: detected.hex + "33" }}
+              className="flex items-center gap-3 rounded-xl border px-4 py-3"
+              style={{ backgroundColor: detected.hex + "22", borderColor: detected.hex + "66" }}
             >
               <div
-                className="h-10 w-10 flex-shrink-0 rounded-lg border border-border"
-                style={{ backgroundColor: detected.hex }}
+                className="h-9 w-9 flex-shrink-0 rounded-lg shadow-sm"
+                style={{ backgroundColor: detected.hex, border: "1px solid rgba(0,0,0,0.1)" }}
               />
-              <div>
-                <p className={`text-body-sm font-semibold ${detected.statusColor}`}>{detected.status}</p>
-                <p className="text-caption text-muted-foreground">
-                  Level {detected.level} · {detected.label}
-                </p>
-                {timeOfDay && (
-                  <p className="text-[11px] text-muted-foreground italic mt-0.5">{timeOfDay}</p>
-                )}
+              <div className="min-w-0">
+                <p className={`text-sm font-semibold leading-tight ${detected.statusColor}`}>{detected.status}</p>
+                <p className="text-xs text-muted-foreground">Level {detected.level} · {detected.label}</p>
               </div>
+              {timeOfDay && (
+                <span className="ml-auto text-xs text-muted-foreground italic flex-shrink-0">{timeOfDay}</span>
+              )}
             </div>
 
             {/* Footer stats */}
-            <div className="grid grid-cols-2 gap-4 border-t border-border pt-4">
-              <div className="text-center">
-                <p className="text-display-sm font-display text-foreground">{lastReading.time}</p>
-                <p className="text-body-sm text-foreground">{lastReading.date}</p>
-                <p className="text-caption text-muted-foreground">Last Reading</p>
+            <div className="grid grid-cols-2 gap-3 border-t border-border pt-4">
+              {/* Last Reading */}
+              <div className="rounded-lg bg-muted/40 px-3 py-2.5 text-center">
+                <p className="text-base font-bold text-foreground leading-none">{lastReading.time}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">{lastReading.date}</p>
+                <p className="mt-1 text-[11px] text-muted-foreground">Last Reading</p>
               </div>
-              <div className="text-center">
-                <p className="text-display-sm font-display text-foreground">{readingsToday}x</p>
-                <p className="text-caption text-muted-foreground">Readings Today</p>
+              {/* Readings Today */}
+              <div className="rounded-lg bg-muted/40 px-3 py-2.5 text-center">
+                <p className="text-2xl font-bold text-foreground leading-none">{readingsToday}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">times</p>
+                <p className="mt-1 text-[11px] text-muted-foreground">Today</p>
               </div>
             </div>
-          </>
+
+          </div>
         )}
       </div>
     </div>

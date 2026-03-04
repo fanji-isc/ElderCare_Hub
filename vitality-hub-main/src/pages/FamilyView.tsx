@@ -5,7 +5,7 @@ import {
   Phone, Share2, Clock, TrendingUp, TrendingDown, Minus,
 } from "lucide-react";
 import { Header } from "@/components/Header";
-import { HeartRateChart } from "@/components/HeartRateCharttest";
+import { HeartRateChart } from "@/components/HeartRateChart";
 import { SleepChart } from "@/components/SleepChart";
 import { WalkingActivityChart } from "@/components/WalkingActivityChart";
 import { SmartFridgeCard } from "@/components/SmartFridgeCard";
@@ -85,7 +85,7 @@ function overallStatus(vitals: Vitals) {
   return "good";
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+// ─── Insight card ─────────────────────────────────────────────────────────────
 
 function InsightCard({
   icon: Icon, title, label, note, color, iconBg,
@@ -93,15 +93,17 @@ function InsightCard({
   icon: React.ElementType; title: string; label: string; note: string; color: string; iconBg: string;
 }) {
   return (
-    <div className="rounded-2xl bg-card p-5 shadow-card">
-      <div className="mb-3 flex items-center gap-3">
-        <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${iconBg}`}>
-          <Icon className="h-5 w-5" />
+    <div className="rounded-2xl bg-card shadow-card overflow-hidden">
+      <div className="flex items-center gap-2.5 border-b border-border px-4 py-3 bg-muted/30">
+        <div className={`flex h-7 w-7 items-center justify-center rounded-lg ${iconBg}`}>
+          <Icon className="h-3.5 w-3.5" />
         </div>
-        <span className="text-body-sm font-medium text-muted-foreground">{title}</span>
+        <span className="text-xs font-medium text-muted-foreground">{title}</span>
       </div>
-      <p className={`text-xl font-bold ${color}`}>{label}</p>
-      <p className="mt-1 text-body-sm text-muted-foreground">{note}</p>
+      <div className="px-4 py-3.5">
+        <p className={`text-lg font-bold leading-tight ${color}`}>{label}</p>
+        <p className="mt-0.5 text-xs text-muted-foreground leading-snug">{note}</p>
+      </div>
     </div>
   );
 }
@@ -142,31 +144,34 @@ const FamilyView = () => {
   const statusConfig = {
     good: {
       icon: ShieldCheck,
-      bg: "from-emerald-50 to-teal-50 border-emerald-200",
+      gradient: "from-emerald-50 to-teal-50",
+      border: "border-emerald-200",
       iconBg: "bg-emerald-500",
-      text: "text-emerald-800",
-      sub: "text-emerald-600",
-      badge: "bg-emerald-100 text-emerald-700",
+      text: "text-emerald-900",
+      sub: "text-emerald-700",
+      badge: "bg-emerald-100 text-emerald-700 border border-emerald-200",
       message: "Frank is doing well today",
       sub2: "All vitals look healthy — no concerns to report.",
     },
     fair: {
       icon: AlertCircle,
-      bg: "from-amber-50 to-yellow-50 border-amber-200",
+      gradient: "from-amber-50 to-yellow-50",
+      border: "border-amber-200",
       iconBg: "bg-amber-500",
-      text: "text-amber-800",
-      sub: "text-amber-600",
-      badge: "bg-amber-100 text-amber-700",
+      text: "text-amber-900",
+      sub: "text-amber-700",
+      badge: "bg-amber-100 text-amber-700 border border-amber-200",
       message: "Frank is generally okay",
       sub2: "A few things are slightly off — worth keeping an eye on.",
     },
     warn: {
       icon: AlertTriangle,
-      bg: "from-rose-50 to-red-50 border-rose-200",
+      gradient: "from-rose-50 to-red-50",
+      border: "border-rose-200",
       iconBg: "bg-rose-500",
-      text: "text-rose-800",
-      sub: "text-rose-600",
-      badge: "bg-rose-100 text-rose-700",
+      text: "text-rose-900",
+      sub: "text-rose-700",
+      badge: "bg-rose-100 text-rose-700 border border-rose-200",
       message: "Frank may need your attention",
       sub2: "Some vitals are outside the normal range — consider checking in.",
     },
@@ -174,7 +179,6 @@ const FamilyView = () => {
 
   const StatusIcon = statusConfig.icon;
 
-  // Build a natural-language summary paragraph
   const highlights: string[] = [];
   if (vitals.sleepHours > 0) highlights.push(sleep.status === "good" ? `He slept ${vitals.sleepHours.toFixed(1)} hours — well rested.` : `He only slept ${vitals.sleepHours.toFixed(1)} hours last night.`);
   if (vitals.steps > 0) highlights.push(steps.status === "good" ? `He's been active with ${vitals.steps.toLocaleString()} steps today.` : `He logged ${vitals.steps.toLocaleString()} steps today — a lighter day.`);
@@ -185,90 +189,100 @@ const FamilyView = () => {
     <div className="min-h-screen bg-background">
       <Header />
 
-      <main className="container mx-auto px-4 py-8 sm:px-6">
+      <main className="container mx-auto px-4 py-6 sm:px-6 max-w-7xl">
 
         {/* ── Page header ──────────────────────────────────────────── */}
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="text-display-sm font-display font-semibold text-foreground">
-              Frank's Health Summary
-            </h2>
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-slate-600 to-slate-800 text-white text-sm font-bold flex-shrink-0">
+              FL
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-foreground leading-tight">Frank Larson</h2>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <Clock className="h-3 w-3 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">Updated today</span>
+              </div>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={() => toast.info("Calling Frank…")}>
-              <Phone className="mr-1.5 h-4 w-4" />
+              <Phone className="mr-1.5 h-3.5 w-3.5" />
               Call Frank
             </Button>
             <Button size="sm" onClick={() => toast.info("Opening share options…")}>
-              <Share2 className="mr-1.5 h-4 w-4" />
+              <Share2 className="mr-1.5 h-3.5 w-3.5" />
               Share Report
             </Button>
           </div>
         </div>
 
         {/* ── Overall status banner ─────────────────────────────────── */}
-        <div className={`mb-8 flex items-start gap-5 rounded-2xl border bg-gradient-to-br p-6 shadow-card ${statusConfig.bg}`}>
-          <div className={`flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl shadow-sm ${statusConfig.iconBg}`}>
-            <StatusIcon className="h-7 w-7 text-white" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h3 className={`text-2xl font-display font-bold ${statusConfig.text}`}>
-                {statusConfig.message}
-              </h3>
-              <span className={`rounded-full px-3 py-0.5 text-body-sm font-medium ${statusConfig.badge}`}>
-                {overall === "good" ? "All good" : overall === "fair" ? "Monitor" : "Attention needed"}
-              </span>
+        <div className={`mb-6 rounded-2xl border bg-gradient-to-r overflow-hidden shadow-card ${statusConfig.gradient} ${statusConfig.border}`}>
+          <div className="flex items-start gap-4 p-5">
+            <div className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl shadow-sm ${statusConfig.iconBg}`}>
+              <StatusIcon className="h-5 w-5 text-white" />
             </div>
-            <p className={`mt-1 text-body ${statusConfig.sub}`}>{statusConfig.sub2}</p>
-            {highlights.length > 0 && (
-              <p className="mt-3 text-body text-foreground/80 leading-relaxed">
-                {highlights.join(" ")}
-              </p>
-            )}
-          </div>
-          <div className="hidden flex-shrink-0 items-center gap-1.5 text-caption text-muted-foreground sm:flex">
-            <Clock className="h-3.5 w-3.5" />
-            Updated today
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-wrap items-center gap-2 mb-1">
+                <h3 className={`text-base font-bold ${statusConfig.text}`}>{statusConfig.message}</h3>
+                <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${statusConfig.badge}`}>
+                  {overall === "good" ? "All good" : overall === "fair" ? "Monitor" : "Attention needed"}
+                </span>
+              </div>
+              <p className={`text-sm ${statusConfig.sub}`}>{statusConfig.sub2}</p>
+              {highlights.length > 0 && (
+                <p className="mt-2 text-sm text-foreground/75 leading-relaxed">
+                  {highlights.join(" ")}
+                </p>
+              )}
+            </div>
           </div>
         </div>
 
         {/* ── Four insight cards ────────────────────────────────────── */}
-        <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mb-6 grid gap-3 grid-cols-2 lg:grid-cols-4">
           <InsightCard
             icon={Moon} title="Sleep Last Night"
             label={sleep.label} note={sleep.note}
-            color={sleep.color} iconBg="bg-sleep/10 text-sleep"
+            color={sleep.color} iconBg="bg-sleep/15 text-sleep"
           />
           <InsightCard
             icon={Heart} title="Resting Heart Rate"
             label={heart.label} note={heart.note}
-            color={heart.color} iconBg="bg-heart/10 text-heart"
+            color={heart.color} iconBg="bg-heart/15 text-heart"
           />
           <InsightCard
             icon={Footprints} title="Steps Today"
             label={steps.label} note={steps.note}
-            color={steps.color} iconBg="bg-ecg/10 text-ecg"
+            color={steps.color} iconBg="bg-ecg/15 text-ecg"
           />
           <InsightCard
             icon={Activity} title="Stress Level"
             label={stress.label} note={stress.note}
-            color={stress.color} iconBg="bg-stress/10 text-stress"
+            color={stress.color} iconBg="bg-stress/15 text-stress"
           />
         </div>
 
- <div className="mb-6 grid gap-6 lg:grid-cols-2">
-              <HeartRateChart />
-              <ECGVisualization />
-            </div>
-            <div className="mb-6 grid gap-6 lg:grid-cols-2">
-              <SleepChart />
-              <HydrationIndicator />
-            </div>
-            <div className="grid gap-6 lg:grid-cols-2">
-              <WalkingActivityChart />
-              <SmartFridgeCard />
-            </div>
+        {/* ── Section label ─────────────────────────────────────────── */}
+        <div className="mb-4 flex items-center gap-3">
+          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Today's Health Data</span>
+          <div className="flex-1 h-px bg-border" />
+        </div>
+
+        {/* ── Charts ────────────────────────────────────────────────── */}
+        <div className="mb-5 grid gap-5 lg:grid-cols-2">
+          <HeartRateChart />
+          <ECGVisualization />
+        </div>
+        <div className="mb-5 grid gap-5 lg:grid-cols-2">
+          <SleepChart />
+          <HydrationIndicator />
+        </div>
+        <div className="grid gap-5 lg:grid-cols-2">
+          <WalkingActivityChart />
+          <SmartFridgeCard />
+        </div>
 
       </main>
     </div>

@@ -69,29 +69,29 @@ export function SmartFridgeCard() {
     <div className="rounded-2xl bg-card shadow-card overflow-hidden">
 
       {/* Banner header */}
-      <div className="flex items-center gap-3 border-b border-border bg-gradient-to-r from-teal-50 to-emerald-50 px-6 py-4">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-500 text-primary-foreground">
-          <Refrigerator className="h-5 w-5" />
+      <div className="flex items-center gap-3 border-b border-border bg-gradient-to-r from-teal-50 to-emerald-50 px-5 py-3.5">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-500 text-primary-foreground">
+          <Refrigerator className="h-4 w-4" />
         </div>
         <div className="flex-1">
-          <h3 className="text-heading font-display text-foreground">Smart Fridge</h3>
-          <p className="text-caption text-muted-foreground">Diet & nutrition monitoring</p>
+          <h3 className="text-sm font-semibold text-foreground leading-tight">Smart Fridge</h3>
+          <p className="text-xs text-muted-foreground">Diet & nutrition monitoring</p>
         </div>
-        <span className="text-caption text-muted-foreground">
+        <span className="text-xs text-muted-foreground flex-shrink-0">
           {new Date(data.calendarDate + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
         </span>
       </div>
 
-      <div className="space-y-4 p-6">
+      <div className="space-y-4 p-5">
 
         {/* Calories */}
         <div>
           <div className="mb-1.5 flex items-center justify-between">
-            <div className="flex items-center gap-1.5 text-body-sm font-medium text-foreground">
+            <div className="flex items-center gap-1.5 text-sm font-medium text-foreground">
               <Flame className="h-4 w-4 text-orange-500" />
               Calories Today
             </div>
-            <span className="text-body-sm font-bold text-orange-600">{n.calories} / {CALORIE_GOAL} kcal</span>
+            <span className="text-sm font-bold text-orange-600">{n.calories} / {CALORIE_GOAL} kcal</span>
           </div>
           <div className="h-2 w-full rounded-full bg-muted">
             <div
@@ -99,12 +99,12 @@ export function SmartFridgeCard() {
               style={{ width: `${caloriePct}%` }}
             />
           </div>
-          <p className="mt-1 text-caption text-muted-foreground">{caloriePct}% of daily goal</p>
+          <p className="mt-1 text-xs text-muted-foreground">{caloriePct}% of daily goal</p>
         </div>
 
         {/* Meals */}
         <div>
-          <div className="mb-2 flex items-center gap-1.5 text-body-sm font-medium text-muted-foreground">
+          <div className="mb-2 flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
             <Utensils className="h-3.5 w-3.5" />
             Meals Detected
           </div>
@@ -112,11 +112,11 @@ export function SmartFridgeCard() {
             {meals.map((m, i) => (
               <div key={i} className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2">
                 <div>
-                  <span className="text-body-sm font-medium text-foreground">{m.meal}</span>
-                  <span className="ml-2 text-caption text-muted-foreground">{m.time}</span>
-                  <p className="text-caption text-muted-foreground">{m.items.join(" · ")}</p>
+                  <span className="text-sm font-medium text-foreground">{m.meal}</span>
+                  <span className="ml-2 text-xs text-muted-foreground">{m.time}</span>
+                  <p className="text-xs text-muted-foreground">{m.items.join(" · ")}</p>
                 </div>
-                <span className="text-caption font-semibold text-orange-600">{m.calories} kcal</span>
+                <span className="text-xs font-semibold text-orange-600">{m.calories} kcal</span>
               </div>
             ))}
           </div>
@@ -127,13 +127,13 @@ export function SmartFridgeCard() {
           <div className="rounded-xl border border-rose-200 bg-rose-50 p-3">
             <div className="mb-2 flex items-center gap-2">
               <ShoppingCart className="h-4 w-4 text-rose-500" />
-              <p className="text-body-sm font-semibold text-rose-800">
+              <p className="text-sm font-semibold text-rose-800">
                 Shopping needed — {lowStock.length} item{lowStock.length > 1 ? "s" : ""} running low
               </p>
             </div>
             <div className="flex flex-wrap gap-1.5">
               {lowStock.map((item, i) => (
-                <span key={i} className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-0.5 text-caption font-medium text-rose-700 shadow-sm">
+                <span key={i} className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-0.5 text-xs font-medium text-rose-700 shadow-sm">
                   {item.item}
                   <span className="text-muted-foreground">· {item.quantity}</span>
                 </span>
@@ -148,7 +148,7 @@ export function SmartFridgeCard() {
             {expiring.map((a, i) => (
               <div key={i} className="flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2">
                 <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0 text-amber-500" />
-                <p className="text-caption text-amber-800">{a.message}</p>
+                <p className="text-xs text-amber-800">{a.message}</p>
               </div>
             ))}
           </div>
