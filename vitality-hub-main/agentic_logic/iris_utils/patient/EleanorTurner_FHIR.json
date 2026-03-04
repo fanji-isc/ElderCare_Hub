@@ -1,0 +1,2257 @@
+{
+	"resourceType": "Bundle",
+	"type": "transaction",
+	"entry": [
+		{
+			"request": {
+				"method": "POST",
+				"url": "Organization"
+			},
+			"fullUrl": "urn:uuid:3324c86b-01b2-11f1-a364-005056a36bc1",
+			"resource": {
+				"resourceType": "Organization",
+				"identifier": [
+					{
+						"value": "YGH"
+					}
+				],
+				"name": "YGH"
+			}
+		},
+		{
+			"request": {
+				"method": "POST",
+				"url": "Organization"
+			},
+			"fullUrl": "urn:uuid:33251269-01b2-11f1-a364-005056a36bc1",
+			"resource": {
+				"resourceType": "Organization",
+				"identifier": [
+					{
+						"value": "GPYORK"
+					}
+				],
+				"name": "GPYORK"
+			}
+		},
+		{
+			"request": {
+				"method": "POST",
+				"url": "Organization"
+			},
+			"fullUrl": "urn:uuid:33252271-01b2-11f1-a364-005056a36bc1",
+			"resource": {
+				"resourceType": "Organization",
+				"identifier": [
+					{
+						"value": "COMMCARE"
+					}
+				],
+				"name": "COMMCARE"
+			}
+		},
+		{
+			"request": {
+				"method": "POST",
+				"url": "Patient"
+			},
+			"fullUrl": "urn:uuid:33257bbf-01b2-11f1-a364-005056a36bc1",
+			"resource": {
+				"resourceType": "Patient",
+				"address": [
+					{
+						"city": "York",
+						"country": "United Kingdom",
+						"extension": [
+							{
+								"url": "http://intersystems.com/fhir/extn/sda3/lib/address-country-code",
+								"valueCode": "UK"
+							}
+						],
+						"line": [
+							"42 Meadow Lane"
+						],
+						"postalCode": "YO10 4AB",
+						"state": "N YORKS"
+					}
+				],
+				"birthDate": "1943-11-03",
+				"extension": [
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/patient-entered-on",
+						"valueDateTime": "2016-02-21T09:00:00+00:00"
+					},
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/patient-marital-status",
+						"valueCodeableConcept": {
+							"coding": [
+								{
+									"code": "Widowed/Surviving Civil Partner",
+									"display": "Widowed/Surviving Civil Partner"
+								}
+							]
+						}
+					}
+				],
+				"gender": "female",
+				"identifier": [
+					{
+						"extension": [
+							{
+								"url": "https://fhir.hl7.org.uk/StructureDefinition/Extension-UKCore-NHSNumberVerificationStatus",
+								"valueCodeableConcept": {
+									"coding": [
+										{
+											"code": "02",
+											"display": "Number present but not traced",
+											"system": "https://fhir.hl7.org.uk/CodeSystem/UKCore-NHSNumberVerificationStatus",
+											"version": "1.0.0"
+										}
+									]
+								}
+							}
+						],
+						"system": "https://fhir.nhs.uk/Id/nhs-number",
+						"value": "1043321810"
+					},
+					{
+						"assigner": {
+							"reference": "urn:uuid:3324c86b-01b2-11f1-a364-005056a36bc1"
+						},
+						"system": "https://YGH.nhs.uk",
+						"type": {
+							"coding": [
+								{
+									"code": "MR",
+									"system": "http://terminology.hl7.org/CodeSystem/v2-0203"
+								}
+							],
+							"text": "MRN"
+						},
+						"value": "HYF9SXM"
+					},
+					{
+						"assigner": {
+							"reference": "urn:uuid:33251269-01b2-11f1-a364-005056a36bc1"
+						},
+						"system": "https://GPYORK.nhs.uk",
+						"type": {
+							"coding": [
+								{
+									"code": "MR",
+									"system": "http://terminology.hl7.org/CodeSystem/v2-0203"
+								}
+							],
+							"text": "MRN"
+						},
+						"value": "COSFOGY"
+					},
+					{
+						"assigner": {
+							"reference": "urn:uuid:33252271-01b2-11f1-a364-005056a36bc1"
+						},
+						"system": "https://COMMCARE.nhs.uk",
+						"type": {
+							"coding": [
+								{
+									"code": "MR",
+									"system": "http://terminology.hl7.org/CodeSystem/v2-0203"
+								}
+							],
+							"text": "MRN"
+						},
+						"value": "YGWWQC3"
+					}
+				],
+				"managingOrganization": {
+					"reference": "urn:uuid:3324c86b-01b2-11f1-a364-005056a36bc1"
+				},
+				"name": [
+					{
+						"family": "Turner",
+						"given": [
+							"Eleanor"
+						],
+						"text": "Eleanor Turner",
+						"use": "official"
+					}
+				]
+			}
+		},
+		{
+			"request": {
+				"method": "POST",
+				"url": "Practitioner"
+			},
+			"fullUrl": "urn:uuid:3325afde-01b2-11f1-a364-005056a36bc1",
+			"resource": {
+				"resourceType": "Practitioner",
+				"extension": [
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/code-table-detail-care-provider-description",
+						"valueString": "Hughes, Daniel"
+					}
+				],
+				"identifier": [
+					{
+						"value": "CONS112"
+					}
+				],
+				"name": [
+					{
+						"family": "Hughes",
+						"given": [
+							"Daniel"
+						],
+						"text": "Daniel Hughes"
+					}
+				]
+			}
+		},
+		{
+			"request": {
+				"method": "POST",
+				"url": "Organization"
+			},
+			"fullUrl": "urn:uuid:3325cc6a-01b2-11f1-a364-005056a36bc1",
+			"resource": {
+				"resourceType": "Organization",
+				"identifier": [
+					{
+						"value": "YGH"
+					}
+				],
+				"name": "York General Hospital"
+			}
+		},
+		{
+			"request": {
+				"method": "POST",
+				"url": "Organization"
+			},
+			"fullUrl": "urn:uuid:3325d963-01b2-11f1-a364-005056a36bc1",
+			"resource": {
+				"resourceType": "Organization",
+				"active": true,
+				"identifier": [
+					{
+						"value": "YGH"
+					}
+				],
+				"name": "York General Hospital",
+				"partOf": {
+					"reference": "urn:uuid:3325cc6a-01b2-11f1-a364-005056a36bc1"
+				}
+			}
+		},
+		{
+			"request": {
+				"method": "POST",
+				"url": "Encounter"
+			},
+			"fullUrl": "urn:uuid:332619dc-01b2-11f1-a364-005056a36bc1",
+			"resource": {
+				"resourceType": "Encounter",
+				"class": {
+					"code": "IMP",
+					"system": "http://terminology.hl7.org/CodeSystem/v3-ActCode"
+				},
+				"extension": [
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/encounter-encounter-type",
+						"valueString": "I"
+					},
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/encounter-MRN",
+						"valueString": "HYF9SXM"
+					},
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/appointment-healthcare-facility",
+						"valueCodeableConcept": {
+							"coding": [
+								{
+									"code": "YGH",
+									"display": "York General Hospital"
+								},
+								{
+									"code": "YGH",
+									"display": "York General Hospital"
+								}
+							]
+						}
+					},
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/encounter-end-time",
+						"valueString": "2025-12-13 12:00:00"
+					}
+				],
+				"identifier": [
+					{
+						"system": "YGH",
+						"type": {
+							"text": "EncounterNumber"
+						},
+						"use": "official",
+						"value": "YGH688508"
+					}
+				],
+				"participant": [
+					{
+						"individual": {
+							"reference": "urn:uuid:3325afde-01b2-11f1-a364-005056a36bc1"
+						},
+						"type": [
+							{
+								"coding": [
+									{
+										"code": "ADM",
+										"display": "admitter",
+										"system": "http://terminology.hl7.org/CodeSystem/v3-ParticipationType"
+									}
+								],
+								"text": "admitter"
+							}
+						]
+					}
+				],
+				"period": {
+					"end": "2025-12-13T12:00:00+00:00",
+					"start": "2025-12-08T10:00:00+00:00"
+				},
+				"reasonCode": [
+					{
+						"coding": [
+							{
+								"code": "278516003",
+								"display": "Lobar pneumonia",
+								"system": "http://snomed.info/sct"
+							}
+						]
+					}
+				],
+				"serviceProvider": {
+					"reference": "urn:uuid:3325d963-01b2-11f1-a364-005056a36bc1"
+				},
+				"status": "finished",
+				"subject": {
+					"reference": "urn:uuid:33257bbf-01b2-11f1-a364-005056a36bc1"
+				}
+			}
+		},
+		{
+			"request": {
+				"method": "POST",
+				"url": "Encounter"
+			},
+			"fullUrl": "urn:uuid:33269552-01b2-11f1-a364-005056a36bc1",
+			"resource": {
+				"resourceType": "Encounter",
+				"class": {
+					"code": "IMP",
+					"system": "http://terminology.hl7.org/CodeSystem/v3-ActCode"
+				},
+				"extension": [
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/encounter-encounter-type",
+						"valueString": "I"
+					},
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/encounter-MRN",
+						"valueString": "HYF9SXM"
+					},
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/appointment-healthcare-facility",
+						"valueCodeableConcept": {
+							"coding": [
+								{
+									"code": "YGH",
+									"display": "York General Hospital"
+								},
+								{
+									"code": "YGH",
+									"display": "York General Hospital"
+								}
+							]
+						}
+					},
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/encounter-end-time",
+						"valueString": "2024-02-16 12:00:00"
+					}
+				],
+				"identifier": [
+					{
+						"system": "YGH",
+						"type": {
+							"text": "EncounterNumber"
+						},
+						"use": "official",
+						"value": "YGH127824"
+					}
+				],
+				"participant": [
+					{
+						"individual": {
+							"reference": "urn:uuid:3325afde-01b2-11f1-a364-005056a36bc1"
+						},
+						"type": [
+							{
+								"coding": [
+									{
+										"code": "ADM",
+										"display": "admitter",
+										"system": "http://terminology.hl7.org/CodeSystem/v3-ParticipationType"
+									}
+								],
+								"text": "admitter"
+							}
+						]
+					}
+				],
+				"period": {
+					"end": "2024-02-16T12:00:00+00:00",
+					"start": "2024-02-10T10:00:00+00:00"
+				},
+				"reasonCode": [
+					{
+						"coding": [
+							{
+								"code": "71620000",
+								"display": "Unwitnessed fall with suspected hip fracture",
+								"system": "http://snomed.info/sct"
+							}
+						]
+					}
+				],
+				"serviceProvider": {
+					"reference": "urn:uuid:3325d963-01b2-11f1-a364-005056a36bc1"
+				},
+				"status": "finished",
+				"subject": {
+					"reference": "urn:uuid:33257bbf-01b2-11f1-a364-005056a36bc1"
+				}
+			}
+		},
+		{
+			"request": {
+				"method": "POST",
+				"url": "Organization"
+			},
+			"fullUrl": "urn:uuid:3326b713-01b2-11f1-a364-005056a36bc1",
+			"resource": {
+				"resourceType": "Organization",
+				"identifier": [
+					{
+						"value": "GPYORK"
+					}
+				],
+				"name": "Meadow Lane GP Practice"
+			}
+		},
+		{
+			"request": {
+				"method": "POST",
+				"url": "Communication"
+			},
+			"fullUrl": "urn:uuid:3326e45a-01b2-11f1-a364-005056a36bc1",
+			"resource": {
+				"resourceType": "Communication",
+				"category": [
+					{
+						"coding": [
+							{
+								"code": "MOB",
+								"display": "Mobility"
+							}
+						]
+					}
+				],
+				"extension": [
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/alert-alert",
+						"valueCodeableConcept": {
+							"coding": [
+								{
+									"code": "AID",
+									"display": "Walking with a stick"
+								}
+							]
+						}
+					},
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/alert-entered-at",
+						"valueReference": {
+							"reference": "urn:uuid:3326b713-01b2-11f1-a364-005056a36bc1"
+						}
+					},
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/alert-entered-on",
+						"valueDateTime": "2024-03-13T12:00:00+00:00"
+					}
+				],
+				"identifier": [
+					{
+						"type": {
+							"text": "ExternalId"
+						},
+						"use": "official",
+						"value": "Alert_1"
+					}
+				],
+				"payload": [
+					{
+						"contentString": "Walking with a stick"
+					}
+				],
+				"status": "in-progress",
+				"subject": {
+					"reference": "urn:uuid:33257bbf-01b2-11f1-a364-005056a36bc1"
+				}
+			}
+		},
+		{
+			"request": {
+				"method": "POST",
+				"url": "Organization"
+			},
+			"fullUrl": "urn:uuid:3326fd55-01b2-11f1-a364-005056a36bc1",
+			"resource": {
+				"resourceType": "Organization",
+				"identifier": [
+					{
+						"value": "COMMCARE"
+					}
+				],
+				"name": "Community Care North Yorkshire"
+			}
+		},
+		{
+			"request": {
+				"method": "POST",
+				"url": "Communication"
+			},
+			"fullUrl": "urn:uuid:3327250c-01b2-11f1-a364-005056a36bc1",
+			"resource": {
+				"resourceType": "Communication",
+				"category": [
+					{
+						"coding": [
+							{
+								"code": "ACC",
+								"display": "Accessibility"
+							}
+						]
+					}
+				],
+				"extension": [
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/alert-alert",
+						"valueCodeableConcept": {
+							"coding": [
+								{
+									"code": "HOMEADAPT",
+									"display": "Safety rails for steps installed post occupational therapy visit"
+								}
+							]
+						}
+					},
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/alert-entered-at",
+						"valueReference": {
+							"reference": "urn:uuid:3326fd55-01b2-11f1-a364-005056a36bc1"
+						}
+					},
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/alert-entered-on",
+						"valueDateTime": "2025-01-02T12:00:00+00:00"
+					}
+				],
+				"identifier": [
+					{
+						"type": {
+							"text": "ExternalId"
+						},
+						"use": "official",
+						"value": "Alert_3"
+					}
+				],
+				"payload": [
+					{
+						"contentString": "Safety rails for steps installed post occupational therapy visit"
+					}
+				],
+				"status": "in-progress",
+				"subject": {
+					"reference": "urn:uuid:33257bbf-01b2-11f1-a364-005056a36bc1"
+				}
+			}
+		},
+		{
+			"request": {
+				"method": "POST",
+				"url": "Communication"
+			},
+			"fullUrl": "urn:uuid:332763f0-01b2-11f1-a364-005056a36bc1",
+			"resource": {
+				"resourceType": "Communication",
+				"category": [
+					{
+						"coding": [
+							{
+								"code": "SENSORY",
+								"display": "Sensory"
+							}
+						]
+					}
+				],
+				"extension": [
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/alert-alert",
+						"valueCodeableConcept": {
+							"coding": [
+								{
+									"code": "VISION",
+									"display": "Wearing glasses"
+								}
+							]
+						}
+					},
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/alert-entered-at",
+						"valueReference": {
+							"reference": "urn:uuid:3326b713-01b2-11f1-a364-005056a36bc1"
+						}
+					},
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/alert-entered-on",
+						"valueDateTime": "2017-02-03T12:00:00+00:00"
+					}
+				],
+				"identifier": [
+					{
+						"type": {
+							"text": "ExternalId"
+						},
+						"use": "official",
+						"value": "Alert_2"
+					}
+				],
+				"payload": [
+					{
+						"contentString": "Wearing glasses"
+					}
+				],
+				"status": "in-progress",
+				"subject": {
+					"reference": "urn:uuid:33257bbf-01b2-11f1-a364-005056a36bc1"
+				}
+			}
+		},
+		{
+			"request": {
+				"method": "POST",
+				"url": "Practitioner"
+			},
+			"fullUrl": "urn:uuid:33278505-01b2-11f1-a364-005056a36bc1",
+			"resource": {
+				"resourceType": "Practitioner",
+				"extension": [
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/code-table-detail-care-provider-description",
+						"valueString": "Hughes, Daniel"
+					}
+				],
+				"identifier": [
+					{
+						"value": "CONS112"
+					}
+				]
+			}
+		},
+		{
+			"request": {
+				"method": "POST",
+				"url": "Location"
+			},
+			"fullUrl": "urn:uuid:3327b2ca-01b2-11f1-a364-005056a36bc1",
+			"resource": {
+				"resourceType": "Location",
+				"identifier": [
+					{
+						"value": "YGH"
+					}
+				],
+				"name": "York General Hospital"
+			}
+		},
+		{
+			"request": {
+				"method": "POST",
+				"url": "Appointment"
+			},
+			"fullUrl": "urn:uuid:332811ef-01b2-11f1-a364-005056a36bc1",
+			"resource": {
+				"resourceType": "Appointment",
+				"appointmentType": {
+					"coding": [
+						{
+							"code": "CLINIC",
+							"display": "Age related macular degeneration clinic"
+						}
+					]
+				},
+				"comment": "DNA - Did Not Attend",
+				"created": "2025-03-14T09:15:00+00:00",
+				"end": "2025-03-16T09:30:00+00:00",
+				"extension": [
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/appointment-entered-by",
+						"valueCodeableConcept": {
+							"coding": [
+								{
+									"code": "CONS112",
+									"display": "Hughes, Daniel"
+								}
+							]
+						}
+					},
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/appointment-filler-order-id",
+						"valueString": "AMD-5557"
+					},
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/appointment-no-show",
+						"valueBoolean": true
+					},
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/appointment-placer-order-id",
+						"valueString": "AMD-5557"
+					},
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/appointment-care-provider",
+						"valueCodeableConcept": {
+							"coding": [
+								{
+									"code": "CONS112",
+									"display": "Hughes, Daniel"
+								}
+							]
+						}
+					},
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/appointment-location",
+						"valueCodeableConcept": {
+							"coding": [
+								{
+									"code": "YGH",
+									"display": "York General Hospital"
+								}
+							]
+						}
+					},
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/appointment-entered-at",
+						"valueCodeableConcept": {
+							"coding": [
+								{
+									"code": "YGH",
+									"display": "York General Hospital"
+								}
+							]
+						}
+					}
+				],
+				"identifier": [
+					{
+						"type": {
+							"text": "FillerApptId"
+						},
+						"use": "official",
+						"value": "AMD-5557-01"
+					},
+					{
+						"type": {
+							"text": "PlacerApptId"
+						},
+						"use": "official",
+						"value": "AMD-5557-01"
+					}
+				],
+				"participant": [
+					{
+						"actor": {
+							"reference": "urn:uuid:33257bbf-01b2-11f1-a364-005056a36bc1"
+						},
+						"status": "accepted"
+					},
+					{
+						"actor": {
+							"reference": "urn:uuid:33278505-01b2-11f1-a364-005056a36bc1"
+						},
+						"status": "accepted"
+					},
+					{
+						"actor": {
+							"reference": "urn:uuid:3327b2ca-01b2-11f1-a364-005056a36bc1"
+						},
+						"status": "accepted"
+					}
+				],
+				"serviceType": [
+					{
+						"coding": [
+							{
+								"code": "267718000",
+								"display": "Age related macular degeneration clinic"
+							}
+						]
+					}
+				],
+				"start": "2025-03-16T09:00:00+00:00",
+				"status": "noshow"
+			}
+		},
+		{
+			"request": {
+				"method": "POST",
+				"url": "Practitioner"
+			},
+			"fullUrl": "urn:uuid:33285ba5-01b2-11f1-a364-005056a36bc1",
+			"resource": {
+				"resourceType": "Practitioner",
+				"extension": [
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/code-table-detail-description",
+						"valueString": "Hughes, Daniel"
+					}
+				],
+				"identifier": [
+					{
+						"value": "CONS112"
+					}
+				]
+			}
+		},
+		{
+			"request": {
+				"method": "POST",
+				"url": "Condition"
+			},
+			"fullUrl": "urn:uuid:3328939c-01b2-11f1-a364-005056a36bc1",
+			"resource": {
+				"resourceType": "Condition",
+				"asserter": {
+					"display": "Hughes, Daniel",
+					"reference": "Practitioner/CONS112",
+					"type": "Practitioner"
+				},
+				"category": [
+					{
+						"coding": [
+							{
+								"code": "encounter-diagnosis",
+								"display": "Encounter Diagnosis",
+								"system": "http://terminology.hl7.org/CodeSystem/condition-category"
+							}
+						],
+						"text": "Encounter Diagnosis"
+					},
+					{
+						"coding": [
+							{
+								"code": "F",
+								"display": "Final"
+							}
+						],
+						"text": "Diagnosis Type"
+					}
+				],
+				"clinicalStatus": {
+					"coding": [
+						{
+							"code": "active",
+							"system": "http://terminology.hl7.org/CodeSystem/condition-clinical"
+						}
+					]
+				},
+				"code": {
+					"coding": [
+						{
+							"code": "278516003",
+							"display": "Lobar pneumonia",
+							"system": "http://snomed.info/sct"
+						}
+					]
+				},
+				"extension": [
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/diagnosis-entered-at",
+						"valueReference": {
+							"reference": "urn:uuid:3325cc6a-01b2-11f1-a364-005056a36bc1"
+						}
+					},
+					{
+						"url": "http://hl7.org/fhir/StructureDefinition/condition-assertedDate",
+						"valueDateTime": "2025-12-10T10:00:00+00:00"
+					}
+				],
+				"onsetDateTime": "2025-12-10T10:00:00+00:00",
+				"recordedDate": "2025-12-10T10:00:00+00:00",
+				"recorder": {
+					"display": "Hughes, Daniel",
+					"reference": "Practitioner/CONS112",
+					"type": "Practitioner"
+				},
+				"subject": {
+					"reference": "urn:uuid:33257bbf-01b2-11f1-a364-005056a36bc1"
+				}
+			}
+		},
+		{
+			"request": {
+				"method": "POST",
+				"url": "Practitioner"
+			},
+			"fullUrl": "urn:uuid:3328abd2-01b2-11f1-a364-005056a36bc1",
+			"resource": {
+				"resourceType": "Practitioner",
+				"extension": [
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/code-table-detail-care-provider-description",
+						"valueString": "Patel, Rina"
+					}
+				],
+				"identifier": [
+					{
+						"value": "CH001"
+					}
+				]
+			}
+		},
+		{
+			"request": {
+				"method": "POST",
+				"url": "Practitioner"
+			},
+			"fullUrl": "urn:uuid:3328d421-01b2-11f1-a364-005056a36bc1",
+			"resource": {
+				"resourceType": "Practitioner",
+				"extension": [
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/code-table-detail-description",
+						"valueString": "Patel, Rina"
+					}
+				],
+				"identifier": [
+					{
+						"value": "CH001"
+					}
+				]
+			}
+		},
+		{
+			"request": {
+				"method": "POST",
+				"url": "Condition"
+			},
+			"fullUrl": "urn:uuid:33290a42-01b2-11f1-a364-005056a36bc1",
+			"resource": {
+				"resourceType": "Condition",
+				"asserter": {
+					"display": "Patel, Rina",
+					"reference": "Practitioner/CH001",
+					"type": "Practitioner"
+				},
+				"category": [
+					{
+						"coding": [
+							{
+								"code": "encounter-diagnosis",
+								"display": "Encounter Diagnosis",
+								"system": "http://terminology.hl7.org/CodeSystem/condition-category"
+							}
+						],
+						"text": "Encounter Diagnosis"
+					},
+					{
+						"coding": [
+							{
+								"code": "F",
+								"display": "Final"
+							}
+						],
+						"text": "Diagnosis Type"
+					}
+				],
+				"clinicalStatus": {
+					"coding": [
+						{
+							"code": "active",
+							"system": "http://terminology.hl7.org/CodeSystem/condition-clinical"
+						}
+					]
+				},
+				"code": {
+					"coding": [
+						{
+							"code": "49049000",
+							"display": "Parkinson's disease",
+							"system": "http://snomed.info/sct"
+						}
+					]
+				},
+				"extension": [
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/diagnosis-entered-at",
+						"valueReference": {
+							"reference": "urn:uuid:3326fd55-01b2-11f1-a364-005056a36bc1"
+						}
+					},
+					{
+						"url": "http://hl7.org/fhir/StructureDefinition/condition-assertedDate",
+						"valueDateTime": "2025-02-22T10:00:00+00:00"
+					}
+				],
+				"onsetDateTime": "2025-02-22T10:00:00+00:00",
+				"recordedDate": "2025-02-22T10:00:00+00:00",
+				"recorder": {
+					"display": "Patel, Rina",
+					"reference": "Practitioner/CH001",
+					"type": "Practitioner"
+				},
+				"subject": {
+					"reference": "urn:uuid:33257bbf-01b2-11f1-a364-005056a36bc1"
+				}
+			}
+		},
+		{
+			"request": {
+				"method": "POST",
+				"url": "Condition"
+			},
+			"fullUrl": "urn:uuid:33297e76-01b2-11f1-a364-005056a36bc1",
+			"resource": {
+				"resourceType": "Condition",
+				"asserter": {
+					"display": "Hughes, Daniel",
+					"reference": "Practitioner/CONS112",
+					"type": "Practitioner"
+				},
+				"category": [
+					{
+						"coding": [
+							{
+								"code": "encounter-diagnosis",
+								"display": "Encounter Diagnosis",
+								"system": "http://terminology.hl7.org/CodeSystem/condition-category"
+							}
+						],
+						"text": "Encounter Diagnosis"
+					},
+					{
+						"coding": [
+							{
+								"code": "F",
+								"display": "Final"
+							}
+						],
+						"text": "Diagnosis Type"
+					}
+				],
+				"clinicalStatus": {
+					"coding": [
+						{
+							"code": "active",
+							"system": "http://terminology.hl7.org/CodeSystem/condition-clinical"
+						}
+					]
+				},
+				"code": {
+					"coding": [
+						{
+							"code": "267718000",
+							"display": "Age related macular degeneration",
+							"system": "http://snomed.info/sct"
+						}
+					]
+				},
+				"extension": [
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/diagnosis-entered-at",
+						"valueReference": {
+							"reference": "urn:uuid:3325cc6a-01b2-11f1-a364-005056a36bc1"
+						}
+					},
+					{
+						"url": "http://hl7.org/fhir/StructureDefinition/condition-assertedDate",
+						"valueDateTime": "2024-08-17T10:00:00+01:00"
+					}
+				],
+				"onsetDateTime": "2024-08-17T10:00:00+01:00",
+				"recordedDate": "2024-08-17T10:00:00+01:00",
+				"recorder": {
+					"display": "Hughes, Daniel",
+					"reference": "Practitioner/CONS112",
+					"type": "Practitioner"
+				},
+				"subject": {
+					"reference": "urn:uuid:33257bbf-01b2-11f1-a364-005056a36bc1"
+				}
+			}
+		},
+		{
+			"request": {
+				"method": "POST",
+				"url": "Condition"
+			},
+			"fullUrl": "urn:uuid:3329f15c-01b2-11f1-a364-005056a36bc1",
+			"resource": {
+				"resourceType": "Condition",
+				"asserter": {
+					"display": "Hughes, Daniel",
+					"reference": "Practitioner/CONS112",
+					"type": "Practitioner"
+				},
+				"category": [
+					{
+						"coding": [
+							{
+								"code": "encounter-diagnosis",
+								"display": "Encounter Diagnosis",
+								"system": "http://terminology.hl7.org/CodeSystem/condition-category"
+							}
+						],
+						"text": "Encounter Diagnosis"
+					},
+					{
+						"coding": [
+							{
+								"code": "F",
+								"display": "Final"
+							}
+						],
+						"text": "Diagnosis Type"
+					}
+				],
+				"clinicalStatus": {
+					"coding": [
+						{
+							"code": "active",
+							"system": "http://terminology.hl7.org/CodeSystem/condition-clinical"
+						}
+					]
+				},
+				"code": {
+					"coding": [
+						{
+							"code": "71620000",
+							"display": "Fractured neck of femur, following unwitnessed fall",
+							"system": "http://snomed.info/sct"
+						}
+					]
+				},
+				"extension": [
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/diagnosis-entered-at",
+						"valueReference": {
+							"reference": "urn:uuid:3325cc6a-01b2-11f1-a364-005056a36bc1"
+						}
+					},
+					{
+						"url": "http://hl7.org/fhir/StructureDefinition/condition-assertedDate",
+						"valueDateTime": "2024-01-22T10:00:00+00:00"
+					}
+				],
+				"onsetDateTime": "2024-01-22T10:00:00+00:00",
+				"recordedDate": "2024-01-22T10:00:00+00:00",
+				"recorder": {
+					"display": "Hughes, Daniel",
+					"reference": "Practitioner/CONS112",
+					"type": "Practitioner"
+				},
+				"subject": {
+					"reference": "urn:uuid:33257bbf-01b2-11f1-a364-005056a36bc1"
+				}
+			}
+		},
+		{
+			"request": {
+				"method": "POST",
+				"url": "Condition"
+			},
+			"fullUrl": "urn:uuid:332a62ea-01b2-11f1-a364-005056a36bc1",
+			"resource": {
+				"resourceType": "Condition",
+				"asserter": {
+					"display": "Patel, Rina",
+					"reference": "Practitioner/CH001",
+					"type": "Practitioner"
+				},
+				"category": [
+					{
+						"coding": [
+							{
+								"code": "encounter-diagnosis",
+								"display": "Encounter Diagnosis",
+								"system": "http://terminology.hl7.org/CodeSystem/condition-category"
+							}
+						],
+						"text": "Encounter Diagnosis"
+					},
+					{
+						"coding": [
+							{
+								"code": "F",
+								"display": "Final"
+							}
+						],
+						"text": "Diagnosis Type"
+					}
+				],
+				"clinicalStatus": {
+					"coding": [
+						{
+							"code": "active",
+							"system": "http://terminology.hl7.org/CodeSystem/condition-clinical"
+						}
+					]
+				},
+				"code": {
+					"coding": [
+						{
+							"code": "28651003",
+							"display": "Orthostatic hypotension",
+							"system": "http://snomed.info/sct"
+						}
+					]
+				},
+				"extension": [
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/diagnosis-entered-at",
+						"valueReference": {
+							"reference": "urn:uuid:3326fd55-01b2-11f1-a364-005056a36bc1"
+						}
+					},
+					{
+						"url": "http://hl7.org/fhir/StructureDefinition/condition-assertedDate",
+						"valueDateTime": "2023-01-29T10:00:00+00:00"
+					}
+				],
+				"onsetDateTime": "2023-01-29T10:00:00+00:00",
+				"recordedDate": "2023-01-29T10:00:00+00:00",
+				"recorder": {
+					"display": "Patel, Rina",
+					"reference": "Practitioner/CH001",
+					"type": "Practitioner"
+				},
+				"subject": {
+					"reference": "urn:uuid:33257bbf-01b2-11f1-a364-005056a36bc1"
+				}
+			}
+		},
+		{
+			"request": {
+				"method": "POST",
+				"url": "Practitioner"
+			},
+			"fullUrl": "urn:uuid:332a797c-01b2-11f1-a364-005056a36bc1",
+			"resource": {
+				"resourceType": "Practitioner",
+				"extension": [
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/code-table-detail-care-provider-description",
+						"valueString": "Shaw, Helen"
+					}
+				],
+				"identifier": [
+					{
+						"value": "GPN789"
+					}
+				]
+			}
+		},
+		{
+			"request": {
+				"method": "POST",
+				"url": "Practitioner"
+			},
+			"fullUrl": "urn:uuid:332a9f68-01b2-11f1-a364-005056a36bc1",
+			"resource": {
+				"resourceType": "Practitioner",
+				"extension": [
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/code-table-detail-description",
+						"valueString": "Shaw, Helen"
+					}
+				],
+				"identifier": [
+					{
+						"value": "GPN789"
+					}
+				]
+			}
+		},
+		{
+			"request": {
+				"method": "POST",
+				"url": "Condition"
+			},
+			"fullUrl": "urn:uuid:332ad2ec-01b2-11f1-a364-005056a36bc1",
+			"resource": {
+				"resourceType": "Condition",
+				"asserter": {
+					"display": "Shaw, Helen",
+					"reference": "Practitioner/GPN789",
+					"type": "Practitioner"
+				},
+				"category": [
+					{
+						"coding": [
+							{
+								"code": "encounter-diagnosis",
+								"display": "Encounter Diagnosis",
+								"system": "http://terminology.hl7.org/CodeSystem/condition-category"
+							}
+						],
+						"text": "Encounter Diagnosis"
+					},
+					{
+						"coding": [
+							{
+								"code": "F",
+								"display": "Final"
+							}
+						],
+						"text": "Diagnosis Type"
+					}
+				],
+				"clinicalStatus": {
+					"coding": [
+						{
+							"code": "active",
+							"system": "http://terminology.hl7.org/CodeSystem/condition-clinical"
+						}
+					]
+				},
+				"code": {
+					"coding": [
+						{
+							"code": "64859006",
+							"display": "Osteoporosis",
+							"system": "http://snomed.info/sct"
+						}
+					]
+				},
+				"extension": [
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/diagnosis-entered-at",
+						"valueReference": {
+							"reference": "urn:uuid:3326b713-01b2-11f1-a364-005056a36bc1"
+						}
+					},
+					{
+						"url": "http://hl7.org/fhir/StructureDefinition/condition-assertedDate",
+						"valueDateTime": "2020-02-16T10:00:00+00:00"
+					}
+				],
+				"onsetDateTime": "2020-02-16T10:00:00+00:00",
+				"recordedDate": "2020-02-16T10:00:00+00:00",
+				"recorder": {
+					"display": "Shaw, Helen",
+					"reference": "Practitioner/GPN789",
+					"type": "Practitioner"
+				},
+				"subject": {
+					"reference": "urn:uuid:33257bbf-01b2-11f1-a364-005056a36bc1"
+				}
+			}
+		},
+		{
+			"request": {
+				"method": "POST",
+				"url": "Condition"
+			},
+			"fullUrl": "urn:uuid:332b45b2-01b2-11f1-a364-005056a36bc1",
+			"resource": {
+				"resourceType": "Condition",
+				"asserter": {
+					"display": "Shaw, Helen",
+					"reference": "Practitioner/GPN789",
+					"type": "Practitioner"
+				},
+				"category": [
+					{
+						"coding": [
+							{
+								"code": "encounter-diagnosis",
+								"display": "Encounter Diagnosis",
+								"system": "http://terminology.hl7.org/CodeSystem/condition-category"
+							}
+						],
+						"text": "Encounter Diagnosis"
+					},
+					{
+						"coding": [
+							{
+								"code": "F",
+								"display": "Final"
+							}
+						],
+						"text": "Diagnosis Type"
+					}
+				],
+				"clinicalStatus": {
+					"coding": [
+						{
+							"code": "active",
+							"system": "http://terminology.hl7.org/CodeSystem/condition-clinical"
+						}
+					]
+				},
+				"code": {
+					"coding": [
+						{
+							"code": "313436004",
+							"display": "Type 2 diabetes mellitus without complication",
+							"system": "http://snomed.info/sct"
+						}
+					]
+				},
+				"extension": [
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/diagnosis-entered-at",
+						"valueReference": {
+							"reference": "urn:uuid:3326b713-01b2-11f1-a364-005056a36bc1"
+						}
+					},
+					{
+						"url": "http://hl7.org/fhir/StructureDefinition/condition-assertedDate",
+						"valueDateTime": "2018-02-07T10:00:00+00:00"
+					}
+				],
+				"onsetDateTime": "2018-02-07T10:00:00+00:00",
+				"recordedDate": "2018-02-07T10:00:00+00:00",
+				"recorder": {
+					"display": "Shaw, Helen",
+					"reference": "Practitioner/GPN789",
+					"type": "Practitioner"
+				},
+				"subject": {
+					"reference": "urn:uuid:33257bbf-01b2-11f1-a364-005056a36bc1"
+				}
+			}
+		},
+		{
+			"request": {
+				"method": "POST",
+				"url": "Medication"
+			},
+			"fullUrl": "urn:uuid:332b64db-01b2-11f1-a364-005056a36bc1",
+			"resource": {
+				"resourceType": "Medication",
+				"code": {
+					"coding": [
+						{
+							"code": "39734811000001102",
+							"display": "Co-careldopa 25mg/100mg tablets",
+							"system": "http://snomed.info/sct"
+						}
+					]
+				}
+			}
+		},
+		{
+			"request": {
+				"method": "POST",
+				"url": "Organization"
+			},
+			"fullUrl": "urn:uuid:332c1ed9-01b2-11f1-a364-005056a36bc1",
+			"resource": {
+				"resourceType": "Organization",
+				"active": true,
+				"identifier": [
+					{
+						"value": "COMMCARE"
+					}
+				],
+				"name": "Community Care North Yorkshire"
+			}
+		},
+		{
+			"request": {
+				"method": "POST",
+				"url": "MedicationRequest"
+			},
+			"fullUrl": "urn:uuid:332cafe0-01b2-11f1-a364-005056a36bc1",
+			"resource": {
+				"resourceType": "MedicationRequest",
+				"authoredOn": "2025-02-23T12:45:00+00:00",
+				"dosageInstruction": [
+					{
+						"asNeededBoolean": false,
+						"doseAndRate": [
+							{
+								"doseQuantity": {
+									"code": "tablet",
+									"system": "http://www.intersystems.com/fhir/system",
+									"unit": "tablet",
+									"value": 1
+								}
+							}
+						],
+						"text": "1 dose to be taken three times daily",
+						"timing": {
+							"code": {
+								"coding": [
+									{
+										"code": "TID",
+										"display": "three times a day",
+										"system": "http://hl7.org/fhir/timing-abbreviation"
+									}
+								],
+								"text": "three times a day"
+							},
+							"repeat": {
+								"frequency": 3,
+								"period": 1,
+								"periodUnit": "d"
+							}
+						}
+					}
+				],
+				"extension": [
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/medication-entered-at",
+						"valueReference": {
+							"reference": "urn:uuid:3326fd55-01b2-11f1-a364-005056a36bc1"
+						}
+					},
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/medication-entering-organization",
+						"valueReference": {
+							"reference": "urn:uuid:332c1ed9-01b2-11f1-a364-005056a36bc1"
+						}
+					},
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/medication-from-time",
+						"valueDateTime": "2025-02-23T12:45:00+00:00"
+					},
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/medication-receiving-location",
+						"valueReference": {
+							"reference": "urn:uuid:332c1ed9-01b2-11f1-a364-005056a36bc1"
+						}
+					}
+				],
+				"identifier": [
+					{
+						"type": {
+							"coding": [
+								{
+									"code": "PLAC",
+									"display": "Placer Identifier",
+									"system": "http://terminology.hl7.org/CodeSystem/v2-0203"
+								}
+							],
+							"text": "PlacerId"
+						},
+						"use": "official",
+						"value": "CH-MED-001"
+					}
+				],
+				"intent": "order",
+				"medicationReference": {
+					"reference": "urn:uuid:332b64db-01b2-11f1-a364-005056a36bc1"
+				},
+				"priority": "routine",
+				"recorder": {
+					"reference": "urn:uuid:3328d421-01b2-11f1-a364-005056a36bc1"
+				},
+				"requester": {
+					"reference": "urn:uuid:3328abd2-01b2-11f1-a364-005056a36bc1"
+				},
+				"status": "completed",
+				"subject": {
+					"reference": "urn:uuid:33257bbf-01b2-11f1-a364-005056a36bc1"
+				}
+			}
+		},
+		{
+			"request": {
+				"method": "POST",
+				"url": "Medication"
+			},
+			"fullUrl": "urn:uuid:332cc6bc-01b2-11f1-a364-005056a36bc1",
+			"resource": {
+				"resourceType": "Medication",
+				"code": {
+					"coding": [
+						{
+							"code": "42082611000001106",
+							"display": "Fludrocortisone 100microgram tablets",
+							"system": "http://snomed.info/sct"
+						}
+					]
+				}
+			}
+		},
+		{
+			"request": {
+				"method": "POST",
+				"url": "MedicationRequest"
+			},
+			"fullUrl": "urn:uuid:332d5b59-01b2-11f1-a364-005056a36bc1",
+			"resource": {
+				"resourceType": "MedicationRequest",
+				"authoredOn": "2024-08-21T12:45:00+01:00",
+				"dosageInstruction": [
+					{
+						"asNeededBoolean": false,
+						"doseAndRate": [
+							{
+								"doseQuantity": {
+									"code": "mcg",
+									"system": "http://www.intersystems.com/fhir/system",
+									"unit": "mcg",
+									"value": 100
+								}
+							}
+						],
+						"text": "1 dose to be taken daily",
+						"timing": {
+							"code": {
+								"coding": [
+									{
+										"code": "Daily",
+										"display": "Daily"
+									}
+								],
+								"text": "Daily"
+							}
+						}
+					}
+				],
+				"extension": [
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/medication-entered-at",
+						"valueReference": {
+							"reference": "urn:uuid:3326fd55-01b2-11f1-a364-005056a36bc1"
+						}
+					},
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/medication-entering-organization",
+						"valueReference": {
+							"reference": "urn:uuid:332c1ed9-01b2-11f1-a364-005056a36bc1"
+						}
+					},
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/medication-from-time",
+						"valueDateTime": "2024-08-21T12:45:00+01:00"
+					},
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/medication-receiving-location",
+						"valueReference": {
+							"reference": "urn:uuid:332c1ed9-01b2-11f1-a364-005056a36bc1"
+						}
+					}
+				],
+				"identifier": [
+					{
+						"type": {
+							"coding": [
+								{
+									"code": "PLAC",
+									"display": "Placer Identifier",
+									"system": "http://terminology.hl7.org/CodeSystem/v2-0203"
+								}
+							],
+							"text": "PlacerId"
+						},
+						"use": "official",
+						"value": "CH-MED-002"
+					}
+				],
+				"intent": "order",
+				"medicationReference": {
+					"reference": "urn:uuid:332cc6bc-01b2-11f1-a364-005056a36bc1"
+				},
+				"priority": "routine",
+				"recorder": {
+					"reference": "urn:uuid:3328d421-01b2-11f1-a364-005056a36bc1"
+				},
+				"requester": {
+					"reference": "urn:uuid:3328abd2-01b2-11f1-a364-005056a36bc1"
+				},
+				"status": "completed",
+				"subject": {
+					"reference": "urn:uuid:33257bbf-01b2-11f1-a364-005056a36bc1"
+				}
+			}
+		},
+		{
+			"request": {
+				"method": "POST",
+				"url": "Medication"
+			},
+			"fullUrl": "urn:uuid:332d711e-01b2-11f1-a364-005056a36bc1",
+			"resource": {
+				"resourceType": "Medication",
+				"code": {
+					"coding": [
+						{
+							"code": "263411000001108",
+							"display": "Omeprazole 20mg gastro-resistant capsules",
+							"system": "http://snomed.info/sct"
+						}
+					]
+				}
+			}
+		},
+		{
+			"request": {
+				"method": "POST",
+				"url": "Organization"
+			},
+			"fullUrl": "urn:uuid:332da7c0-01b2-11f1-a364-005056a36bc1",
+			"resource": {
+				"resourceType": "Organization",
+				"active": true,
+				"identifier": [
+					{
+						"value": "GPYORK"
+					}
+				],
+				"name": "Meadow Lane GP Practice"
+			}
+		},
+		{
+			"request": {
+				"method": "POST",
+				"url": "MedicationRequest"
+			},
+			"fullUrl": "urn:uuid:332e0597-01b2-11f1-a364-005056a36bc1",
+			"resource": {
+				"resourceType": "MedicationRequest",
+				"authoredOn": "2021-02-19T12:45:00+00:00",
+				"dosageInstruction": [
+					{
+						"asNeededBoolean": false,
+						"doseAndRate": [
+							{
+								"doseQuantity": {
+									"code": "mg",
+									"system": "http://unitsofmeasure.org",
+									"unit": "mg",
+									"value": 20
+								}
+							}
+						],
+						"text": "1 dose to be taken daily",
+						"timing": {
+							"code": {
+								"coding": [
+									{
+										"code": "Daily",
+										"display": "Daily"
+									}
+								],
+								"text": "Daily"
+							}
+						}
+					}
+				],
+				"extension": [
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/medication-entered-at",
+						"valueReference": {
+							"reference": "urn:uuid:3326b713-01b2-11f1-a364-005056a36bc1"
+						}
+					},
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/medication-entering-organization",
+						"valueReference": {
+							"reference": "urn:uuid:332da7c0-01b2-11f1-a364-005056a36bc1"
+						}
+					},
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/medication-from-time",
+						"valueDateTime": "2021-02-19T12:45:00+00:00"
+					},
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/medication-receiving-location",
+						"valueReference": {
+							"reference": "urn:uuid:332da7c0-01b2-11f1-a364-005056a36bc1"
+						}
+					}
+				],
+				"identifier": [
+					{
+						"type": {
+							"coding": [
+								{
+									"code": "PLAC",
+									"display": "Placer Identifier",
+									"system": "http://terminology.hl7.org/CodeSystem/v2-0203"
+								}
+							],
+							"text": "PlacerId"
+						},
+						"use": "official",
+						"value": "GP-MED-004"
+					}
+				],
+				"intent": "order",
+				"medicationReference": {
+					"reference": "urn:uuid:332d711e-01b2-11f1-a364-005056a36bc1"
+				},
+				"priority": "routine",
+				"recorder": {
+					"reference": "urn:uuid:332a9f68-01b2-11f1-a364-005056a36bc1"
+				},
+				"requester": {
+					"reference": "urn:uuid:332a797c-01b2-11f1-a364-005056a36bc1"
+				},
+				"status": "completed",
+				"subject": {
+					"reference": "urn:uuid:33257bbf-01b2-11f1-a364-005056a36bc1"
+				}
+			}
+		},
+		{
+			"request": {
+				"method": "POST",
+				"url": "Medication"
+			},
+			"fullUrl": "urn:uuid:332e1b82-01b2-11f1-a364-005056a36bc1",
+			"resource": {
+				"resourceType": "Medication",
+				"code": {
+					"coding": [
+						{
+							"code": "39731311000001108",
+							"display": "Alendronic acid 70mg tablets",
+							"system": "http://snomed.info/sct"
+						}
+					]
+				}
+			}
+		},
+		{
+			"request": {
+				"method": "POST",
+				"url": "MedicationRequest"
+			},
+			"fullUrl": "urn:uuid:332eaf73-01b2-11f1-a364-005056a36bc1",
+			"resource": {
+				"resourceType": "MedicationRequest",
+				"authoredOn": "2020-02-19T12:45:00+00:00",
+				"dosageInstruction": [
+					{
+						"asNeededBoolean": false,
+						"doseAndRate": [
+							{
+								"doseQuantity": {
+									"code": "mg",
+									"system": "http://unitsofmeasure.org",
+									"unit": "mg",
+									"value": 70
+								}
+							}
+						],
+						"text": "1 dose to be taken once weekly",
+						"timing": {
+							"code": {
+								"coding": [
+									{
+										"code": "Weekly",
+										"display": "Weekly"
+									}
+								],
+								"text": "Weekly"
+							}
+						}
+					}
+				],
+				"extension": [
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/medication-entered-at",
+						"valueReference": {
+							"reference": "urn:uuid:3326b713-01b2-11f1-a364-005056a36bc1"
+						}
+					},
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/medication-entering-organization",
+						"valueReference": {
+							"reference": "urn:uuid:332da7c0-01b2-11f1-a364-005056a36bc1"
+						}
+					},
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/medication-from-time",
+						"valueDateTime": "2020-02-19T12:45:00+00:00"
+					},
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/medication-receiving-location",
+						"valueReference": {
+							"reference": "urn:uuid:332da7c0-01b2-11f1-a364-005056a36bc1"
+						}
+					}
+				],
+				"identifier": [
+					{
+						"type": {
+							"coding": [
+								{
+									"code": "PLAC",
+									"display": "Placer Identifier",
+									"system": "http://terminology.hl7.org/CodeSystem/v2-0203"
+								}
+							],
+							"text": "PlacerId"
+						},
+						"use": "official",
+						"value": "GP-MED-003"
+					}
+				],
+				"intent": "order",
+				"medicationReference": {
+					"reference": "urn:uuid:332e1b82-01b2-11f1-a364-005056a36bc1"
+				},
+				"priority": "routine",
+				"recorder": {
+					"reference": "urn:uuid:332a9f68-01b2-11f1-a364-005056a36bc1"
+				},
+				"requester": {
+					"reference": "urn:uuid:332a797c-01b2-11f1-a364-005056a36bc1"
+				},
+				"status": "completed",
+				"subject": {
+					"reference": "urn:uuid:33257bbf-01b2-11f1-a364-005056a36bc1"
+				}
+			}
+		},
+		{
+			"request": {
+				"method": "POST",
+				"url": "Medication"
+			},
+			"fullUrl": "urn:uuid:332ec31a-01b2-11f1-a364-005056a36bc1",
+			"resource": {
+				"resourceType": "Medication",
+				"code": {
+					"coding": [
+						{
+							"code": "1320811000001101",
+							"display": "Metformin 500mg tablets",
+							"system": "http://snomed.info/sct"
+						}
+					]
+				}
+			}
+		},
+		{
+			"request": {
+				"method": "POST",
+				"url": "MedicationRequest"
+			},
+			"fullUrl": "urn:uuid:332f5685-01b2-11f1-a364-005056a36bc1",
+			"resource": {
+				"resourceType": "MedicationRequest",
+				"authoredOn": "2019-02-12T12:45:00+00:00",
+				"dosageInstruction": [
+					{
+						"asNeededBoolean": false,
+						"doseAndRate": [
+							{
+								"doseQuantity": {
+									"code": "mg",
+									"system": "http://unitsofmeasure.org",
+									"unit": "mg",
+									"value": 500
+								}
+							}
+						],
+						"text": "1 dose to be taken twice daily with food",
+						"timing": {
+							"code": {
+								"coding": [
+									{
+										"code": "BID",
+										"display": "twice a day",
+										"system": "http://hl7.org/fhir/timing-abbreviation"
+									}
+								],
+								"text": "twice a day"
+							},
+							"repeat": {
+								"frequency": 2,
+								"period": 1,
+								"periodUnit": "d"
+							}
+						}
+					}
+				],
+				"extension": [
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/medication-entered-at",
+						"valueReference": {
+							"reference": "urn:uuid:3326b713-01b2-11f1-a364-005056a36bc1"
+						}
+					},
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/medication-entering-organization",
+						"valueReference": {
+							"reference": "urn:uuid:332da7c0-01b2-11f1-a364-005056a36bc1"
+						}
+					},
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/medication-from-time",
+						"valueDateTime": "2019-02-12T12:45:00+00:00"
+					},
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/medication-receiving-location",
+						"valueReference": {
+							"reference": "urn:uuid:332da7c0-01b2-11f1-a364-005056a36bc1"
+						}
+					}
+				],
+				"identifier": [
+					{
+						"type": {
+							"coding": [
+								{
+									"code": "PLAC",
+									"display": "Placer Identifier",
+									"system": "http://terminology.hl7.org/CodeSystem/v2-0203"
+								}
+							],
+							"text": "PlacerId"
+						},
+						"use": "official",
+						"value": "GP-MED-001"
+					}
+				],
+				"intent": "order",
+				"medicationReference": {
+					"reference": "urn:uuid:332ec31a-01b2-11f1-a364-005056a36bc1"
+				},
+				"priority": "routine",
+				"recorder": {
+					"reference": "urn:uuid:332a9f68-01b2-11f1-a364-005056a36bc1"
+				},
+				"requester": {
+					"reference": "urn:uuid:332a797c-01b2-11f1-a364-005056a36bc1"
+				},
+				"status": "completed",
+				"subject": {
+					"reference": "urn:uuid:33257bbf-01b2-11f1-a364-005056a36bc1"
+				}
+			}
+		},
+		{
+			"request": {
+				"method": "POST",
+				"url": "Medication"
+			},
+			"fullUrl": "urn:uuid:332f6b91-01b2-11f1-a364-005056a36bc1",
+			"resource": {
+				"resourceType": "Medication",
+				"code": {
+					"coding": [
+						{
+							"code": "5337311000001108",
+							"display": "Atorvastatin 20mg tablets",
+							"system": "http://snomed.info/sct"
+						}
+					]
+				}
+			}
+		},
+		{
+			"request": {
+				"method": "POST",
+				"url": "MedicationRequest"
+			},
+			"fullUrl": "urn:uuid:332ffcf4-01b2-11f1-a364-005056a36bc1",
+			"resource": {
+				"resourceType": "MedicationRequest",
+				"authoredOn": "2016-02-04T12:45:00+00:00",
+				"dosageInstruction": [
+					{
+						"asNeededBoolean": false,
+						"doseAndRate": [
+							{
+								"doseQuantity": {
+									"code": "mg",
+									"system": "http://unitsofmeasure.org",
+									"unit": "mg",
+									"value": 20
+								}
+							}
+						],
+						"text": "1 dose to be taken in the evening",
+						"timing": {
+							"code": {
+								"coding": [
+									{
+										"code": "Daily",
+										"display": "Daily"
+									}
+								],
+								"text": "Daily"
+							}
+						}
+					}
+				],
+				"extension": [
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/medication-entered-at",
+						"valueReference": {
+							"reference": "urn:uuid:3326b713-01b2-11f1-a364-005056a36bc1"
+						}
+					},
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/medication-entering-organization",
+						"valueReference": {
+							"reference": "urn:uuid:332da7c0-01b2-11f1-a364-005056a36bc1"
+						}
+					},
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/medication-from-time",
+						"valueDateTime": "2016-02-04T12:45:00+00:00"
+					},
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/medication-receiving-location",
+						"valueReference": {
+							"reference": "urn:uuid:332da7c0-01b2-11f1-a364-005056a36bc1"
+						}
+					}
+				],
+				"identifier": [
+					{
+						"type": {
+							"coding": [
+								{
+									"code": "PLAC",
+									"display": "Placer Identifier",
+									"system": "http://terminology.hl7.org/CodeSystem/v2-0203"
+								}
+							],
+							"text": "PlacerId"
+						},
+						"use": "official",
+						"value": "GP-MED-002"
+					}
+				],
+				"intent": "order",
+				"medicationReference": {
+					"reference": "urn:uuid:332f6b91-01b2-11f1-a364-005056a36bc1"
+				},
+				"priority": "routine",
+				"recorder": {
+					"reference": "urn:uuid:332a9f68-01b2-11f1-a364-005056a36bc1"
+				},
+				"requester": {
+					"reference": "urn:uuid:332a797c-01b2-11f1-a364-005056a36bc1"
+				},
+				"status": "completed",
+				"subject": {
+					"reference": "urn:uuid:33257bbf-01b2-11f1-a364-005056a36bc1"
+				}
+			}
+		},
+		{
+			"request": {
+				"method": "POST",
+				"url": "Practitioner"
+			},
+			"fullUrl": "urn:uuid:3330f597-01b2-11f1-a364-005056a36bc1",
+			"resource": {
+				"resourceType": "Practitioner",
+				"extension": [
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/code-table-detail-care-provider-description",
+						"valueString": "Hughes,  Daniel"
+					}
+				],
+				"identifier": [
+					{
+						"value": "CONS112"
+					}
+				],
+				"name": [
+					{
+						"family": "Hughes",
+						"given": [
+							"Daniel"
+						],
+						"text": "Daniel Hughes"
+					}
+				]
+			}
+		},
+		{
+			"request": {
+				"method": "POST",
+				"url": "Procedure"
+			},
+			"fullUrl": "urn:uuid:3331b4fa-01b2-11f1-a364-005056a36bc1",
+			"resource": {
+				"resourceType": "Procedure",
+				"code": {
+					"coding": [
+						{
+							"code": "443435007",
+							"display": "Total hip replacement following neck of femur fracture",
+							"system": "http://snomed.info/sct"
+						}
+					]
+				},
+				"extension": [
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/procedure-entered-at",
+						"valueReference": {
+							"reference": "urn:uuid:3325cc6a-01b2-11f1-a364-005056a36bc1"
+						}
+					},
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/procedure-entered-on",
+						"valueDateTime": "2024-02-14T12:45:00+00:00"
+					},
+					{
+						"url": "http://intersystems.com/fhir/extn/sda3/lib/appointment-clinician",
+						"valueCodeableConcept": {
+							"coding": [
+								{
+									"code": "CONS112",
+									"display": "Hughes,  Daniel"
+								}
+							],
+							"text": "Hughes Daniel"
+						}
+					}
+				],
+				"identifier": [
+					{
+						"type": {
+							"text": "ExternalId"
+						},
+						"use": "official",
+						"value": "PROC-68878"
+					}
+				],
+				"performedDateTime": "2024-02-12T13:30:00+00:00",
+				"performer": [
+					{
+						"actor": {
+							"reference": "urn:uuid:3330f597-01b2-11f1-a364-005056a36bc1"
+						}
+					}
+				],
+				"status": "unknown",
+				"subject": {
+					"reference": "urn:uuid:33257bbf-01b2-11f1-a364-005056a36bc1"
+				}
+			}
+		}
+	]
+}

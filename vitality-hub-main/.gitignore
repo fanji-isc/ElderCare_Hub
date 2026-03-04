@@ -28,3 +28,4 @@ vite.config.ts.timestamp-*
 
 # ignore the environment files
 agentic_logic/.env
+agentic_logic/hidden/
