@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import {
   Heart, Moon, Footprints, Activity,
   ShieldCheck, AlertCircle, AlertTriangle,
-  Phone, Share2, Clock, TrendingUp, TrendingDown, Minus,
+  Phone, Share2, Clock,
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { HeartRateChart } from "@/components/HeartRateChart";
