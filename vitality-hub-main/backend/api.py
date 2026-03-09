@@ -563,30 +563,30 @@ def interprete_garmin() -> dict:
 
     """
 
-    # conn = get_iris()
+    conn = get_iris()
     client = get_openai_client()
     if client is None:
         raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
     
     try:
-        # irispy = iris.createIRIS(conn)
-        # # Fetch the combined record
-        # combined_record = irispy.classMethodValue("MyApp.Utils", "GetLatestJSONFile", "")
-        # data = json.loads(combined_record) if combined_record else {}
+        irispy = iris.createIRIS(conn)
+        # Fetch the combined record
+        combined_record = irispy.classMethodValue("MyApp.Utils", "GetLatestJSONFile", "")
+        data = json.loads(combined_record) if combined_record else {}
         
-        # raw_ecg_data = data.get("ecg", {})
-        # raw_hr_data = data.get("hr", {})
-        # raw_sleep_data = data.get("sleep", {})
-        garmin_dir = os.path.join(os.path.dirname(__file__), os.pardir, "garmin")
-        file = open(os.path.join(garmin_dir, "ECG.json"), "r", encoding='utf-8')
-        raw_ecg_data = file.read()
-        file.close()
-        file = open(os.path.join(garmin_dir, "heart_rate.json"), "r", encoding='utf-8')
-        raw_hr_data = file.read()
-        file.close()
-        file = open(os.path.join(garmin_dir, "sleep.json"), "r", encoding='utf-8')
-        raw_sleep_data = file.read()
-        file.close()
+        raw_ecg_data = data.get("ecg", {})
+        raw_hr_data = data.get("hr", {})
+        raw_sleep_data = data.get("sleep", {})
+        # garmin_dir = os.path.join(os.path.dirname(__file__), os.pardir, "garmin")
+        # file = open(os.path.join(garmin_dir, "ECG.json"), "r", encoding='utf-8')
+        # raw_ecg_data = file.read()
+        # file.close()
+        # file = open(os.path.join(garmin_dir, "heart_rate.json"), "r", encoding='utf-8')
+        # raw_hr_data = file.read()
+        # file.close()
+        # file = open(os.path.join(garmin_dir, "sleep.json"), "r", encoding='utf-8')
+        # raw_sleep_data = file.read()
+        # file.close()
 
         ecg_data = get_ecgdata(raw_ecg_data)
         ecg_response = client.responses.create(
@@ -608,8 +608,8 @@ def interprete_garmin() -> dict:
         return {"status": "success", "data": {"ECG Summary": ecg_response.output_text, "HR Summary": hr_response.output_text, "Sleep Summary": sleep_response.output_text}}
     except Exception as e:
         return {"status": "error", "message": f"The following error was found: {e}."}
-    # finally:
-    #     conn.close()
+    finally:
+        conn.close()
 
 @function_tool
 def interprete_home_data() -> dict:
@@ -732,26 +732,26 @@ def interprete_home_data() -> dict:
     
     """
     
-    # conn = get_iris()
+    conn = get_iris()
     client = get_openai_client()
     if client is None:
         raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
     
     try:
-        # irispy = iris.createIRIS(conn)
-        # # Fetch the combined record
-        # combined_record = irispy.classMethodValue("MyApp.Utils", "GetLatestJSONFile", "")
-        # data = json.loads(combined_record) if combined_record else {}
+        irispy = iris.createIRIS(conn)
+        # Fetch the combined record
+        combined_record = irispy.classMethodValue("MyApp.Utils", "GetLatestJSONFile", "")
+        data = json.loads(combined_record) if combined_record else {}
         
-        # raw_toilet_data = data.get("toilet", {})
-        # raw_fridge_data = data.get("fridge", {})
-        garmin_dir = os.path.join(os.path.dirname(__file__), os.pardir, "garmin")
-        file = open(os.path.join(garmin_dir, "toilet_hydration.json"), "r", encoding='utf-8')
-        raw_toilet_data = file.read()
-        file.close()
-        file = open(os.path.join(garmin_dir, "fridge.json"), "r", encoding='utf-8')
-        raw_fridge_data = file.read()
-        file.close()
+        raw_toilet_data = data.get("toilet", {})
+        raw_fridge_data = data.get("fridge", {})
+        # garmin_dir = os.path.join(os.path.dirname(__file__), os.pardir, "garmin")
+        # file = open(os.path.join(garmin_dir, "toilet_hydration.json"), "r", encoding='utf-8')
+        # raw_toilet_data = file.read()
+        # file.close()
+        # file = open(os.path.join(garmin_dir, "fridge.json"), "r", encoding='utf-8')
+        # raw_fridge_data = file.read()
+        # file.close()
     
         toilet_data = get_toiletdata(raw_toilet_data)
         toilet_response = client.responses.create(
@@ -768,8 +768,8 @@ def interprete_home_data() -> dict:
         return {"status": "success", "data": {"Hydration Summary": toilet_response.output_text, "Nutrition Summary": fridge_response.output_text}}
     except Exception as e:
         return {"status": "error", "message": f"The following error was found: {e}."}
-    # finally:
-    #     conn.close()
+    finally:
+        conn.close()
 
 # ── AI response endpoints ─────────────────────────────────────────────────────
 
