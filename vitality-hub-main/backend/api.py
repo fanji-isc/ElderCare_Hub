@@ -912,9 +912,8 @@ async def speak(payload: dict = Body(...)):
 async def morning_message():
     return """Good morning, Frank — I'm glad you're up. 
                 Your Garmin and home sensors show a very restless, short night of sleep, only one meal yesterday with low protein, and dark morning urine — that combination raises your dizziness/fall risk today. 
-                Please sip 250-500 ml of water slowly now, have a small protein snack (two eggs, turkey slices, or Greek yogurt are easy options), and avoid getting up or walking alone right away: 
-                sit for a minute before standing and take slow, supported steps if you need to move. 
-                Rest through the morning, try to add more fluids and a bit more protein over the next few hours, and if you feel faint, have chest pain, lose consciousness, or become very confused, call emergency services or contact Dr. Mitchell (or David) right away."""
+                Please sip 250-500 ml of water slowly now, have a small protein snack (two eggs, turkey slices, or Greek yogurt are easy options), and avoid getting up or walking alone right away: sit for a minute before standing and take slow, supported steps if you need to move. 
+                Rest through the morning, try to add more fluids and a bit more protein over the next few hours, and if you feel faint, have chest pain, or become very confused, call emergency services or contact Dr. Mitchell (or David) right away."""
     # TODO: test if this is even necessary
     api_key = os.environ.get("OPENAI_API_KEY")
     if api_key:
