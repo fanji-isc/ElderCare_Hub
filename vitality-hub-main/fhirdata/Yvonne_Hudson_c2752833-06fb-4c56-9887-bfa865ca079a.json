@@ -50,7 +50,7 @@
               "text": "Medical Record Number"
             },
             "system": "http://hospital.smarthealthit.org",
-            "value": "c2752833-06fb-4c56-9887-bfa865ca079a"
+            "value": "7503948521"
           },
           {
             "type": {
@@ -10148,7 +10148,7 @@
               "text": "Subcutaneous immunotherapy"
             },
             "net": {
-              "value": 9611.30,
+              "value": 9611.3,
               "currency": "USD"
             }
           }
@@ -10346,7 +10346,7 @@
               ]
             },
             "net": {
-              "value": 9611.30,
+              "value": 9611.3,
               "currency": "USD"
             },
             "adjudication": [
@@ -10391,7 +10391,7 @@
                   ]
                 },
                 "amount": {
-                  "value": 9611.30,
+                  "value": 9611.3,
                   "currency": "USD"
                 }
               },
@@ -10406,7 +10406,7 @@
                   ]
                 },
                 "amount": {
-                  "value": 9611.30,
+                  "value": 9611.3,
                   "currency": "USD"
                 }
               },
@@ -14267,7 +14267,7 @@
               "text": "Subcutaneous immunotherapy"
             },
             "net": {
-              "value": 15073.60,
+              "value": 15073.6,
               "currency": "USD"
             }
           }
@@ -14465,7 +14465,7 @@
               ]
             },
             "net": {
-              "value": 15073.60,
+              "value": 15073.6,
               "currency": "USD"
             },
             "adjudication": [
@@ -14510,7 +14510,7 @@
                   ]
                 },
                 "amount": {
-                  "value": 15073.60,
+                  "value": 15073.6,
                   "currency": "USD"
                 }
               },
@@ -14525,7 +14525,7 @@
                   ]
                 },
                 "amount": {
-                  "value": 15073.60,
+                  "value": 15073.6,
                   "currency": "USD"
                 }
               },
@@ -16287,7 +16287,7 @@
               "text": "Subcutaneous immunotherapy"
             },
             "net": {
-              "value": 9635.80,
+              "value": 9635.8,
               "currency": "USD"
             }
           }
@@ -16485,7 +16485,7 @@
               ]
             },
             "net": {
-              "value": 9635.80,
+              "value": 9635.8,
               "currency": "USD"
             },
             "adjudication": [
@@ -16530,7 +16530,7 @@
                   ]
                 },
                 "amount": {
-                  "value": 9635.80,
+                  "value": 9635.8,
                   "currency": "USD"
                 }
               },
@@ -16545,7 +16545,7 @@
                   ]
                 },
                 "amount": {
-                  "value": 9635.80,
+                  "value": 9635.8,
                   "currency": "USD"
                 }
               },
@@ -17297,7 +17297,7 @@
               "text": "Subcutaneous immunotherapy"
             },
             "net": {
-              "value": 21814.50,
+              "value": 21814.5,
               "currency": "USD"
             }
           }
@@ -17495,7 +17495,7 @@
               ]
             },
             "net": {
-              "value": 21814.50,
+              "value": 21814.5,
               "currency": "USD"
             },
             "adjudication": [
@@ -17540,7 +17540,7 @@
                   ]
                 },
                 "amount": {
-                  "value": 21814.50,
+                  "value": 21814.5,
                   "currency": "USD"
                 }
               },
@@ -17555,7 +17555,7 @@
                   ]
                 },
                 "amount": {
-                  "value": 21814.50,
+                  "value": 21814.5,
                   "currency": "USD"
                 }
               },
@@ -20251,7 +20251,7 @@
               "text": "Subcutaneous immunotherapy"
             },
             "net": {
-              "value": 12365.60,
+              "value": 12365.6,
               "currency": "USD"
             }
           }
@@ -20449,7 +20449,7 @@
               ]
             },
             "net": {
-              "value": 12365.60,
+              "value": 12365.6,
               "currency": "USD"
             },
             "adjudication": [
@@ -20494,7 +20494,7 @@
                   ]
                 },
                 "amount": {
-                  "value": 12365.60,
+                  "value": 12365.6,
                   "currency": "USD"
                 }
               },
@@ -20509,7 +20509,7 @@
                   ]
                 },
                 "amount": {
-                  "value": 12365.60,
+                  "value": 12365.6,
                   "currency": "USD"
                 }
               },
@@ -27346,7 +27346,7 @@
               "text": "Subcutaneous immunotherapy"
             },
             "net": {
-              "value": 16083.20,
+              "value": 16083.2,
               "currency": "USD"
             }
           }
@@ -27544,7 +27544,7 @@
               ]
             },
             "net": {
-              "value": 16083.20,
+              "value": 16083.2,
               "currency": "USD"
             },
             "adjudication": [
@@ -27589,7 +27589,7 @@
                   ]
                 },
                 "amount": {
-                  "value": 16083.20,
+                  "value": 16083.2,
                   "currency": "USD"
                 }
               },
@@ -27604,7 +27604,7 @@
                   ]
                 },
                 "amount": {
-                  "value": 16083.20,
+                  "value": 16083.2,
                   "currency": "USD"
                 }
               },
@@ -30376,7 +30376,7 @@
               "text": "Subcutaneous immunotherapy"
             },
             "net": {
-              "value": 19029.70,
+              "value": 19029.7,
               "currency": "USD"
             }
           }
@@ -30574,7 +30574,7 @@
               ]
             },
             "net": {
-              "value": 19029.70,
+              "value": 19029.7,
               "currency": "USD"
             },
             "adjudication": [
@@ -30619,7 +30619,7 @@
                   ]
                 },
                 "amount": {
-                  "value": 19029.70,
+                  "value": 19029.7,
                   "currency": "USD"
                 }
               },
@@ -30634,7 +30634,7 @@
                   ]
                 },
                 "amount": {
-                  "value": 19029.70,
+                  "value": 19029.7,
                   "currency": "USD"
                 }
               },
@@ -41297,7 +41297,7 @@
               "text": "Subcutaneous immunotherapy"
             },
             "net": {
-              "value": 14231.00,
+              "value": 14231.0,
               "currency": "USD"
             }
           }
@@ -41495,7 +41495,7 @@
               ]
             },
             "net": {
-              "value": 14231.00,
+              "value": 14231.0,
               "currency": "USD"
             },
             "adjudication": [
@@ -41540,7 +41540,7 @@
                   ]
                 },
                 "amount": {
-                  "value": 14231.00,
+                  "value": 14231.0,
                   "currency": "USD"
                 }
               },
@@ -41555,7 +41555,7 @@
                   ]
                 },
                 "amount": {
-                  "value": 14231.00,
+                  "value": 14231.0,
                   "currency": "USD"
                 }
               },

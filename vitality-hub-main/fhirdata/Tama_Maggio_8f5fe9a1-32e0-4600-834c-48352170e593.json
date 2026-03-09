@@ -50,7 +50,7 @@
               "text": "Medical Record Number"
             },
             "system": "http://hospital.smarthealthit.org",
-            "value": "8f5fe9a1-32e0-4600-834c-48352170e593"
+            "value": "2058493076"
           },
           {
             "type": {
@@ -61186,7 +61186,7 @@
               "text": "Catheter ablation of tissue of heart"
             },
             "net": {
-              "value": 7878.00,
+              "value": 7878.0,
               "currency": "USD"
             }
           }
@@ -61384,7 +61384,7 @@
               ]
             },
             "net": {
-              "value": 7878.00,
+              "value": 7878.0,
               "currency": "USD"
             },
             "adjudication": [
@@ -61429,7 +61429,7 @@
                   ]
                 },
                 "amount": {
-                  "value": 7878.00,
+                  "value": 7878.0,
                   "currency": "USD"
                 }
               },
@@ -61444,7 +61444,7 @@
                   ]
                 },
                 "amount": {
-                  "value": 7878.00,
+                  "value": 7878.0,
                   "currency": "USD"
                 }
               },
@@ -118364,7 +118364,7 @@
               "text": "Plain chest X-ray (procedure)"
             },
             "net": {
-              "value": 14591.10,
+              "value": 14591.1,
               "currency": "USD"
             }
           },
@@ -119076,7 +119076,7 @@
               ]
             },
             "net": {
-              "value": 14591.10,
+              "value": 14591.1,
               "currency": "USD"
             },
             "adjudication": [
@@ -119121,7 +119121,7 @@
                   ]
                 },
                 "amount": {
-                  "value": 14591.10,
+                  "value": 14591.1,
                   "currency": "USD"
                 }
               },
@@ -119136,7 +119136,7 @@
                   ]
                 },
                 "amount": {
-                  "value": 14591.10,
+                  "value": 14591.1,
                   "currency": "USD"
                 }
               },

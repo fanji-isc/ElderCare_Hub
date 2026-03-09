@@ -105,9 +105,7 @@ export function ECGVisualization() {
       </div>
       <div className="flex-1 min-w-0">
         <h3 className="text-sm font-semibold text-foreground leading-tight">ECG Reading</h3>
-        <p className="text-xs text-muted-foreground truncate">
-          {ecg?.summary.rhythmClassification ?? "ECG waveform"}
-        </p>
+        <p className="text-xs text-muted-foreground truncate">Electrical heart activity · ECG</p>
       </div>
       {ecg && (
         <div className="flex items-center gap-1.5 flex-shrink-0">

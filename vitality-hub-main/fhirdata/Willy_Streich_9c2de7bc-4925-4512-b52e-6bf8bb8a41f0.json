@@ -50,7 +50,7 @@
               "text": "Medical Record Number"
             },
             "system": "http://hospital.smarthealthit.org",
-            "value": "9c2de7bc-4925-4512-b52e-6bf8bb8a41f0"
+            "value": "6492837410"
           },
           {
             "type": {
@@ -8638,7 +8638,7 @@
               "text": "Throat culture (procedure)"
             },
             "net": {
-              "value": 2753.70,
+              "value": 2753.7,
               "currency": "USD"
             }
           }
@@ -8892,7 +8892,7 @@
               ]
             },
             "net": {
-              "value": 2753.70,
+              "value": 2753.7,
               "currency": "USD"
             },
             "adjudication": [
@@ -8937,7 +8937,7 @@
                   ]
                 },
                 "amount": {
-                  "value": 2753.70,
+                  "value": 2753.7,
                   "currency": "USD"
                 }
               },
@@ -8952,7 +8952,7 @@
                   ]
                 },
                 "amount": {
-                  "value": 2753.70,
+                  "value": 2753.7,
                   "currency": "USD"
                 }
               },

@@ -50,7 +50,7 @@
               "text": "Medical Record Number"
             },
             "system": "http://hospital.smarthealthit.org",
-            "value": "009bdf7c-3f4f-46af-b871-c37929d3ef98"
+            "value": "5381726309"
           },
           {
             "type": {
@@ -3468,7 +3468,7 @@
               "text": "Evaluation of uterine fundal height"
             },
             "net": {
-              "value": 8688.20,
+              "value": 8688.2,
               "currency": "USD"
             }
           },
@@ -3608,7 +3608,7 @@
               "text": "Gonorrhea infection test"
             },
             "net": {
-              "value": 2705.40,
+              "value": 2705.4,
               "currency": "USD"
             }
           },
@@ -3648,7 +3648,7 @@
               "text": "Urine culture"
             },
             "net": {
-              "value": 2168.60,
+              "value": 2168.6,
               "currency": "USD"
             }
           },
@@ -3688,7 +3688,7 @@
               "text": "Urine screening test for diabetes"
             },
             "net": {
-              "value": 3636.90,
+              "value": 3636.9,
               "currency": "USD"
             }
           },
@@ -3708,7 +3708,7 @@
               "text": "Hepatitis C antibody test"
             },
             "net": {
-              "value": 2263.10,
+              "value": 2263.1,
               "currency": "USD"
             }
           },
@@ -4316,7 +4316,7 @@
               ]
             },
             "net": {
-              "value": 8688.20,
+              "value": 8688.2,
               "currency": "USD"
             },
             "adjudication": [
@@ -4361,7 +4361,7 @@
                   ]
                 },
                 "amount": {
-                  "value": 8688.20,
+                  "value": 8688.2,
                   "currency": "USD"
                 }
               },
@@ -4376,7 +4376,7 @@
                   ]
                 },
                 "amount": {
-                  "value": 8688.20,
+                  "value": 8688.2,
                   "currency": "USD"
                 }
               },
@@ -5205,7 +5205,7 @@
               ]
             },
             "net": {
-              "value": 2705.40,
+              "value": 2705.4,
               "currency": "USD"
             },
             "adjudication": [
@@ -5250,7 +5250,7 @@
                   ]
                 },
                 "amount": {
-                  "value": 2705.40,
+                  "value": 2705.4,
                   "currency": "USD"
                 }
               },
@@ -5265,7 +5265,7 @@
                   ]
                 },
                 "amount": {
-                  "value": 2705.40,
+                  "value": 2705.4,
                   "currency": "USD"
                 }
               },
@@ -5459,7 +5459,7 @@
               ]
             },
             "net": {
-              "value": 2168.60,
+              "value": 2168.6,
               "currency": "USD"
             },
             "adjudication": [
@@ -5504,7 +5504,7 @@
                   ]
                 },
                 "amount": {
-                  "value": 2168.60,
+                  "value": 2168.6,
                   "currency": "USD"
                 }
               },
@@ -5519,7 +5519,7 @@
                   ]
                 },
                 "amount": {
-                  "value": 2168.60,
+                  "value": 2168.6,
                   "currency": "USD"
                 }
               },
@@ -5713,7 +5713,7 @@
               ]
             },
             "net": {
-              "value": 3636.90,
+              "value": 3636.9,
               "currency": "USD"
             },
             "adjudication": [
@@ -5758,7 +5758,7 @@
                   ]
                 },
                 "amount": {
-                  "value": 3636.90,
+                  "value": 3636.9,
                   "currency": "USD"
                 }
               },
@@ -5773,7 +5773,7 @@
                   ]
                 },
                 "amount": {
-                  "value": 3636.90,
+                  "value": 3636.9,
                   "currency": "USD"
                 }
               },
@@ -5840,7 +5840,7 @@
               ]
             },
             "net": {
-              "value": 2263.10,
+              "value": 2263.1,
               "currency": "USD"
             },
             "adjudication": [
@@ -5885,7 +5885,7 @@
                   ]
                 },
                 "amount": {
-                  "value": 2263.10,
+                  "value": 2263.1,
                   "currency": "USD"
                 }
               },
@@ -5900,7 +5900,7 @@
                   ]
                 },
                 "amount": {
-                  "value": 2263.10,
+                  "value": 2263.1,
                   "currency": "USD"
                 }
               },
@@ -6887,7 +6887,7 @@
               "text": "Evaluation of uterine fundal height"
             },
             "net": {
-              "value": 8862.90,
+              "value": 8862.9,
               "currency": "USD"
             }
           },
@@ -7125,7 +7125,7 @@
               ]
             },
             "net": {
-              "value": 8862.90,
+              "value": 8862.9,
               "currency": "USD"
             },
             "adjudication": [
@@ -7170,7 +7170,7 @@
                   ]
                 },
                 "amount": {
-                  "value": 8862.90,
+                  "value": 8862.9,
                   "currency": "USD"
                 }
               },
@@ -7185,7 +7185,7 @@
                   ]
                 },
                 "amount": {
-                  "value": 8862.90,
+                  "value": 8862.9,
                   "currency": "USD"
                 }
               },
@@ -12307,7 +12307,7 @@
               "text": "Urine screening for glucose"
             },
             "net": {
-              "value": 2424.70,
+              "value": 2424.7,
               "currency": "USD"
             }
           },
@@ -12799,7 +12799,7 @@
               ]
             },
             "net": {
-              "value": 2424.70,
+              "value": 2424.7,
               "currency": "USD"
             },
             "adjudication": [
@@ -12844,7 +12844,7 @@
                   ]
                 },
                 "amount": {
-                  "value": 2424.70,
+                  "value": 2424.7,
                   "currency": "USD"
                 }
               },
@@ -12859,7 +12859,7 @@
                   ]
                 },
                 "amount": {
-                  "value": 2424.70,
+                  "value": 2424.7,
                   "currency": "USD"
                 }
               },
@@ -19480,7 +19480,7 @@
               "text": "Hemoglobin / Hematocrit / Platelet count"
             },
             "net": {
-              "value": 1745.30,
+              "value": 1745.3,
               "currency": "USD"
             }
           },
@@ -19580,7 +19580,7 @@
               "text": "Syphilis infection test"
             },
             "net": {
-              "value": 2240.30,
+              "value": 2240.3,
               "currency": "USD"
             }
           },
@@ -20649,7 +20649,7 @@
               ]
             },
             "net": {
-              "value": 1745.30,
+              "value": 1745.3,
               "currency": "USD"
             },
             "adjudication": [
@@ -20694,7 +20694,7 @@
                   ]
                 },
                 "amount": {
-                  "value": 1745.30,
+                  "value": 1745.3,
                   "currency": "USD"
                 }
               },
@@ -20709,7 +20709,7 @@
                   ]
                 },
                 "amount": {
-                  "value": 1745.30,
+                  "value": 1745.3,
                   "currency": "USD"
                 }
               },
@@ -21284,7 +21284,7 @@
               ]
             },
             "net": {
-              "value": 2240.30,
+              "value": 2240.3,
               "currency": "USD"
             },
             "adjudication": [
@@ -21329,7 +21329,7 @@
                   ]
                 },
                 "amount": {
-                  "value": 2240.30,
+                  "value": 2240.3,
                   "currency": "USD"
                 }
               },
@@ -21344,7 +21344,7 @@
                   ]
                 },
                 "amount": {
-                  "value": 2240.30,
+                  "value": 2240.3,
                   "currency": "USD"
                 }
               },
@@ -30593,7 +30593,7 @@
               "text": "Auscultation of the fetal heart"
             },
             "net": {
-              "value": 6803.10,
+              "value": 6803.1,
               "currency": "USD"
             }
           }
@@ -30918,7 +30918,7 @@
               ]
             },
             "net": {
-              "value": 6803.10,
+              "value": 6803.1,
               "currency": "USD"
             },
             "adjudication": [
@@ -30963,7 +30963,7 @@
                   ]
                 },
                 "amount": {
-                  "value": 6803.10,
+                  "value": 6803.1,
                   "currency": "USD"
                 }
               },
@@ -30978,7 +30978,7 @@
                   ]
                 },
                 "amount": {
-                  "value": 6803.10,
+                  "value": 6803.1,
                   "currency": "USD"
                 }
               },
@@ -40018,7 +40018,7 @@
               "text": "Medication Reconciliation (procedure)"
             },
             "net": {
-              "value": 924.90,
+              "value": 924.9,
               "currency": "USD"
             }
           },
@@ -40640,7 +40640,7 @@
               ]
             },
             "net": {
-              "value": 924.90,
+              "value": 924.9,
               "currency": "USD"
             },
             "adjudication": [
@@ -40685,7 +40685,7 @@
                   ]
                 },
                 "amount": {
-                  "value": 924.90,
+                  "value": 924.9,
                   "currency": "USD"
                 }
               },
@@ -40700,7 +40700,7 @@
                   ]
                 },
                 "amount": {
-                  "value": 924.90,
+                  "value": 924.9,
                   "currency": "USD"
                 }
               },

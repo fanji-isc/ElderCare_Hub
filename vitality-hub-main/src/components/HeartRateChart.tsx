@@ -142,7 +142,7 @@ export function HeartRateChart() {
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-foreground leading-tight">Heart Rate</p>
-          <p className="text-xs text-muted-foreground truncate">Continuous BPM · Garmin</p>
+          <p className="text-xs text-muted-foreground truncate">Heart rate trends over time</p>
         </div>
         <div className="flex items-center gap-1.5 flex-shrink-0">
           <span className="h-2 w-2 rounded-full bg-heart" />

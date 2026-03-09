@@ -74,8 +74,8 @@ export function SmartFridgeCard() {
           <Refrigerator className="h-4 w-4" />
         </div>
         <div className="flex-1">
-          <h3 className="text-sm font-semibold text-foreground leading-tight">Smart Fridge</h3>
-          <p className="text-xs text-muted-foreground">Diet & nutrition monitoring</p>
+          <h3 className="text-sm font-semibold text-foreground leading-tight">Nutrition & Diet</h3>
+          <p className="text-xs text-muted-foreground">Smart fridge monitoring</p>
         </div>
         <span className="text-xs text-muted-foreground flex-shrink-0">
           {new Date(data.calendarDate + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}

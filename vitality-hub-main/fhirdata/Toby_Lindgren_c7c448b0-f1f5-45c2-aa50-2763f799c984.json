@@ -50,7 +50,7 @@
               "text": "Medical Record Number"
             },
             "system": "http://hospital.smarthealthit.org",
-            "value": "d9e0f1a2-b3c4-4d5e-8f6a-7b8c9d0e1f2a"
+            "value": "4270615298"
           },
           {
             "type": {
@@ -75892,7 +75892,7 @@
               "text": "Catheter ablation of tissue of heart"
             },
             "net": {
-              "value": 7052.40,
+              "value": 7052.4,
               "currency": "USD"
             }
           },
@@ -76150,7 +76150,7 @@
               ]
             },
             "net": {
-              "value": 7052.40,
+              "value": 7052.4,
               "currency": "USD"
             },
             "adjudication": [
@@ -76195,7 +76195,7 @@
                   ]
                 },
                 "amount": {
-                  "value": 7052.40,
+                  "value": 7052.4,
                   "currency": "USD"
                 }
               },
@@ -76210,7 +76210,7 @@
                   ]
                 },
                 "amount": {
-                  "value": 7052.40,
+                  "value": 7052.4,
                   "currency": "USD"
                 }
               },

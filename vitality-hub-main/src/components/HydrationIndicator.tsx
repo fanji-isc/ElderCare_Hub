@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
 import { Droplets } from "lucide-react";
+import {
+  AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine,
+} from "recharts";
 
 const COLOR_SCALE = [
   { level: 1, hex: "#FEFBE4", label: "Pale Straw",  status: "Excellent",        statusColor: "text-success" },
@@ -44,11 +47,47 @@ function formatDateTime(timestamp: string): { date: string; time: string } {
   } catch { return { date: "—", time: "—" }; }
 }
 
+type TrendPoint = { day: string; avg: number };
+
+function buildTrend(data: any[]): TrendPoint[] {
+  return [...data]
+    .sort((a, b) => String(a.calendarDate).localeCompare(String(b.calendarDate)))
+    .slice(-7)
+    .map((entry) => {
+      const readings: any[] = Array.isArray(entry.readings) ? entry.readings : [];
+      const avg = readings.length
+        ? parseFloat((readings.reduce((s: number, r: any) => s + Number(r.colorLevel), 0) / readings.length).toFixed(1))
+        : 0;
+      const d = new Date(entry.calendarDate + "T12:00:00");
+      const day = d.toLocaleDateString("en-US", { month: "numeric", day: "numeric" });
+      return { day, avg };
+    })
+    .filter((p) => p.avg > 0);
+}
+
+// Custom tooltip to show level label
+function CustomTooltip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null;
+  const val = payload[0].value as number;
+  const idx = Math.min(7, Math.max(1, Math.round(val))) - 1;
+  const info = COLOR_SCALE[idx];
+  return (
+    <div className="rounded-lg border border-border bg-background px-3 py-2 text-xs shadow-md">
+      <p className="font-medium text-foreground mb-0.5">{label}</p>
+      <p style={{ color: info.hex === "#FEFBE4" ? "#a0900a" : info.hex }}>
+        Avg level {val} · {info.label}
+      </p>
+      <p className="text-muted-foreground">{info.status}</p>
+    </div>
+  );
+}
+
 export function HydrationIndicator() {
   const [detectedLevel, setDetectedLevel] = useState<number>(1);
   const [lastReading, setLastReading] = useState<{ date: string; time: string }>({ date: "—", time: "—" });
   const [timeOfDay, setTimeOfDay] = useState<string>("");
   const [readingsToday, setReadingsToday] = useState<number>(0);
+  const [trend, setTrend] = useState<TrendPoint[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -56,7 +95,11 @@ export function HydrationIndicator() {
       try {
         const res = await fetch(`${API_BASE}/api/toilet?patient_id=${encodeURIComponent(PATIENT_ID)}`);
         const json = res.ok ? await res.json() : [];
-        const latest = pickLatestByCalendarDate(Array.isArray(json) ? json : []);
+        const allData = Array.isArray(json) ? json : [];
+
+        setTrend(buildTrend(allData));
+
+        const latest = pickLatestByCalendarDate(allData);
         if (latest) {
           const readings: any[] = Array.isArray(latest.readings) ? latest.readings : [];
           const lastRead = readings[readings.length - 1];
@@ -87,7 +130,7 @@ export function HydrationIndicator() {
         </div>
         <div className="flex-1">
           <h3 className="text-sm font-semibold text-foreground leading-tight">Hydration Level</h3>
-          <p className="text-xs text-muted-foreground">Smart toilet · urine color detection</p>
+          <p className="text-xs text-muted-foreground">Urine color analysis · 7-day trend</p>
         </div>
         {!loading && (
           <div className="flex-shrink-0 rounded-full px-2.5 py-1 text-xs font-medium"
@@ -148,6 +191,59 @@ export function HydrationIndicator() {
                 <span className="ml-auto text-xs text-muted-foreground italic flex-shrink-0">{timeOfDay}</span>
               )}
             </div>
+
+            {/* 7-day trend chart */}
+            {trend.length > 1 && (
+              <div className="space-y-2 pt-1">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  {trend.length}-day hydration trend
+                </p>
+                <p className="text-[11px] text-muted-foreground -mt-1">Lower = better hydrated</p>
+                <div className="h-44">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={trend} margin={{ top: 8, right: 8, left: -28, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="hydrationGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#BF9420" stopOpacity={0.35} />
+                          <stop offset="100%" stopColor="#BF9420" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                      <XAxis
+                        dataKey="day"
+                        tick={{ fontSize: 11, fill: "hsl(215,16%,50%)" }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <YAxis
+                        domain={[1, 8]}
+                        ticks={[1, 2, 3, 4, 5, 6, 7, 8]}
+                        tick={{ fontSize: 10, fill: "hsl(215,16%,50%)" }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <Tooltip content={<CustomTooltip />} />
+                      {/* Goal line at level 3 (Normal / good hydration) */}
+                      <ReferenceLine
+                        y={3}
+                        stroke="#ECD93E"
+                        strokeDasharray="4 4"
+                        label={{ value: "Goal", fontSize: 9, fill: "#a0900a", position: "right" }}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="avg"
+                        stroke="#BF9420"
+                        strokeWidth={2.5}
+                        fill="url(#hydrationGradient)"
+                        dot={{ r: 3, fill: "#BF9420", strokeWidth: 0 }}
+                        isAnimationActive={false}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
 
             {/* Footer stats */}
             <div className="grid grid-cols-2 gap-3 border-t border-border pt-4">

@@ -93,7 +93,7 @@ export function SleepChart({ patientId = "PATIENT_001" }: { patientId?: string }
         </div>
         <div className="flex-1">
           <h3 className="text-sm font-semibold text-foreground leading-tight">Sleep Analysis</h3>
-          <p className="text-xs text-muted-foreground">Sleep stages from Garmin</p>
+          <p className="text-xs text-muted-foreground">Sleep quality & stage breakdown</p>
         </div>
       </div>
       <div className="flex items-center justify-center h-48">
@@ -110,7 +110,7 @@ export function SleepChart({ patientId = "PATIENT_001" }: { patientId?: string }
         </div>
         <div className="flex-1">
           <h3 className="text-sm font-semibold text-foreground leading-tight">Sleep Analysis</h3>
-          <p className="text-xs text-muted-foreground">Sleep stages from Garmin</p>
+          <p className="text-xs text-muted-foreground">Sleep quality & stage breakdown</p>
         </div>
       </div>
       <div className="flex items-center justify-center h-48">
@@ -128,7 +128,7 @@ export function SleepChart({ patientId = "PATIENT_001" }: { patientId?: string }
         </div>
         <div className="flex-1">
           <h3 className="text-sm font-semibold text-foreground leading-tight">Sleep Analysis</h3>
-          <p className="text-xs text-muted-foreground">Sleep stages from Garmin</p>
+          <p className="text-xs text-muted-foreground">Sleep quality & stage breakdown</p>
         </div>
         <div className="text-right flex-shrink-0">
           <div className="text-sm font-bold text-foreground">{avgTotal}h</div>

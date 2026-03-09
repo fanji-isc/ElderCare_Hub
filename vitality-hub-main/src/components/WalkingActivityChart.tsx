@@ -287,11 +287,7 @@ export function WalkingActivityChart() {
           </div>
           <div className="flex-1">
             <h3 className="text-sm font-semibold text-foreground leading-tight">Gait Analysis</h3>
-            <p className="text-xs text-muted-foreground">
-              {latestSession
-                ? `Latest · ${fmtDate(latestSession.startTime)} at ${fmtTime(latestSession.startTime)}`
-                : "Loading…"}
-            </p>
+            <p className="text-xs text-muted-foreground">Walking pattern & fall risk</p>
           </div>
           {rLevels && (
             <div className={`rounded-full px-3 py-1 ${levelColor[overall]}`}>
