@@ -350,7 +350,7 @@ const PhysicianView = () => {
         </div>
         <main className="container mx-auto px-4 py-6 sm:px-6">
           <div className="mb-5">
-            <h2 className="text-xl font-semibold text-foreground">Patient Registry</h2>
+            <h2 className="text-xl font-semibold text-foreground">My Patients</h2>
             <p className="text-sm text-muted-foreground mt-0.5">Select a patient to view their health record</p>
           </div>
           {listLoading ? (
