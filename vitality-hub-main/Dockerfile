@@ -4,7 +4,7 @@ USER root
 
 # ── Install Node.js 20 ──────────────────────────────────────────────────────
 RUN apt-get update && \
-    apt-get install -y curl gnupg python3 python3-venv python3-pip && \
+    apt-get install -y curl gnupg python3 python3-venv python3-pip dos2unix && \
     curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y nodejs && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
@@ -17,13 +17,8 @@ COPY ./merge/CMF.cpf /merge/CMF.cpf
 COPY ./scripts/fhirserver.script /scripts/fhirserver.script
 COPY ./scripts/enablecors.script /scripts/enablecors.script
 
-# ── Copy FHIR sample data (loaded into IRIS during the bake step) ────────────
+# ── Copy FHIR sample data ────────────────────────────────────────────────────
 COPY ./fhirdata/ /fhirdata/
-
-RUN chown -R ${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} \
-    /data/ /fhirdata/ /merge/ /scripts/
-
-USER root
 
 # ── Node app ─────────────────────────────────────────────────────────────────
 WORKDIR /app
@@ -40,7 +35,16 @@ COPY . .
 
 # ── Startup script ───────────────────────────────────────────────────────────
 COPY start.sh /start.sh
-RUN chmod +x /start.sh
+
+# Fix Windows line endings and make the script executable
+RUN sed -i 's/\r$//' /start.sh && chmod +x /start.sh
+
+# Ensure the IRIS user owns everything it needs
+RUN chown -R ${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} \
+    /data/ /fhirdata/ /merge/ /scripts/ /app /start.sh
+
+# ── Switch back to the IRIS user ────────────────────────────────────────────
+USER ${ISC_PACKAGE_MGRUSER}
 
 EXPOSE 8080 3001 52773 1972
 

@@ -68,7 +68,7 @@ Her daughter **Linda** lives 45 minutes away. Her primary care provider is **NP 
 # Initialize Environment
 load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")
-set_default_openai_key(os.getenv("OPENAI_API_KEY"))
+set_default_openai_key(api_key)
 set_tracing_disabled(True)
 client = OpenAI(api_key=api_key)
 args = {'hostname': os.getenv("IRIS_SQL_HOST"), 'port': int(os.getenv("IRIS_SQL_PORT")), 'namespace': os.getenv("IRIS_SQL_NAMESPACE"),
