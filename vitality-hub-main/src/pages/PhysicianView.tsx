@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Stethoscope, User, Calendar, Hash, MapPin, FlaskConical, Activity, Brain, ChevronRight, ArrowLeft } from "lucide-react";
+import { Stethoscope, User, Calendar, Hash, MapPin, FlaskConical, Activity, Brain, ChevronRight, ArrowLeft, Loader2 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -318,6 +318,35 @@ const PhysicianView = () => {
       }
     })();
   }, [selectedId]);
+
+  const [summary, setSummary] = useState<string | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState<boolean>(false);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // 1. Reset and start loading
+    setSummaryLoading(true);
+    setSummaryError(null); 
+
+    fetch(`${API_BASE}/api/clinician_summary`)
+      .then(r => { 
+        if (!r.ok) throw new Error("Could not generate summary"); 
+        return r.text(); 
+      })
+      .then((data: string) => {
+        // This cleans up literal "\n" strings if the backend sent them escaped
+        const cleanData = data.replace(/\\n/g, '\n').replace(/^"|"$/g, '');
+        setSummary(cleanData);
+      })
+      .catch(e => {
+        // 3. Error: Capture the message for the UI
+        setSummaryError(e.message);
+      })
+      .finally(() => {
+        // 4. Cleanup: Turn off the spinner regardless of outcome
+        setSummaryLoading(false);
+      });
+  }, [patient?.id]);
 
   // ── Derived values (for detail view) ───────────────────────────────────
   const age = patient?.birthDate ? calcAge(patient.birthDate) : null;
@@ -693,15 +722,66 @@ const PhysicianView = () => {
 
           {/* ══ Tab 2 — AI Summary ══ */}
           <TabsContent value="ai">
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-24 text-center">
-                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-blue-50">
-                  <Brain className="h-7 w-7 text-blue-400" />
+            <Card className="overflow-hidden border-none shadow-none">
+              <CardContent className="flex flex-col items-center py-12 px-6">
+                <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-blue-50">
+                  {summaryLoading ? (
+                    <Loader2 className="h-8 w-8 text-blue-500 animate-spin" />
+                  ) : (
+                    <Brain className="h-8 w-8 text-blue-500" />
+                  )}
                 </div>
-                <h3 className="text-lg font-semibold text-foreground mb-2">AI Clinical Summary</h3>
-                <p className="text-sm text-muted-foreground max-w-sm">
-                  Coming soon — AI-generated summaries of {patient?.name?.split(" ")[0] ?? "this patient"}'s clinical history, risk factors, and care recommendations.
-                </p>
+
+                <div className="max-w-3xl w-full">
+                  <h3 className="text-xl font-bold text-slate-900 text-center mb-6">
+                    AI Clinical Summary
+                  </h3>
+
+                  {summaryLoading ? (
+                    <div className="space-y-4">
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-[90%]" />
+                      <Skeleton className="h-4 w-[95%]" />
+                    </div>
+                  ) : summaryError ? (
+                    <div className="p-4 rounded-md bg-red-50 text-red-700 text-sm text-center">
+                      {summaryError}
+                    </div>
+                  ) : summary ? (
+                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                      <div className="p-6 space-y-4">
+                        {summary.split('\n').map((line, i) => {
+                          const trimmed = line.trim();
+                          if (!trimmed) return null;
+
+                          // Check if it's a bullet point
+                          if (trimmed.startsWith('-')) {
+                            return (
+                              <div key={i} className="flex gap-3 text-sm leading-relaxed text-slate-700">
+                                <span className="text-blue-500 font-bold">•</span>
+                                <span>{trimmed.replace(/^-/, '').trim()}</span>
+                              </div>
+                            );
+                          }
+
+                          // Treat non-bullets as headers/titles
+                          return (
+                            <p key={i} className="text-sm font-semibold text-slate-900 pt-2 border-b border-slate-100 pb-2">
+                              {trimmed}
+                            </p>
+                          );
+                        })}
+                      </div>
+                      <div className="bg-slate-50 px-6 py-3 border-t border-slate-100">
+                        <p className="text-[10px] text-slate-400 uppercase tracking-wider font-medium">
+                          Generated by Clinical AI • {new Date().toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-center text-muted-foreground italic">No summary generated.</p>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

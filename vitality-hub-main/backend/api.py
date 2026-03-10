@@ -695,9 +695,9 @@ def interprete_home_data() -> dict:
 
     # DATA INTERPRETATION RULES:
     1. **Hydration Scale:** 
-    - Assume Level 1-2 is Over-hydrated, 3-4 is Optimal, and 5-8 is Increasingly Dehydrated.
+    - Follows the Armstrong urine color scale. Level 1-2 is very well-hydrated, 3-4 is acceptable, and 5-8 is increasingly dehydrated.
     2. **The "Flush" Trend:** 
-    - Look for a downward trend in `colorLevel` throughout the day. If the level stays at 5-6 all day, flag this as a "Chronic Dehydration" risk that will negatively impact the user's Garmin HRV.
+    - Look for a downward trend in `colorLevel` throughout the day. If the level stays at 6-8 all day, flag this as a "Chronic Dehydration" risk that will negatively impact the user's Garmin HRV.
     3. **Recovery Link:** 
     - When `morning_status` is "Dehydrated," advise the user to drink 500ml of water before checking their Garmin Body Battery or taking an ECG, as dehydration can cause "false-positive" stress readings.
     4. **Data Gaps:** 
@@ -909,99 +909,102 @@ async def speak(payload: dict = Body(...)):
         print("TTS error:", repr(e))
         raise HTTPException(status_code=500, detail=str(e))
 
-async def morning_message():
+@app.get("/api/good_morning")
+def morning_message():
     return """Good morning, Frank — I'm glad you're up. 
                 Your Garmin and home sensors show a very restless, short night of sleep, only one meal yesterday with low protein, and dark morning urine — that combination raises your dizziness/fall risk today. 
                 Please sip 250-500 ml of water slowly now, have a small protein snack (two eggs, turkey slices, or Greek yogurt are easy options), and avoid getting up or walking alone right away: sit for a minute before standing and take slow, supported steps if you need to move. 
                 Rest through the morning, try to add more fluids and a bit more protein over the next few hours, and if you feel faint, have chest pain, or become very confused, call emergency services or contact Dr. Mitchell (or David) right away."""
-    # TODO: test if this is even necessary
-    api_key = os.environ.get("OPENAI_API_KEY")
-    if api_key:
-        set_default_openai_key(api_key)
-        set_tracing_disabled(True)
-    else:
-        raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
+# async def morning_message():
+    # # TODO: test if this is even necessary
+    # api_key = os.environ.get("OPENAI_API_KEY")
+    # if api_key:
+    #     set_default_openai_key(api_key)
+    #     set_tracing_disabled(True)
+    # else:
+    #     raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
 
-    triage_desc = f"""
-    ### ROLE: ELDERLY SYSTEMIC RISK ANALYST
+    # triage_desc = f"""
+    # ### ROLE: ELDERLY SYSTEMIC RISK ANALYST
 
-    # CONTEXT:
-    You are a Senior Clinical Data Scientist specializing in Geriatric Health. You analyze data from five distinct health monitoring systems (ECG, HR, Sleep, Hydration, and Nutrition) to create a unified safety and recovery profile for an elderly user.
+    # # CONTEXT:
+    # You are a Senior Clinical Data Scientist specializing in Geriatric Health. You analyze data from five distinct health monitoring systems (ECG, HR, Sleep, Hydration, and Nutrition) to create a unified safety and recovery profile for an elderly user.
  
-    # INTERPRETATION FRAMEWORK
-    You must cross-reference the data provided using the following clinical logic:
-    1. **Hydration-Cardiac Link:** 
-    - Correlate Smart Toilet `colorLevel` with ECG `sdnn_hrv_ms`. Dark urine (Level 5+) + low HRV (SDNN < 30) = High risk for orthostatic hypotension (dizziness when standing).
-    2. **Nutrition-Sleep-Stability Chain:** 
-    - Connect `protein_intake` (Fridge) with `deep_pct` and `restless_moments` (Sleep). Low protein or skipped meals in the elderly often trigger poor deep sleep and increased nighttime restlessness, which is a fall risk.
-    3. **The Digestion Tax:** 
-    - Compare Fridge `last_meal_time` with Sleep `avg_sleep_stress`. If dinner is late, explain how it prevents the heart rate from dropping, stealing recovery time.
-    4. **Geriatric Safety Flags:** 
-    - **Critical:** "Appetite Loss" or "Skipped Meals" (Fridge) + "Rising Sleep Stress" (Sleep).
-    - **Warning:** Low `spo2` (HR) + High `respiration` (HR/Sleep) + "Dehydration" (Toilet).
+    # # INTERPRETATION FRAMEWORK
+    # You must cross-reference the data provided using the following clinical logic:
+    # 1. **Hydration-Cardiac Link:** 
+    # - Correlate Smart Toilet `colorLevel` with ECG `sdnn_hrv_ms`. Dark urine (Level 5+) + low HRV (SDNN < 30) = High risk for orthostatic hypotension (dizziness when standing).
+    # 2. **Nutrition-Sleep-Stability Chain:** 
+    # - Connect `protein_intake` (Fridge) with `deep_pct` and `restless_moments` (Sleep). Low protein or skipped meals in the elderly often trigger poor deep sleep and increased nighttime restlessness, which is a fall risk.
+    # 3. **The Digestion Tax:** 
+    # - Compare Fridge `last_meal_time` with Sleep `avg_sleep_stress`. If dinner is late, explain how it prevents the heart rate from dropping, stealing recovery time.
+    # 4. **Geriatric Safety Flags:** 
+    # - **Critical:** "Appetite Loss" or "Skipped Meals" (Fridge) + "Rising Sleep Stress" (Sleep).
+    # - **Warning:** Low `spo2` (HR) + High `respiration` (HR/Sleep) + "Dehydration" (Toilet).
 
-    # OUTPUT STRUCTURE
-    Your response must follow this template:
+    # # OUTPUT STRUCTURE
+    # Your response must follow this template:
 
-    ---
-    ### ⚠️ OVERALL RISK LEVEL: [LOW | ELEVATED | CRITICAL]
-    **Primary Driver:** [Identify the #1 system causing the risk today]
+    # ---
+    # ### ⚠️ OVERALL RISK LEVEL: [LOW | ELEVATED | CRITICAL]
+    # **Primary Driver:** [Identify the #1 system causing the risk today]
 
-    #### 1. THE "WHY" (Unified Insight)
-    [A concise narrative explaining how the different data points are interacting. E.g., "The user is electrically stable but physically vulnerable due to under-fueling and dehydration."]
+    # #### 1. THE "WHY" (Unified Insight)
+    # [A concise narrative explaining how the different data points are interacting. E.g., "The user is electrically stable but physically vulnerable due to under-fueling and dehydration."]
 
-    #### 2. CROSS-SYSTEM CORRELATIONS
-    * **[Link 1]:** (e.g., Nutrition vs. Sleep)
-    * **[Link 2]:** (e.g., Hydration vs. Cardiac)
+    # #### 2. CROSS-SYSTEM CORRELATIONS
+    # * **[Link 1]:** (e.g., Nutrition vs. Sleep)
+    # * **[Link 2]:** (e.g., Hydration vs. Cardiac)
 
-    #### 3. GUARDIAN ACTION ITEMS
-    * **Immediate:** [Action to take now, e.g., Drink 500ml water]
-    * **Daily Goal:** [Nutritional or activity adjustment]
-    * **Watch For:** [Clinical symptom to observe, e.g., Dizziness, gait changes]
-    ---
-    """
-    triage_agent = Agent(
-        name="Triage Agent",
-        instructions=triage_desc,
-        tools=[interprete_garmin, interprete_home_data],
-        model="gpt-5-mini"
-    )
-    summarise_request = f"Generate a summary of the patient's Garmin and Home Appliance data for their clinician to interprete."
-    result = await Runner.run(triage_agent, summarise_request)
-    triage_answer = result.final_output
+    # #### 3. GUARDIAN ACTION ITEMS
+    # * **Immediate:** [Action to take now, e.g., Drink 500ml water]
+    # * **Daily Goal:** [Nutritional or activity adjustment]
+    # * **Watch For:** [Clinical symptom to observe, e.g., Dizziness, gait changes]
+    # ---
+    # """
+    # triage_agent = Agent(
+    #     name="Triage Agent",
+    #     instructions=triage_desc,
+    #     tools=[interprete_garmin, interprete_home_data],
+    #     model="gpt-5-mini"
+    # )
+    # summarise_request = f"Generate a summary of the patient's Garmin and Home Appliance data for their clinician to interprete."
+    # result = await Runner.run(triage_agent, summarise_request)
+    # triage_answer = result.final_output
 
-    patient_desc = _get_patient_desc()
-    wellbeing_desc = f"""
-    ### ROLE: Elder-care assitant
+    # patient_desc = _get_patient_desc()
+    # wellbeing_desc = f"""
+    # ### ROLE: Elder-care assitant
 
-    # CONTEXT: 
-    You are a calm, friendly elder-care assistant. You are speaking directly to the following patient:
+    # # CONTEXT: 
+    # You are a calm, friendly elder-care assistant. You are speaking directly to the following patient:
 
-    {patient_desc}
+    # {patient_desc}
 
-    # TONE:
-    Speak clearly, briefly, and reassuringly. 
+    # # TONE:
+    # Speak clearly, briefly, and reassuringly. 
 
-    # RESTRICTIONS:
-    DO NOT give medical diagnoses. 
-    If unsure, suggest contacting their healthcare professional.
+    # # RESTRICTIONS:
+    # DO NOT give medical diagnoses. 
+    # If unsure, suggest contacting their healthcare professional.
 
-    # DATA SUMMARY: 
+    # # DATA SUMMARY: 
 
-    {triage_answer}
-    """
-    wellbeing_agent = Agent(
-        name="Wellbeing Agent",
-        instructions=wellbeing_desc,
-        model="gpt-5-mini"
-    )
-    morning_request = "Provide a good morning message including a gentle summary of what the system has noticed based on their garmin and household data, and some advice for how best to behave today. Avoid returning too long of a message, your response should not require bullet points."
-    result = await Runner.run(wellbeing_agent, morning_request)
-    answer_text = result.final_output
+    # {triage_answer}
+    # """
+    # wellbeing_agent = Agent(
+    #     name="Wellbeing Agent",
+    #     instructions=wellbeing_desc,
+    #     model="gpt-5-mini"
+    # )
+    # morning_request = "Provide a good morning message including a gentle summary of what the system has noticed based on their garmin and household data, and some advice for how best to behave today. Avoid returning too long of a message, your response should not require bullet points."
+    # result = await Runner.run(wellbeing_agent, morning_request)
+    # answer_text = result.final_output
 
-    return {"answer": answer_text}
+    # return {"answer": answer_text}
 
-async def clinician_overview():
+@app.get("/api/clinician_summary")
+def clinician_overview():
     return """
             Clinical risk summary (Mr. Frank Larson, 74):
             - High fall and syncope risk: recurrent orthostatic dizziness with two near-falls (2026-01-20); polypharmacy with hypotensive/CNS-active agents (HCTZ, lisinopril, metoprolol, gabapentin, sertraline); beta-blocker-related bradycardia (HR 62-64 bpm); lives alone.
@@ -1009,103 +1012,104 @@ async def clinician_overview():
             - Acute kidney injury risk: rising creatinine to 1.3 mg/dL (from 1.0 in 2024) in the setting of dehydration plus ACE inhibitor and thiazide (prerenal risk).
             - Metformin-associated lactic acidosis risk: dehydration and reduced renal function increase risk while on metformin.
             - High atherosclerotic cardiovascular disease (ASCVD) risk: age >70, male, long-standing hypertension, type 2 diabetes, and hyperlipidemia (BPs typically 135-150/84-93).
-            - Depression-related risks: major depressive disorder after bereavement with ongoing low mood/appetite/sleep disturbance; social isolation (widowed, living alone) increases risk of functional decline and poor adherence.
+            - Depression-related risks: major depressive disorder after bereavement with ongoing low mood/appetite/sleep disturbance; social isolation (widowed, living alone) increases risk of functional decline and poor adherence."""
 
-            Summary of home data: 
-            Garmin sleep metrics from the most recent night show severely fragmented sleep (total sleep 2 h 44 m, 112 restless moments), high average sleep stress ~48.3 and a low recovery score (24). 
-            Home-fridge logs for 2026-02-26 indicate a single eating event with total protein ≈58 g. 
-            Smart-toilet recordings show repeated morning urine color Level 6 (consistent with relative dehydration). 
-            ECG-derived HRV (SDNN) is ≈35 ms (above the 30 ms threshold noted in the protocol). 
-            Labs previously noted borderline hypernatremia and a mild creatinine rise.
-            Clinical relevance: 
-            these concurrent findings—low/late caloric and protein intake, recurrent morning dehydration, and markedly poor nocturnal recovery—are temporally correlated and collectively increase physiologic vulnerability in an older adult (heightened orthostatic and fall risk, impaired overnight autonomic recovery, and potential strain on renal function). 
-            The SDNN does not meet the low-HRV cutoff, but persistent dehydration and inadequate intake remain important contextual factors when interpreting orthostatic symptoms, fall risk, HRV trends, and renal labs."""
-    api_key = os.environ.get("OPENAI_API_KEY")
-    if api_key:
-        set_default_openai_key(api_key)
-        set_tracing_disabled(True)
-    else:
-        raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
+"""Summary of home data: 
+            - Garmin sleep metrics from the most recent night show severely fragmented sleep (total sleep 2 h 44 m, 112 restless moments), high average sleep stress ~48.3 and a low recovery score (24). 
+            - Home-fridge logs for 2026-02-26 indicate a single eating event with total protein ≈58 g. 
+            - Smart-toilet recordings show repeated morning urine color Level 6 (consistent with relative dehydration). 
+            - ECG-derived HRV (SDNN) is ≈35 ms (above the 30 ms threshold noted in the protocol). 
+            - Labs previously noted borderline hypernatremia and a mild creatinine rise.
+            - Clinical relevance: 
+                - These concurrent findings—low/late caloric and protein intake, recurrent morning dehydration, and markedly poor nocturnal recovery—are temporally correlated and collectively increase physiologic vulnerability in an older adult (heightened orthostatic and fall risk, impaired overnight autonomic recovery, and potential strain on renal function). 
+                - The SDNN does not meet the low-HRV cutoff, but persistent dehydration and inadequate intake remain important contextual factors when interpreting orthostatic symptoms, fall risk, HRV trends, and renal labs."""
+# async def clinician_overview():
+    # api_key = os.environ.get("OPENAI_API_KEY")
+    # if api_key:
+    #     set_default_openai_key(api_key)
+    #     set_tracing_disabled(True)
+    # else:
+    #     raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
 
-    triage_desc = f"""
-    ### ROLE: ELDERLY SYSTEMIC RISK ANALYST
+    # triage_desc = f"""
+    # ### ROLE: ELDERLY SYSTEMIC RISK ANALYST
 
-    # CONTEXT:
-    You are a Senior Clinical Data Scientist specializing in Geriatric Health. You analyze data from five distinct health monitoring systems (ECG, HR, Sleep, Hydration, and Nutrition) to create a unified safety and recovery profile for an elderly user.
+    # # CONTEXT:
+    # You are a Senior Clinical Data Scientist specializing in Geriatric Health. You analyze data from five distinct health monitoring systems (ECG, HR, Sleep, Hydration, and Nutrition) to create a unified safety and recovery profile for an elderly user.
  
-    # INTERPRETATION FRAMEWORK
-    You must cross-reference the data provided using the following clinical logic:
-    1. **Hydration-Cardiac Link:** 
-    - Correlate Smart Toilet `colorLevel` with ECG `sdnn_hrv_ms`. Dark urine (Level 5+) + low HRV (SDNN < 30) = High risk for orthostatic hypotension (dizziness when standing).
-    2. **Nutrition-Sleep-Stability Chain:** 
-    - Connect `protein_intake` (Fridge) with `deep_pct` and `restless_moments` (Sleep). Low protein or skipped meals in the elderly often trigger poor deep sleep and increased nighttime restlessness, which is a fall risk.
-    3. **The Digestion Tax:** 
-    - Compare Fridge `last_meal_time` with Sleep `avg_sleep_stress`. If dinner is late, explain how it prevents the heart rate from dropping, stealing recovery time.
-    4. **Geriatric Safety Flags:** 
-    - **Critical:** "Appetite Loss" or "Skipped Meals" (Fridge) + "Rising Sleep Stress" (Sleep).
-    - **Warning:** Low `spo2` (HR) + High `respiration` (HR/Sleep) + "Dehydration" (Toilet).
+    # # INTERPRETATION FRAMEWORK
+    # You must cross-reference the data provided using the following clinical logic:
+    # 1. **Hydration-Cardiac Link:** 
+    # - Correlate Smart Toilet `colorLevel` with ECG `sdnn_hrv_ms`. Dark urine (Level 5+) + low HRV (SDNN < 30) = High risk for orthostatic hypotension (dizziness when standing).
+    # 2. **Nutrition-Sleep-Stability Chain:** 
+    # - Connect `protein_intake` (Fridge) with `deep_pct` and `restless_moments` (Sleep). Low protein or skipped meals in the elderly often trigger poor deep sleep and increased nighttime restlessness, which is a fall risk.
+    # 3. **The Digestion Tax:** 
+    # - Compare Fridge `last_meal_time` with Sleep `avg_sleep_stress`. If dinner is late, explain how it prevents the heart rate from dropping, stealing recovery time.
+    # 4. **Geriatric Safety Flags:** 
+    # - **Critical:** "Appetite Loss" or "Skipped Meals" (Fridge) + "Rising Sleep Stress" (Sleep).
+    # - **Warning:** Low `spo2` (HR) + High `respiration` (HR/Sleep) + "Dehydration" (Toilet).
 
-    # OUTPUT STRUCTURE
-    Your response must follow this template:
+    # # OUTPUT STRUCTURE
+    # Your response must follow this template:
 
-    ---
-    ### ⚠️ OVERALL RISK LEVEL: [LOW | ELEVATED | CRITICAL]
-    **Primary Driver:** [Identify the #1 system causing the risk today]
+    # ---
+    # ### ⚠️ OVERALL RISK LEVEL: [LOW | ELEVATED | CRITICAL]
+    # **Primary Driver:** [Identify the #1 system causing the risk today]
 
-    #### 1. THE "WHY" (Unified Insight)
-    [A concise narrative explaining how the different data points are interacting. E.g., "The user is electrically stable but physically vulnerable due to under-fueling and dehydration."]
+    # #### 1. THE "WHY" (Unified Insight)
+    # [A concise narrative explaining how the different data points are interacting. E.g., "The user is electrically stable but physically vulnerable due to under-fueling and dehydration."]
 
-    #### 2. CROSS-SYSTEM CORRELATIONS
-    * **[Link 1]:** (e.g., Nutrition vs. Sleep)
-    * **[Link 2]:** (e.g., Hydration vs. Cardiac)
+    # #### 2. CROSS-SYSTEM CORRELATIONS
+    # * **[Link 1]:** (e.g., Nutrition vs. Sleep)
+    # * **[Link 2]:** (e.g., Hydration vs. Cardiac)
 
-    #### 3. GUARDIAN ACTION ITEMS
-    * **Immediate:** [Action to take now, e.g., Drink 500ml water]
-    * **Daily Goal:** [Nutritional or activity adjustment]
-    * **Watch For:** [Clinical symptom to observe, e.g., Dizziness, gait changes]
-    ---
-    """
-    triage_agent = Agent(
-        name="Triage Agent",
-        instructions=triage_desc,
-        tools=[interprete_garmin, interprete_home_data],
-        model="gpt-5-mini"
-    )
-    summarise_request = f"Generate a summary of the patient's Garmin and Home Appliance data for their clinician to interprete."
-    result = await Runner.run(triage_agent, summarise_request)
-    triage_answer = result.final_output
+    # #### 3. GUARDIAN ACTION ITEMS
+    # * **Immediate:** [Action to take now, e.g., Drink 500ml water]
+    # * **Daily Goal:** [Nutritional or activity adjustment]
+    # * **Watch For:** [Clinical symptom to observe, e.g., Dizziness, gait changes]
+    # ---
+    # """
+    # triage_agent = Agent(
+    #     name="Triage Agent",
+    #     instructions=triage_desc,
+    #     tools=[interprete_garmin, interprete_home_data],
+    #     model="gpt-5-mini"
+    # )
+    # summarise_request = f"Generate a summary of the patient's Garmin and Home Appliance data for their clinician to interprete."
+    # result = await Runner.run(triage_agent, summarise_request)
+    # triage_answer = result.final_output
 
-    patient_desc = _get_patient_desc()
-    risks = _get_clinical_risks()
-    clinician_desc = f"""
-    ### ROLE: Elder-care Clinical Assistant
+    # patient_desc = _get_patient_desc()
+    # risks = _get_clinical_risks()
+    # clinician_desc = f"""
+    # ### ROLE: Elder-care Clinical Assistant
 
-    # CONTEXT: 
-    You are a elder-care clinical assistant speaking directly to the following patient's clinician:
+    # # CONTEXT: 
+    # You are a elder-care clinical assistant speaking directly to the following patient's clinician:
 
-    {patient_desc}
+    # {patient_desc}
 
-    # TONE:
-    Speak clearly and briefly, providing supporting data wherever possible. The clinician will want as much data as possible so as to perform the analysis themselves.
+    # # TONE:
+    # Speak clearly and briefly, providing supporting data wherever possible. The clinician will want as much data as possible so as to perform the analysis themselves.
 
-    # RESTRICTIONS:
-    DO NOT try and provide any advise on further actions or perform any diagnoses yourself.
-    Do not make clinical decisions, and do not invent data.
+    # # RESTRICTIONS:
+    # DO NOT try and provide any advise on further actions or perform any diagnoses yourself.
+    # Do not make clinical decisions, and do not invent data.
 
-    # DATA SUMMARY: 
+    # # DATA SUMMARY: 
 
-    {triage_answer}
-    """
-    clinical_agent = Agent(
-        name="Clinical Agent",
-        instructions=clinician_desc,
-        model="gpt-5-mini"
-    )
-    summary_request = "Provide a summary for a clinician to interprete of the patient's garmin and household data, and how this is relevant in a clinical context. Avoid returning too long of a message, your response should not require bullet points."
-    result = await Runner.run(clinical_agent, summary_request)
-    answer_text = result.final_output
+    # {triage_answer}
+    # """
+    # clinical_agent = Agent(
+    #     name="Clinical Agent",
+    #     instructions=clinician_desc,
+    #     model="gpt-5-mini"
+    # )
+    # summary_request = "Provide a summary for a clinician to interprete of the patient's garmin and household data, and how this is relevant in a clinical context. Avoid returning too long of a message, your response should not require bullet points."
+    # result = await Runner.run(clinical_agent, summary_request)
+    # answer_text = result.final_output
 
-    return {"answer": risks + "\n\n" + answer_text}
+    # return {"answer": risks + "\n\n" + answer_text}
 
 # ── FHIR proxy endpoints ──────────────────────────────────────────────────────
 
@@ -1123,13 +1127,7 @@ def _fhir_get(resource: str, params: dict = {}):
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"FHIR error: {e}")
 
-@app.get("/api/fhir/patient")
-def get_fhir_patient():
-    bundle = _fhir_get("Patient", {"_count": "1"})
-    entries = bundle.get("entry", [])
-    if not entries:
-        raise HTTPException(status_code=404, detail="No FHIR patient found")
-    p = entries[0]["resource"]
+def _parse_patient(p: dict) -> dict:
     name = p.get("name", [{}])[0]
     given = " ".join(name.get("given", []))
     family = name.get("family", "")
@@ -1143,6 +1141,21 @@ def get_fhir_patient():
         "mrn": mrn,
         "address": p.get("address", [{}])[0],
     }
+
+@app.get("/api/fhir/patients")
+def get_fhir_patients():
+    bundle = _fhir_get("Patient", {"_count": "100"})
+    patients = [_parse_patient(e["resource"]) for e in bundle.get("entry", [])]
+    patients.sort(key=lambda p: (p["name"].split() or [""])[-1])
+    return patients
+
+@app.get("/api/fhir/patient")
+def get_fhir_patient():
+    bundle = _fhir_get("Patient", {"_count": "1"})
+    entries = bundle.get("entry", [])
+    if not entries:
+        raise HTTPException(status_code=404, detail="No FHIR patient found")
+    return _parse_patient(entries[0]["resource"])
 
 @app.get("/api/fhir/conditions")
 def get_fhir_conditions(patient_id: str = ""):

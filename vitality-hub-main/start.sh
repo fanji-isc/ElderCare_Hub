@@ -16,7 +16,7 @@ until iris session IRIS -U USER "quit" > /dev/null 2>&1; do
 done
 echo "==> IRIS is ready."
 
-# ── FHIR server setup ────────────────────────────────────────────────────────
+# ── FHIR server setup ─────────────────────────────────────────────────────────
 if [ ! -f /data/fhir-setup-done ]; then
     echo "==> First run: setting up FHIR server and loading patient data..."
     iris session IRIS < /scripts/fhirserver.script

@@ -356,10 +356,10 @@ const FamilyView = () => {
   const StatusIcon = statusConfig.icon;
 
   const highlights: string[] = [];
-  if (vitals.sleepHours > 0) highlights.push(sleep.status === "good" ? `He slept ${vitals.sleepHours.toFixed(1)} hours — well rested.` : `He only slept ${vitals.sleepHours.toFixed(1)} hours last night.`);
-  if (vitals.steps > 0) highlights.push(steps.status === "good" ? `He's been active with ${vitals.steps.toLocaleString()} steps today.` : `He logged ${vitals.steps.toLocaleString()} steps today — a lighter day.`);
-  if (vitals.heartRate > 0) highlights.push(`Resting heart rate is ${vitals.heartRate} BPM — ${heart.label.toLowerCase()}.`);
-  highlights.push(stress.status === "good" ? "Stress levels look calm." : `Stress seems ${stress.label.toLowerCase()} today.`);
+  if (vitals.sleepHours > 0) highlights.push(sleep.status === "good" ? `He slept ${vitals.sleepHours.toFixed(1)} hours, so he should be feeling well rested.` : `He only slept ${vitals.sleepHours.toFixed(1)} hours last night.`);
+  if (vitals.steps > 0) highlights.push(steps.status === "good" ? `He's been active with ${vitals.steps.toLocaleString()} steps today.` : `He logged ${vitals.steps.toLocaleString()} steps today — try and encourage him to go for a walk.`);
+  if (vitals.heartRate > 0) highlights.push(`His resting heart rate is ${vitals.heartRate} BPM — ${heart.label.toLowerCase()}.`);
+  highlights.push(stress.status === "good" ? "He is feeling calm today." : `${stress.label} levels have been recorded today.`);
 
   const stressBarColor = stress.status === "good" ? "bg-emerald-500" : stress.status === "fair" ? "bg-amber-500" : "bg-rose-500";
 
