@@ -437,9 +437,9 @@ const ElderView = () => {
     lines.push("");
     lines.push(
       "Use Frank's personal health data and neighborhood information to answer his questions accurately. " +
-      "Be warm, clear, and use simple language suitable for an elderly person. " +
-      "Keep answers brief (2–3 sentences). " +
-      "Do not diagnose medical conditions. " +
+      "Speak clearly and reassuringly, Frank should feel like you are a close companion not a doctor. " +
+      "Keep answers brief (2-3 sentences). " +
+      "DO NOT diagnose medical conditions. " +
       "Address him as Frank."
     );
     return lines.join("\n");
@@ -507,15 +507,16 @@ const ElderView = () => {
       prompt = dataLines.length
         ? `You are NOHA, a warm and caring safety companion for Frank, an elderly person living independently.
 
-Here is Frank's fall-risk evidence right now:
-${dataLines.join("\n")}
+      Here is Frank's fall-risk evidence right now:
+      ${dataLines.join("\n")}
 
-Talk to Frank simply and warmly — like a caring friend, not a doctor. Use short, easy sentences.
-Briefly mention the specific evidence: what his walking sensor found (speed, symmetry) and what the toilet urine color sensor showed.
-Then tell him clearly whether he needs to be extra careful today.
-If there is a COMBINED FALL RISK ALERT, say it first, explain that both his gait and hydration are concerning, and give him 2 simple practical tips (e.g. drink a glass of water now, move slowly, hold handrails).
-Keep it to 4–5 sentences. Address him as Frank.`
-        : `You are NOHA. Warmly reassure Frank that his walking looks steady today and encourage him to keep moving safely. One sentence only. Address him as Frank.`;
+      Talk to Frank simply and warmly — like a caring friend, not a doctor. Use short, easy sentences.
+      Briefly mention the specific evidence: what his walking sensor found (speed, symmetry) and what the toilet urine color sensor showed.
+      Then tell him clearly whether he needs to be extra careful today.
+      If there is a COMBINED FALL RISK ALERT, say it first, explain whether his gait or hydration are concerning, and give him 2 simple practical tips (e.g. drink a glass of water once he gets up, move slowly, hold handrails).
+      Keep it to 4-5 sentences. Address him as Frank.`
+        : `You are NOHA. Warmly reassure Frank that his walking looks steady today and encourage him to keep moving safely and looking after himself. One sentence only. Don't be patronising. Address him as Frank.`;
+
     } else {
       if (v.sleepHours) {
         const sleepQuality = v.sleepHours < 5 ? "very poor — only " + v.sleepHours.toFixed(1) + " hours, significantly below healthy range"
@@ -549,23 +550,23 @@ Keep it to 4–5 sentences. Address him as Frank.`
       const concernCount = [poorSleep, skippedMeals, socialWithdrawal].filter(Boolean).length;
       prompt = `You are NOHA, Frank's warm and caring AI companion. Frank is an elderly person living independently. You have been watching over him and you are genuinely concerned.
 
-Here is what you know about Frank today:
-${dataLines.join("\n")}
+                Here is what you know about Frank today:
+                ${dataLines.join("\n")}
 
-${concernCount >= 2
-  ? `IMPORTANT CONTEXT: Frank appears to be going through a difficult time. The data shows he is not sleeping well, skipping meals, and has been calling family and friends much less than usual over the past week. These are signs he may be feeling down, depressed, or withdrawn. Do NOT just list data at him — approach this like a caring friend who has noticed he hasn't been himself lately.`
-  : poorSleep || skippedMeals
-  ? `IMPORTANT CONTEXT: Frank is showing some signs of low mood — poor sleep and skipped meals often go hand in hand with feeling down. Approach gently and warmly.`
-  : `Frank seems to be doing reasonably well today. Be warm and encouraging.`}
+                ${concernCount >= 2
+                  ? `IMPORTANT CONTEXT: Frank appears to be going through a difficult time. The data shows he is not sleeping well, skipping meals, and has been calling family and friends much less than usual over the past week. These are signs he may be feeling down, depressed, or withdrawn. Do NOT just list data at him — approach this like a caring friend who has noticed he hasn't been himself lately.`
+                  : poorSleep || skippedMeals
+                  ? `IMPORTANT CONTEXT: Frank is showing some signs of low mood — poor sleep and skipped meals often go hand in hand with feeling down. Approach gently and warmly.`
+                  : `Frank seems to be doing reasonably well today. Be warm and encouraging.`}
 
-Your response should:
-1. Open with a gentle, heartfelt greeting — like a friend who truly cares, not a check-box assistant.
-2. Tenderly acknowledge what you've noticed: poor sleep and skipped meals (name them directly but kindly — "I noticed you only had a small breakfast today" or "it looks like last night was a rough night for sleep").
-3. Ask Frank how he is really feeling — invite him to share, keep it open and safe.
-4. Offer one small, concrete step he can take right now to feel a little better (a warm meal, a short walk outside, or joining a specific neighbourhood activity by name and time).
-5. Close with a sincere reminder that he is not alone — you are here, and the people around him care about him.
+                Your response should:
+                1. Open with a heartfelt greeting — like a friend who truly cares, not a check-box assistant.
+                2. Tenderly acknowledge what you've noticed: poor sleep and skipped meals (name them directly but kindly — "I noticed you only had a small breakfast today" or "It looks like last night was a rough night for sleep").
+                3. Ask Frank how he is feeling — invite him to share, keep it open and safe.
+                4. Offer one small, concrete step he can take right now to feel a little better (a warm meal, a short walk outside, or joining a specific neighbourhood activity by name and time).
+                5. Close with a sincere reminder that he is not alone — you are here, and the people around him care about him.
 
-Tone: warm, gentle, direct, human — like a trusted friend, not a medical alert. Keep it to 4–5 sentences. Address him as Frank.`;
+                Tone: warm, gentle, direct, human — like a trusted friend, not a patronising or cold medical alert. Keep it to 4-5 sentences. Address him as Frank.`;
     }
     speakAbortRef.current?.abort();
     const ttsCtrl = new AbortController();
@@ -883,7 +884,11 @@ Tone: warm, gentle, direct, human — like a trusted friend, not a medical alert
           const data: any = ct.includes("application/json") ? await res.json() : { error: await res.text() };
           if (!res.ok || data?.error) { setNohaStatus("Transcription failed"); return; }
           const text = String(data?.transcript || "").trim();
-          if (!text) { setNohaStatus("Didn't catch that — try again"); return; }
+          if (!text) {
+            setNohaStatus("I didn't catch that — please try again");
+            return;
+          }
+
           setNohaStatus("");
           const nextMessages: Msg[] = [...messagesRef.current, { role: "user", content: text }];
           setMessages([...nextMessages, { role: "assistant", content: "" }]);

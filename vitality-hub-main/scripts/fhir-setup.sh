@@ -8,7 +8,7 @@ iris start IRIS
 # Enable FHIR via InterSystems terminal commands
 iris session IRIS <<EOF
 zn "FHIRSERVER"
-do ##class(HS.FHIRServer.Tools.Install).InstallFHIRServer("FHIRDemo", "/fhirr4")
+do ##class(HS.FHIRServer.Tools.Install).InstallFHIRServer("FHIRDemo", "/fhir/r4")
 halt
 EOF
 
