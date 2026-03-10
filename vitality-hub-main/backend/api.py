@@ -1004,25 +1004,150 @@ def morning_message():
     # return {"answer": answer_text}
 
 @app.get("/api/clinician_summary")
-def clinician_overview():
-    return """
-            Clinical risk summary (Mr. Frank Larson, 74):
-            - High fall and syncope risk: recurrent orthostatic dizziness with two near-falls (2026-01-20); polypharmacy with hypotensive/CNS-active agents (HCTZ, lisinopril, metoprolol, gabapentin, sertraline); beta-blocker-related bradycardia (HR 62-64 bpm); lives alone.
-            - Volume depletion/dehydration and electrolyte disturbance: borderline hypernatremia (Na 146 mmol/L) with poor intake; on thiazide diuretic; symptoms of dizziness consistent with volume loss.
-            - Acute kidney injury risk: rising creatinine to 1.3 mg/dL (from 1.0 in 2024) in the setting of dehydration plus ACE inhibitor and thiazide (prerenal risk).
-            - Metformin-associated lactic acidosis risk: dehydration and reduced renal function increase risk while on metformin.
-            - High atherosclerotic cardiovascular disease (ASCVD) risk: age >70, male, long-standing hypertension, type 2 diabetes, and hyperlipidemia (BPs typically 135-150/84-93).
-            - Depression-related risks: major depressive disorder after bereavement with ongoing low mood/appetite/sleep disturbance; social isolation (widowed, living alone) increases risk of functional decline and poor adherence."""
+def clinician_overview(patient_id: str = ""):
+    # --- Original hardcoded summary for Mr. Frank Larson (kept as style/format reference) ---
+    # return """
+    #         Clinical risk summary (Mr. Frank Larson, 74):
+    #         - High fall and syncope risk: recurrent orthostatic dizziness with two near-falls (2026-01-20); polypharmacy with hypotensive/CNS-active agents (HCTZ, lisinopril, metoprolol, gabapentin, sertraline); beta-blocker-related bradycardia (HR 62-64 bpm); lives alone.
+    #         - Volume depletion/dehydration and electrolyte disturbance: borderline hypernatremia (Na 146 mmol/L) with poor intake; on thiazide diuretic; symptoms of dizziness consistent with volume loss.
+    #         - Acute kidney injury risk: rising creatinine to 1.3 mg/dL (from 1.0 in 2024) in the setting of dehydration plus ACE inhibitor and thiazide (prerenal risk).
+    #         - Metformin-associated lactic acidosis risk: dehydration and reduced renal function increase risk while on metformin.
+    #         - High atherosclerotic cardiovascular disease (ASCVD) risk: age >70, male, long-standing hypertension, type 2 diabetes, and hyperlipidemia (BPs typically 135-150/84-93).
+    #         - Depression-related risks: major depressive disorder after bereavement with ongoing low mood/appetite/sleep disturbance; social isolation (widowed, living alone) increases risk of functional decline and poor adherence."""
 
-"""Summary of home data: 
-            - Garmin sleep metrics from the most recent night show severely fragmented sleep (total sleep 2 h 44 m, 112 restless moments), high average sleep stress ~48.3 and a low recovery score (24). 
-            - Home-fridge logs for 2026-02-26 indicate a single eating event with total protein ≈58 g. 
-            - Smart-toilet recordings show repeated morning urine color Level 6 (consistent with relative dehydration). 
-            - ECG-derived HRV (SDNN) is ≈35 ms (above the 30 ms threshold noted in the protocol). 
-            - Labs previously noted borderline hypernatremia and a mild creatinine rise.
-            - Clinical relevance: 
-                - These concurrent findings—low/late caloric and protein intake, recurrent morning dehydration, and markedly poor nocturnal recovery—are temporally correlated and collectively increase physiologic vulnerability in an older adult (heightened orthostatic and fall risk, impaired overnight autonomic recovery, and potential strain on renal function). 
-                - The SDNN does not meet the low-HRV cutoff, but persistent dehydration and inadequate intake remain important contextual factors when interpreting orthostatic symptoms, fall risk, HRV trends, and renal labs."""
+    # --- Original dead-code string literals (home data supplement, kept for reference) ---
+    # """Summary of home data:
+    #         - Garmin sleep metrics from the most recent night show severely fragmented sleep (total sleep 2 h 44 m, 112 restless moments), high average sleep stress ~48.3 and a low recovery score (24).
+    #         - Home-fridge logs for 2026-02-26 indicate a single eating event with total protein ≈58 g.
+    #         - Smart-toilet recordings show repeated morning urine color Level 6 (consistent with relative dehydration).
+    #         - ECG-derived HRV (SDNN) is ≈35 ms (above the 30 ms threshold noted in the protocol).
+    #         - Labs previously noted borderline hypernatremia and a mild creatinine rise.
+    #         - Clinical relevance:
+    #             - These concurrent findings—low/late caloric and protein intake, recurrent morning dehydration, and markedly poor nocturnal recovery—are temporally correlated and collectively increase physiologic vulnerability in an older adult (heightened orthostatic and fall risk, impaired overnight autonomic recovery, and potential strain on renal function).
+    #             - The SDNN does not meet the low-HRV cutoff, but persistent dehydration and inadequate intake remain important contextual factors when interpreting orthostatic symptoms, fall risk, HRV trends, and renal labs."""
+
+    conn = get_iris()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT TOP 1 SummaryText FROM MyApp.AISummary WHERE PatientID = ? ORDER BY UpdatedAt DESC",
+            [patient_id]
+        )
+        row = cur.fetchone()
+        return row[0] if row else ""
+    finally:
+        conn.close()
+
+@app.post("/api/clinician_summary/generate")
+def generate_clinician_summary(patient_id: str = ""):
+    # 1. Fetch FHIR data using existing endpoint functions
+    conditions  = get_fhir_conditions(patient_id)
+    medications = get_fhir_medications(patient_id)
+    vitals      = get_fhir_vitals(patient_id)
+    labs        = get_fhir_labs(patient_id)
+    bp_trend    = get_fhir_bp_trend(patient_id)
+
+    # 2. Fetch patient demographics
+    try:
+        patient_bundle = _fhir_get("Patient", {"_id": patient_id})
+        entries = patient_bundle.get("entry", [])
+        patient_info = _parse_patient(entries[0]["resource"]) if entries else {}
+    except Exception:
+        patient_info = {}
+
+    # 3. Build prompt context
+    name = patient_info.get("name", "Unknown patient")
+    birth = patient_info.get("birthDate", "")
+    age_str = ""
+    if birth:
+        try:
+            bdate = datetime.strptime(birth, "%Y-%m-%d")
+            age_yrs = (datetime.now() - bdate).days // 365
+            age_str = f", {age_yrs} years old"
+        except Exception:
+            pass
+
+    cond_text  = "\n".join(
+        f"  - {c['display']} ({c['status']}, onset {c['onset'][:10] if c.get('onset') else 'unknown'})"
+        for c in conditions[:20]
+    ) or "  None"
+    med_text   = "\n".join(
+        f"  - {m['drug']} ({m['status']}, {m['dosage']})"
+        for m in medications[:20]
+    ) or "  None"
+    vital_text = "\n".join(
+        f"  - {v['display']}: {v['value']} {v['unit']} ({v['date'][:10] if v.get('date') else ''})"
+        for v in vitals[:20]
+    ) or "  None"
+    lab_text   = "\n".join(
+        f"  - {l['display']}: {l['value']} {l['unit']} ({l['date'][:10] if l.get('date') else ''})"
+        for l in labs[:20]
+    ) or "  None"
+    bp_text    = "\n".join(
+        f"  - {b['date'][:10]}: {b['systolic']}/{b['diastolic']} mmHg"
+        for b in bp_trend[-10:]
+    ) or "  None"
+
+    context = f"""Patient: {name}{age_str}
+
+Conditions:
+{cond_text}
+
+Medications:
+{med_text}
+
+Recent Vitals:
+{vital_text}
+
+Recent Labs:
+{lab_text}
+
+Blood Pressure Trend (most recent readings):
+{bp_text}"""
+
+    # 4. Call OpenAI GPT-4o-mini
+    # Style reference: the original hardcoded Frank Larson summary above uses titled header line
+    # followed by dash-prefixed bullet items covering key geriatric risk domains.
+    client = get_openai_client()
+    if not client:
+        raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
+
+    system_prompt = (
+        "You are a geriatric clinical risk analyst preparing a concise structured summary for a physician.\n"
+        "Format your response exactly like this example — a titled header line, then dash-prefixed bullets:\n\n"
+        "Clinical risk summary (Name, Age):\n"
+        "- Risk domain 1: concise explanation with supporting data values\n"
+        "- Risk domain 2: concise explanation with supporting data values\n\n"
+        "Cover the most clinically relevant domains from: fall risk, volume/hydration/electrolytes, "
+        "renal function, cardiovascular risk, medication interactions, mental health/cognition.\n"
+        "Use plain text only — no markdown, no asterisks, no bold. Start with the highest-priority risk first.\n"
+        "Keep each bullet concise but data-rich. Do not invent data not present in the input."
+    )
+
+    completion = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": f"Generate a clinical risk summary for this patient:\n\n{context}"},
+        ],
+        temperature=0.3,
+        max_tokens=800,
+    )
+    summary_text = completion.choices[0].message.content.strip()
+
+    # 5. Upsert into IRIS (delete existing row, insert new)
+    conn = get_iris()
+    try:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM MyApp.AISummary WHERE PatientID = ?", [patient_id])
+        cur.execute(
+            "INSERT INTO MyApp.AISummary (PatientID, SummaryText, UpdatedAt) VALUES (?, ?, NOW())",
+            [patient_id, summary_text],
+        )
+    finally:
+        conn.close()
+
+    return summary_text
 # async def clinician_overview():
     # api_key = os.environ.get("OPENAI_API_KEY")
     # if api_key:

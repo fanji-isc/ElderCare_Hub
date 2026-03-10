@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Stethoscope, User, Calendar, Hash, MapPin, FlaskConical, Activity, Brain, ChevronRight, ArrowLeft, Loader2 } from "lucide-react";
+import { Stethoscope, User, Calendar, Hash, MapPin, FlaskConical, Activity, Brain, ChevronRight, ArrowLeft, Loader2, RefreshCw } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -7,6 +7,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import {
   ComposedChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ReferenceArea, ResponsiveContainer,
@@ -290,19 +291,24 @@ const PhysicianView = () => {
   const [summary, setSummary] = useState<string | null>(null);
   const [summaryLoading, setSummaryLoading] = useState<boolean>(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [generating, setGenerating] = useState<boolean>(false);
 
   useEffect(() => {
+    if (!selectedId) {
+      setSummary(null);
+      return;
+    }
     setSummaryLoading(true);
     setSummaryError(null);
 
-    fetch(`${API_BASE}/api/clinician_summary`)
+    fetch(`${API_BASE}/api/clinician_summary?patient_id=${encodeURIComponent(selectedId)}`)
       .then(r => {
-        if (!r.ok) throw new Error("Could not generate summary");
+        if (!r.ok) throw new Error("Could not load summary");
         return r.text();
       })
       .then((data: string) => {
         const cleanData = data.replace(/\\n/g, '\n').replace(/^"|"$/g, '');
-        setSummary(cleanData);
+        setSummary(cleanData || null);
       })
       .catch(e => {
         setSummaryError(e.message);
@@ -310,7 +316,27 @@ const PhysicianView = () => {
       .finally(() => {
         setSummaryLoading(false);
       });
-  }, [patient?.id]);
+  }, [selectedId]);
+
+  async function generateSummary() {
+    if (!selectedId) return;
+    setGenerating(true);
+    setSummaryError(null);
+    try {
+      const r = await fetch(
+        `${API_BASE}/api/clinician_summary/generate?patient_id=${encodeURIComponent(selectedId)}`,
+        { method: "POST" }
+      );
+      if (!r.ok) throw new Error("Failed to generate summary");
+      const text = await r.text();
+      const clean = text.replace(/\\n/g, '\n').replace(/^"|"$/g, '');
+      setSummary(clean);
+    } catch (e: unknown) {
+      setSummaryError(e instanceof Error ? e.message : "Unknown error");
+    } finally {
+      setGenerating(false);
+    }
+  }
 
   const age = patient?.birthDate
     ? Math.floor((Date.now() - new Date(patient.birthDate).getTime()) / (1000 * 60 * 60 * 24 * 365.25))
@@ -782,7 +808,7 @@ const PhysicianView = () => {
             <Card className="overflow-hidden border-none shadow-none">
               <CardContent className="flex flex-col items-center py-12 px-6">
                 <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-blue-50">
-                  {summaryLoading ? (
+                  {summaryLoading || generating ? (
                     <Loader2 className="h-8 w-8 text-blue-500 animate-spin" />
                   ) : (
                     <Brain className="h-8 w-8 text-blue-500" />
@@ -805,38 +831,68 @@ const PhysicianView = () => {
                       {summaryError}
                     </div>
                   ) : summary ? (
-                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                      <div className="p-6 space-y-4">
-                        {summary.split('\n').map((line, i) => {
-                          const trimmed = line.trim();
-                          if (!trimmed) return null;
+                    <>
+                      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                        <div className="p-6 space-y-4">
+                          {summary.split('\n').map((line, i) => {
+                            const trimmed = line.trim();
+                            if (!trimmed) return null;
 
-                          // Check if it's a bullet point
-                          if (trimmed.startsWith('-')) {
+                            // Check if it's a bullet point
+                            if (trimmed.startsWith('-')) {
+                              return (
+                                <div key={i} className="flex gap-3 text-sm leading-relaxed text-slate-700">
+                                  <span className="text-blue-500 font-bold">•</span>
+                                  <span>{trimmed.replace(/^-/, '').trim()}</span>
+                                </div>
+                              );
+                            }
+
+                            // Treat non-bullets as headers/titles
                             return (
-                              <div key={i} className="flex gap-3 text-sm leading-relaxed text-slate-700">
-                                <span className="text-blue-500 font-bold">•</span>
-                                <span>{trimmed.replace(/^-/, '').trim()}</span>
-                              </div>
+                              <p key={i} className="text-sm font-semibold text-slate-900 pt-2 border-b border-slate-100 pb-2">
+                                {trimmed}
+                              </p>
                             );
-                          }
-
-                          // Treat non-bullets as headers/titles
-                          return (
-                            <p key={i} className="text-sm font-semibold text-slate-900 pt-2 border-b border-slate-100 pb-2">
-                              {trimmed}
-                            </p>
-                          );
-                        })}
+                          })}
+                        </div>
+                        <div className="bg-slate-50 px-6 py-3 border-t border-slate-100 flex items-center justify-between">
+                          <p className="text-[10px] text-slate-400 uppercase tracking-wider font-medium">
+                            Generated by Clinical AI • {new Date().toLocaleDateString()}
+                          </p>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={generateSummary}
+                            disabled={generating}
+                            className="text-xs text-slate-500 hover:text-slate-700"
+                          >
+                            {generating ? (
+                              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                            ) : (
+                              <RefreshCw className="h-3 w-3 mr-1" />
+                            )}
+                            Refresh
+                          </Button>
+                        </div>
                       </div>
-                      <div className="bg-slate-50 px-6 py-3 border-t border-slate-100">
-                        <p className="text-[10px] text-slate-400 uppercase tracking-wider font-medium">
-                          Generated by Clinical AI • {new Date().toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
+                    </>
                   ) : (
-                    <p className="text-center text-muted-foreground italic">No summary generated.</p>
+                    <div className="flex flex-col items-center gap-4">
+                      <p className="text-center text-muted-foreground italic">No summary generated yet.</p>
+                      <Button
+                        onClick={generateSummary}
+                        disabled={generating}
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                      >
+                        {generating ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Brain className="h-4 w-4 mr-2" />
+                        )}
+                        {generating ? "Generating…" : "Generate AI Summary"}
+                      </Button>
+                    </div>
                   )}
                 </div>
               </CardContent>

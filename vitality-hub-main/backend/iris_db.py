@@ -59,6 +59,20 @@ def main():
         # 3. Remove any duplicate rows accumulated from previous restarts
         irispy.classMethodValue("MyApp.Utils", "DeleteDuplicates", patient_id)
 
+        # Create AISummary table for pre-computed AI summaries (ignore if already exists)
+        try:
+            _cur = conn.cursor()
+            _cur.execute("""
+                CREATE TABLE MyApp.AISummary (
+                    PatientID VARCHAR(500),
+                    SummaryText VARCHAR(32000),
+                    UpdatedAt TIMESTAMP
+                )
+            """)
+            print(">>> Created MyApp.AISummary table.", flush=True)
+        except Exception:
+            pass  # Table already exists
+
         # 4. Upsert patient data
         record_id = irispy.classMethodValue(
             "MyApp.Utils",
