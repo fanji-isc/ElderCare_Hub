@@ -1,18 +1,23 @@
 import { useState, useEffect, useRef } from "react";
 import { Header } from "@/components/Header";
 import { CommunityPanel } from "@/components/CommunityPanel";
-import { VitalCard } from "@/components/VitalCard";
 import { HeartRateChart } from "@/components/HeartRateChart";
 import { ECGVisualization } from "@/components/ECGVisualization";
 import { SleepChart } from "@/components/SleepChart";
 import { HydrationIndicator } from "@/components/HydrationIndicator";
 import { WalkingActivityChart } from "@/components/WalkingActivityChart";
 import { SmartFridgeCard } from "@/components/SmartFridgeCard";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Users, HeartHandshake, ChevronDown, ChevronUp,
   Mic, Activity, Heart, Moon, Footprints, Volume2,
   ShieldAlert, Brain,
+  Utensils, Shield, Droplets, Pill, ShieldCheck, AlertCircle, AlertTriangle, Maximize2,
 } from "lucide-react";
+import {
+  AreaChart, Area, XAxis, YAxis, CartesianGrid,
+  Tooltip, ReferenceLine, ResponsiveContainer,
+} from "recharts";
 
 const API_BASE = "http://localhost:3001";
 const PATIENT_ID = "PATIENT_001";
@@ -22,18 +27,19 @@ type Vitals = {
   steps: number;
   stressLevel: number;
   sleepHours: number;
-  hydrationNote: string;       // e.g. "well hydrated" | "mildly dehydrated"
-  hydrationColorLevel: number; // raw urine color level 1–8 (Armstrong scale: 1=clear, 8=brown/severely dehydrated)
-  waterLiters: number;         // from fridge daily nutrition
-  expiringItems: string[];  // fridge items expiring within 2 days
+  hydrationNote: string;
+  hydrationColorLevel: number;
+  waterLiters: number;
+  expiringItems: string[];
   currentItems: string[];
-  mealsCount: number;          // meals detected today by smart fridge
-  phoneCallMinutes: number;    // minutes on calls today
-  phoneCallTrend: number[];    // last 7 days total minutes (oldest → newest)
-  gaitNote: string;            // gait risk summary, empty if no data
-  fallRiskAlert: boolean;      // true when gait concern + dehydration combine
+  mealsCount: number;
+  phoneCallMinutes: number;
+  phoneCallTrend: number[];
+  gaitNote: string;
+  fallRiskAlert: boolean;
 };
 type Msg = { role: "user" | "assistant"; content: string };
+type Med = { drug: string; status: string; authored: string; dosage: string };
 
 function pickLatest(list: any[]): any | null {
   if (!Array.isArray(list) || list.length === 0) return null;
@@ -47,13 +53,6 @@ function extractStress(day: any): number {
   return Math.round(Number(awake?.averageStressLevel ?? 0));
 }
 
-function stressLabel(v: number) {
-  if (v === 0) return "Today";
-  if (v <= 25) return "Low stress";
-  if (v <= 50) return "Moderate";
-  if (v <= 75) return "High stress";
-  return "Very high";
-}
 
 function extractSleep(sleepJson: any): number {
   if (!Array.isArray(sleepJson)) return 0;
@@ -65,15 +64,6 @@ function extractSleep(sleepJson: any): number {
   return (Number(latest.deepSleepSeconds ?? 0) + Number(latest.lightSleepSeconds ?? 0) + Number(latest.remSleepSeconds ?? 0)) / 3600;
 }
 
-// Armstrong urine color scale (1–8):
-//   1 = colorless / very clear     → very well hydrated
-//   2 = pale straw                 → well hydrated
-//   3 = pale yellow                → adequately hydrated
-//   4 = yellow                     → acceptable
-//   5 = dark yellow                → mildly dehydrated
-//   6 = amber / honey              → moderately dehydrated
-//   7 = dark amber / orange        → significantly dehydrated
-//   8 = brown / dark brown         → severely dehydrated — needs attention
 function extractHydration(toiletJson: any): { note: string; colorLevel: number } {
   if (!Array.isArray(toiletJson) || toiletJson.length === 0) return { note: "", colorLevel: 0 };
   const latest = pickLatest(toiletJson);
@@ -93,20 +83,16 @@ function extractHydration(toiletJson: any): { note: string; colorLevel: number }
   return { note, colorLevel: level };
 }
 
-function extractFridge(fridgeJson: any): { waterLiters: number; currentItems: string[];expiringItems: string[]; mealsCount: number } {
+function extractFridge(fridgeJson: any): { waterLiters: number; currentItems: string[]; expiringItems: string[]; mealsCount: number } {
   if (!Array.isArray(fridgeJson) || fridgeJson.length === 0) return { waterLiters: 0, currentItems: [], expiringItems: [], mealsCount: 0 };
   const latest = pickLatest(fridgeJson);
-  if (!latest) return { waterLiters: 0, currentItems: [],expiringItems: [], mealsCount: 0 };
-
+  if (!latest) return { waterLiters: 0, currentItems: [], expiringItems: [], mealsCount: 0 };
   const currentItems = Array.isArray(latest.inventory)
-    ? latest.inventory
-        .map((inv: any) => String(inv?.item ?? ""))
-        .filter(Boolean)
+    ? latest.inventory.map((inv: any) => String(inv?.item ?? "")).filter(Boolean)
     : [];
   const expiringItems = (latest.alerts ?? [])
     .filter((a: any) => a.type === "expiring")
     .map((a: any) => String(a.item));
-  
   return {
     waterLiters: Number(latest.dailyNutrition?.waterLiters ?? 0),
     currentItems,
@@ -115,7 +101,6 @@ function extractFridge(fridgeJson: any): { waterLiters: number; currentItems: st
   };
 }
 
-// Returns today's call minutes + last-7-days trend (oldest→newest)
 function extractPhoneCalls(callJson: any): { minutes: number; trend: number[] } {
   if (!Array.isArray(callJson) || callJson.length === 0) return { minutes: 0, trend: [] };
   const sorted = [...callJson].sort((a, b) =>
@@ -128,21 +113,13 @@ function extractPhoneCalls(callJson: any): { minutes: number; trend: number[] } 
   return { minutes, trend };
 }
 
-// Clinical fall-risk thresholds for elderly (longitudinal — all sessions across all dates):
-// Normal elderly walking speed: > 1.0 m/s; < 0.8 m/s = significant risk
-// Normal step symmetry: > 90%; < 82% = compensatory gait; < 75% = severe asymmetry
-// Stride variability: < 8% normal; > 8% elevated; > 12% clinically significant
-// Ground contact time L/R difference: > 60 ms = persistent imbalance; > 100 ms = severe
 function extractGait(gaitJson: any): { note: string; riskLevel: "low" | "moderate" | "high" } | null {
   if (!Array.isArray(gaitJson) || gaitJson.length === 0) return null;
-
-  // Aggregate ALL sessions across ALL dates for a longitudinal picture
   const allSessions: any[] = [];
   for (const day of gaitJson) {
     if (Array.isArray(day?.sessions)) allSessions.push(...day.sessions);
   }
   if (allSessions.length === 0) return null;
-
   const n = allSessions.length;
   const avgSpeed       = allSessions.reduce((s: number, x: any) => s + Number(x.gaitSpeedMs         ?? 0), 0) / n;
   const avgSymmetry    = allSessions.reduce((s: number, x: any) => s + Number(x.stepSymmetryPct      ?? 0), 0) / n;
@@ -152,26 +129,177 @@ function extractGait(gaitJson: any): { note: string; riskLevel: "low" | "moderat
     const r = Number(x.groundContactTimeMs?.right ?? 0);
     return s + Math.abs(l - r);
   }, 0) / n;
-
-  // Score — high ≥ 5, moderate 2–4, low 0–1
   let score = 0;
   if (avgSpeed < 0.6)        score += 4;
   else if (avgSpeed < 0.8)   score += 2;
   else if (avgSpeed < 1.0)   score += 1;
-
   if (avgSymmetry < 75)      score += 3;
   else if (avgSymmetry < 82) score += 2;
   else if (avgSymmetry < 90) score += 1;
-
   if (avgVariability > 12)   score += 2;
   else if (avgVariability > 8) score += 1;
-
   if (avgGCTDiff > 100)      score += 2;
   else if (avgGCTDiff > 60)  score += 1;
-
   const riskLevel: "low" | "moderate" | "high" = score >= 5 ? "high" : score >= 2 ? "moderate" : "low";
   const note = `${riskLevel} fall risk — avg walking speed ${avgSpeed.toFixed(2)} m/s, step symmetry ${Math.round(avgSymmetry)}%, stride variability ${avgVariability.toFixed(1)}%, L/R ground contact diff ${Math.round(avgGCTDiff)} ms`;
   return { note, riskLevel };
+}
+
+// ── Health card status helpers ─────────────────────────────────────────────────
+function sleepStatus(h: number) {
+  if (h === 0)  return { label: "No data",     note: "Sleep data unavailable",                   color: "text-muted-foreground", status: "fair" as const };
+  if (h >= 7)   return { label: "Well rested", note: `${h.toFixed(1)} hrs — great for his age`,  color: "text-emerald-600",       status: "good" as const };
+  if (h >= 5.5) return { label: "Light sleep", note: `${h.toFixed(1)} hrs — a bit below ideal`,  color: "text-amber-600",         status: "fair" as const };
+  return         { label: "Poor sleep",   note: `Only ${h.toFixed(1)} hrs — worth monitoring`, color: "text-rose-600",          status: "warn" as const };
+}
+
+function heartStatus(bpm: number) {
+  if (bpm === 0)              return { label: "No data",           note: "Heart rate unavailable",                   color: "text-muted-foreground", status: "fair" as const };
+  if (bpm >= 55 && bpm <= 85) return { label: "Normal range",      note: `${bpm} BPM — healthy resting rate`,        color: "text-emerald-600",       status: "good" as const };
+  if (bpm > 85 && bpm <= 100) return { label: "Slightly elevated", note: `${bpm} BPM — monitor if it persists`,      color: "text-amber-600",         status: "fair" as const };
+  if (bpm < 55 && bpm > 0)    return { label: "Slightly low",      note: `${bpm} BPM — could be normal if athletic`, color: "text-amber-600",         status: "fair" as const };
+  return                       { label: "Check with doctor",  note: `${bpm} BPM — outside normal range`,       color: "text-rose-600",          status: "warn" as const };
+}
+
+function stepsStatus(steps: number) {
+  if (steps === 0)   return { label: "No data",            note: "Activity data unavailable",                          color: "text-muted-foreground", status: "fair" as const };
+  if (steps >= 5000) return { label: "Very active",        note: `${steps.toLocaleString()} steps — excellent!`,       color: "text-emerald-600",       status: "good" as const };
+  if (steps >= 2500) return { label: "Moderately active",  note: `${steps.toLocaleString()} steps — good movement`,    color: "text-emerald-600",       status: "good" as const };
+  if (steps >= 1000) return { label: "Light activity",     note: `${steps.toLocaleString()} steps — quieter day`,      color: "text-amber-600",         status: "fair" as const };
+  return             { label: "Very little movement", note: `${steps.toLocaleString()} steps — try a short walk`, color: "text-rose-600",          status: "warn" as const };
+}
+
+function stressStatusHelper(v: number) {
+  if (v === 0)  return { label: "Calm",        note: "Stress levels look great",    color: "text-emerald-600", status: "good" as const };
+  if (v <= 35)  return { label: "Calm",        note: "Very relaxed today",          color: "text-emerald-600", status: "good" as const };
+  if (v <= 60)  return { label: "Mild stress", note: "Some stress — likely normal", color: "text-amber-600",   status: "fair" as const };
+  return        { label: "High stress",  note: "Elevated — try to relax",     color: "text-rose-600",    status: "warn" as const };
+}
+
+function gaitStatusHelper(symmetryPct: number, variabilityPct: number, speedMs: number, cadence: number, worseStride: number, worseGCT: number) {
+  if (symmetryPct === 0) return { label: "No data",     note: "Gait data unavailable",                color: "text-muted-foreground", status: "fair" as const };
+  const isHigh = cadence < 80  || speedMs < 0.7  || worseStride < 90  || worseGCT > 950 || symmetryPct < 78  || variabilityPct > 10;
+  const isMed  = cadence < 100 || speedMs < 1.0  || worseStride < 140 || worseGCT > 650 || symmetryPct < 95  || variabilityPct > 5;
+  if (isHigh) return { label: "High Risk",     note: "Significant gait irregularities detected", color: "text-rose-600",    status: "warn" as const };
+  if (isMed)  return { label: "Moderate Risk", note: "Some asymmetry — worth monitoring",        color: "text-amber-600",   status: "fair" as const };
+  return       { label: "Low Risk",            note: "Gait looks steady and balanced",           color: "text-emerald-600", status: "good" as const };
+}
+
+function hydrationStatusHelper(level: number) {
+  if (level === 0) return { label: "No data",          note: "Hydration data unavailable",       color: "text-muted-foreground", status: "fair" as const };
+  if (level <= 2)  return { label: "Excellent",        note: "Well hydrated — great job!",       color: "text-emerald-600",      status: "good" as const };
+  if (level <= 3)  return { label: "Normal",           note: "Hydration looks normal",           color: "text-emerald-600",      status: "good" as const };
+  if (level <= 4)  return { label: "Drink More Water", note: "Could use a bit more water",       color: "text-amber-600",        status: "fair" as const };
+  if (level <= 5)  return { label: "Mild Dehydration", note: "Drink a glass of water now",       color: "text-amber-600",        status: "fair" as const };
+  if (level <= 6)  return { label: "Dehydrated",       note: "Needs more fluids soon",           color: "text-rose-600",         status: "warn" as const };
+  return           { label: "Very Dehydrated",         note: "Drink water — this is important",  color: "text-rose-600",         status: "warn" as const };
+}
+
+// ── ModalCard ─────────────────────────────────────────────────────────────────
+function ModalCard({
+  icon: Icon, iconBg, gradient, title, subtitle, children,
+}: {
+  icon: React.ElementType; iconBg: string; gradient: string;
+  title: string; subtitle?: string; children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-2xl bg-card shadow-card overflow-hidden">
+      <div className={`flex items-center gap-3 border-b border-border px-5 py-3.5 bg-gradient-to-r ${gradient}`}>
+        <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${iconBg} text-primary-foreground`}>
+          <Icon className="h-4 w-4" />
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-foreground leading-tight">{title}</p>
+          {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
+        </div>
+      </div>
+      <div className="p-5">{children}</div>
+    </div>
+  );
+}
+
+// ── HealthCard ────────────────────────────────────────────────────────────────
+function HealthCard({
+  icon: Icon, iconBg, title, label, labelColor, note, onClick,
+}: {
+  icon: React.ElementType; iconBg: string; title: string;
+  label: string; labelColor: string; note: string; onClick: () => void;
+}) {
+  return (
+    <div
+      onClick={onClick}
+      className="rounded-2xl bg-card shadow-card overflow-hidden cursor-pointer group hover:shadow-lg transition-shadow"
+    >
+      <div className="flex items-center gap-2.5 border-b border-border px-4 py-3 bg-muted/30 group-hover:bg-muted/50 transition-colors">
+        <div className={`flex h-7 w-7 items-center justify-center rounded-lg ${iconBg}`}>
+          <Icon className="h-3.5 w-3.5" />
+        </div>
+        <span className="text-xs font-medium text-muted-foreground flex-1">{title}</span>
+        <Maximize2 className="h-3 w-3 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors" />
+      </div>
+      <div className="px-4 py-3.5">
+        <p className={`text-lg font-bold leading-tight ${labelColor}`}>{label}</p>
+        <p className="mt-0.5 text-xs text-muted-foreground leading-snug">{note}</p>
+      </div>
+    </div>
+  );
+}
+
+// ── MedicationDetail ──────────────────────────────────────────────────────────
+function MedicationDetail() {
+  const [meds, setMeds] = useState<Med[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const patientsRes = await fetch(`${API_BASE}/api/fhir/patients`);
+        if (!patientsRes.ok) throw new Error("Could not load patient list");
+        const patients: { id: string; name: string }[] = await patientsRes.json();
+        const frank = patients.find(p => p.name.toLowerCase().includes("frank") && p.name.toLowerCase().includes("larson"));
+        if (!frank) throw new Error("Frank Larson not found in FHIR patient list");
+        const medRes = await fetch(`${API_BASE}/api/fhir/medications?patient_id=${encodeURIComponent(frank.id)}`);
+        if (!medRes.ok) throw new Error("Medication fetch failed");
+        const data: Med[] = await medRes.json();
+        setMeds(Array.isArray(data) ? data : []);
+      } catch (e: any) {
+        setError(e?.message ?? "Failed to load medications");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  if (loading) return <div className="flex items-center justify-center py-12"><p className="text-sm text-muted-foreground">Loading medications…</p></div>;
+  if (error)   return <div className="flex items-center justify-center py-12"><p className="text-sm text-rose-600">{error}</p></div>;
+  if (!meds.length) return <div className="flex items-center justify-center py-12"><p className="text-sm text-muted-foreground">No medication records found.</p></div>;
+
+  return (
+    <div className="space-y-2">
+      {meds.map((med, i) => {
+        const authored = med.authored
+          ? new Date(med.authored).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
+          : null;
+        return (
+          <div key={i} className="rounded-xl bg-muted/40 px-4 py-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-foreground">{med.drug}</p>
+                {med.dosage && <p className="mt-0.5 text-xs text-muted-foreground">{med.dosage}</p>}
+                {authored && <p className="mt-0.5 text-xs text-muted-foreground/60">Prescribed {authored}</p>}
+              </div>
+              <span className={`flex-shrink-0 text-xs font-medium px-2.5 py-0.5 rounded-full ${
+                med.status === "active" ? "bg-emerald-100 text-emerald-700" : "bg-muted text-muted-foreground"
+              }`}>
+                {med.status}
+              </span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 type Panel = "health" | "activity" | "helping" | null;
@@ -182,6 +310,11 @@ const ElderView = () => {
   const [vitals, setVitals] = useState<Vitals>(emptyVitals);
   const vitalsRef = useRef<Vitals>(emptyVitals);
   vitalsRef.current = vitals;
+
+  // Health card state
+  const [gaitMetrics, setGaitMetrics] = useState({ symmetry: 0, variability: 0, speed: 0, cadence: 0, worseStride: 0, worseGCT: 0 });
+  const [stepHistory, setStepHistory] = useState<{ day: string; steps: number }[]>([]);
+  const [openModal, setOpenModal] = useState<string | null>(null);
 
   // NOHA voice state
   const [isRecording, setIsRecording] = useState(false);
@@ -194,15 +327,13 @@ const ElderView = () => {
   const messagesRef = useRef<Msg[]>([]);
   messagesRef.current = messages;
   const runningRef = useRef(false);
-  const neighborhoodRef = useRef<string>("");  // pre-built RAG text for neighborhood activities
+  const neighborhoodRef = useRef<string>("");
   const scrollBottomRef = useRef<HTMLDivElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioSourceRef = useRef<AudioBufferSourceNode | null>(null);
   const speakAbortRef = useRef<AbortController | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
 
-  // Must be called synchronously inside a user-gesture handler (pointerDown / click)
-  // to unlock audio autoplay for the rest of the session.
   const unlockAudio = () => {
     if (audioCtxRef.current) return;
     try {
@@ -227,7 +358,6 @@ const ElderView = () => {
     audioRef.current = null;
   };
 
-  // Fetch TTS audio bytes without playing. Returns null on abort/error.
   const fetchTTSBuffer = async (text: string, signal: AbortSignal): Promise<ArrayBuffer | null> => {
     try {
       const res = await fetch(`${API_BASE}/api/speak`, {
@@ -243,7 +373,6 @@ const ElderView = () => {
     }
   };
 
-  // Play a pre-fetched ArrayBuffer; resolves when playback ends.
   const decodeAndPlay = (arrayBuffer: ArrayBuffer, signal: AbortSignal): Promise<void> =>
     new Promise((resolve) => {
       if (signal.aborted) { resolve(); return; }
@@ -268,14 +397,11 @@ const ElderView = () => {
       }
     });
 
-  // Ensure text sent to TTS ends with terminal punctuation.
-  // Without it, TTS models treat the last word as mid-sentence and may clip or rush it.
   const ttsReady = (text: string): string => {
     const t = text.trimEnd();
     return /[.!?]$/.test(t) ? t : t + ".";
   };
 
-  // For replaying single messages (Volume2 button) — still fetches all-at-once.
   const speakText = async (text: string) => {
     speakAbortRef.current?.abort();
     const controller = new AbortController();
@@ -285,8 +411,6 @@ const ElderView = () => {
     if (buf && !controller.signal.aborted) await decodeAndPlay(buf, controller.signal);
   };
 
-  // Builds a RAG system prompt embedding Frank's live health data.
-  // Passed to NOHA for open-ended voice Q&A so it can answer personal health questions.
   const buildHealthContext = (v: Vitals): string => {
     const lines: string[] = [
       "You are NOHA, a warm and caring AI health companion for Frank, an elderly person living independently.",
@@ -304,15 +428,12 @@ const ElderView = () => {
     if (v.fallRiskAlert) lines.push(`- Combined fall risk alert: YES — gait irregularities combined with dehydration create elevated fall risk today`);
     if (v.mealsCount)   lines.push(`- Meals detected today (smart fridge): ${v.mealsCount}`);
     if (v.currentItems.length) lines.push(`- Current fridge inventory: ${v.currentItems.join(", ")}`);
-
     if (v.expiringItems.length) lines.push(`- Fridge items expiring soon: ${v.expiringItems.join(", ")}`);
-
     if (neighborhoodRef.current) {
       lines.push("");
       lines.push("Frank's neighborhood community (Oakwood Pines):");
       lines.push(neighborhoodRef.current);
     }
-
     lines.push("");
     lines.push(
       "Use Frank's personal health data and neighborhood information to answer his questions accurately. " +
@@ -324,11 +445,6 @@ const ElderView = () => {
     return lines.join("\n");
   };
 
-  // Streams tokens from /api/answer/stream (newline-delimited JSON).
-  // onFirstChunk fires once when the first token arrives.
-  // onChunk fires with the accumulated text on every token.
-  // system: optional RAG system prompt — if omitted the backend uses its default elder-care prompt.
-  // Returns the full response text.
   const streamAnswer = async (
     text: string,
     history: Msg[],
@@ -342,13 +458,11 @@ const ElderView = () => {
       body: JSON.stringify({ text, messages: history, ...(system ? { system } : {}) }),
     });
     if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
-
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let buffer = "";
     let fullText = "";
     let firstChunk = true;
-
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
@@ -376,10 +490,8 @@ const ElderView = () => {
     if (runningRef.current || isRecording) return;
     runningRef.current = true;
     setIsThinking(true);
-
     const dataLines: string[] = [];
     let prompt = "";
-
     if (mode === "fall") {
       if (v.gaitNote) dataLines.push(`- Gait analysis: ${v.gaitNote}`);
       if (v.hydrationNote && v.hydrationColorLevel > 0) {
@@ -392,7 +504,6 @@ const ElderView = () => {
         dataLines.push(`- Smart toilet urine color: level ${v.hydrationColorLevel}/8 — ${colorDesc} → ${v.hydrationNote}`);
       }
       if (v.fallRiskAlert) dataLines.push(`- COMBINED FALL RISK ALERT: gait irregularities together with dehydration significantly increase fall risk today`);
-
       prompt = dataLines.length
         ? `You are NOHA, a warm and caring safety companion for Frank, an elderly person living independently.
 
@@ -405,31 +516,21 @@ Then tell him clearly whether he needs to be extra careful today.
 If there is a COMBINED FALL RISK ALERT, say it first, explain that both his gait and hydration are concerning, and give him 2 simple practical tips (e.g. drink a glass of water now, move slowly, hold handrails).
 Keep it to 4–5 sentences. Address him as Frank.`
         : `You are NOHA. Warmly reassure Frank that his walking looks steady today and encourage him to keep moving safely. One sentence only. Address him as Frank.`;
-
     } else {
-      // Sleep
       if (v.sleepHours) {
         const sleepQuality = v.sleepHours < 5 ? "very poor — only " + v.sleepHours.toFixed(1) + " hours, significantly below healthy range"
           : v.sleepHours < 6.5 ? "below recommended — " + v.sleepHours.toFixed(1) + " hours"
           : "good — " + v.sleepHours.toFixed(1) + " hours";
         dataLines.push(`- Sleep last night: ${sleepQuality}`);
       }
-      // Meals
       const mealStatus = v.mealsCount === 0
         ? "0 meals detected — Frank skipped all meals today (⚠️ appetite loss, possible depression signal)"
         : v.mealsCount === 1
         ? "only 1 meal detected (breakfast) — skipped lunch and dinner"
         : `${v.mealsCount} meals detected (normal)`;
       dataLines.push(`- Diet today (smart fridge): ${mealStatus}`);
-      // Steps
-      if (v.steps) {
-        dataLines.push(`- Steps today: ${v.steps.toLocaleString()} — ${v.steps < 2000 ? "very low, barely moved" : v.steps < 4000 ? "low activity" : "good"}`);
-      }
-      // Stress
-      if (v.stressLevel) {
-        dataLines.push(`- Stress level: ${v.stressLevel}/100`);
-      }
-      // Phone calls — real data
+      if (v.steps) dataLines.push(`- Steps today: ${v.steps.toLocaleString()} — ${v.steps < 2000 ? "very low, barely moved" : v.steps < 4000 ? "low activity" : "good"}`);
+      if (v.stressLevel) dataLines.push(`- Stress level: ${v.stressLevel}/100`);
       if (v.phoneCallTrend.length > 0) {
         const trendStr = v.phoneCallTrend.join(" → ");
         const declining = v.phoneCallTrend.length >= 3 &&
@@ -440,18 +541,12 @@ Keep it to 4–5 sentences. Address him as Frank.`
           (declining ? " ⚠️ sharp decline in social contact" : "")
         );
       }
-      // Neighbourhood activities for suggestion
-      if (neighborhoodRef.current) {
-        dataLines.push(`- Upcoming neighbourhood activities Frank could join:\n${neighborhoodRef.current}`);
-      }
-
-      // Severity flags
+      if (neighborhoodRef.current) dataLines.push(`- Upcoming neighbourhood activities Frank could join:\n${neighborhoodRef.current}`);
       const poorSleep  = v.sleepHours > 0 && v.sleepHours < 6;
       const skippedMeals = v.mealsCount <= 1;
       const socialWithdrawal = v.phoneCallTrend.length >= 3 &&
         v.phoneCallTrend[v.phoneCallTrend.length - 1] < v.phoneCallTrend[0] * 0.4;
       const concernCount = [poorSleep, skippedMeals, socialWithdrawal].filter(Boolean).length;
-
       prompt = `You are NOHA, Frank's warm and caring AI companion. Frank is an elderly person living independently. You have been watching over him and you are genuinely concerned.
 
 Here is what you know about Frank today:
@@ -472,25 +567,17 @@ Your response should:
 
 Tone: warm, gentle, direct, human — like a trusted friend, not a medical alert. Keep it to 4–5 sentences. Address him as Frank.`;
     }
-
-    // Abort any previous playback and set up a fresh TTS controller for this check-in
     speakAbortRef.current?.abort();
     const ttsCtrl = new AbortController();
     speakAbortRef.current = ttsCtrl;
     stopAudio();
-
-    // Start a fresh conversation for each check-in
     setMessages([{ role: "assistant", content: "" }]);
-
     try {
-      // Stream text internally — UI stays on "Thinking…" so text and audio can arrive together
       const fullText = await streamAnswer(
-        prompt,
-        [],
+        prompt, [],
         () => { /* keep Thinking… visible until TTS is ready */ },
         () => { /* accumulate internally — don't update UI yet */ },
       );
-
       if (!fullText) {
         setMessages((prev) => {
           const msgs = [...prev];
@@ -501,11 +588,7 @@ Tone: warm, gentle, direct, human — like a trusted friend, not a medical alert
         });
         return;
       }
-
-      // Fetch TTS for the full response — sending the entire string means no phrase is ever dropped
       const buf = await fetchTTSBuffer(ttsReady(fullText), ttsCtrl.signal);
-
-      // Reveal text and start audio at the same moment — gap is now zero
       setIsThinking(false);
       setMessages((prev) => {
         const msgs = [...prev];
@@ -514,7 +597,6 @@ Tone: warm, gentle, direct, human — like a trusted friend, not a medical alert
         }
         return msgs;
       });
-
       if (buf && !ttsCtrl.signal.aborted) await decodeAndPlay(buf, ttsCtrl.signal);
     } catch {
       setMessages((prev) => {
@@ -550,9 +632,8 @@ Tone: warm, gentle, direct, human — like a trusted friend, not a medical alert
         const neighborhoodJson = neighborhoodRes.ok ? await neighborhoodRes.json() : [];
         const phoneCallJson    = phoneCallRes.ok    ? await phoneCallRes.json()    : [];
 
-        // Build a pre-computed text summary so buildHealthContext stays pure/synchronous
-        const latest = Array.isArray(neighborhoodJson) && neighborhoodJson.length > 0
-          ? neighborhoodJson[0] : null;
+        // Build neighborhood RAG text
+        const latest = Array.isArray(neighborhoodJson) && neighborhoodJson.length > 0 ? neighborhoodJson[0] : null;
         if (latest) {
           const lines: string[] = ["Neighborhood activities this week (each has a booking ID):"];
           (latest.activities ?? []).forEach((a: any) => {
@@ -560,19 +641,11 @@ Tone: warm, gentle, direct, human — like a trusted friend, not a medical alert
             lines.push(`  • [ID:${a.id}] ${a.title}: ${a.date} at ${a.time}, ${a.location} (${a.duration})${attendeeNames ? ` — attending: ${attendeeNames}${a.extraCount > 0 ? ` +${a.extraCount} more` : ""}` : ""}`);
           });
           lines.push("Recent neighbor activity:");
-          (latest.feedItems ?? []).forEach((f: any) => {
-            lines.push(`  • ${f.name} ${f.activity} (${f.time})`);
-          });
+          (latest.feedItems ?? []).forEach((f: any) => { lines.push(`  • ${f.name} ${f.activity} (${f.time})`); });
           const requests = (latest.helpPosts ?? []).filter((p: any) => p.type === "request");
           const offers   = (latest.helpPosts ?? []).filter((p: any) => p.type === "offer");
-          if (requests.length) {
-            lines.push("Neighbors who need help:");
-            requests.forEach((p: any) => lines.push(`  • ${p.name} (${p.category}): ${p.message}`));
-          }
-          if (offers.length) {
-            lines.push("Neighbors offering help:");
-            offers.forEach((p: any) => lines.push(`  • ${p.name} (${p.category}): ${p.message}`));
-          }
+          if (requests.length) { lines.push("Neighbors who need help:"); requests.forEach((p: any) => lines.push(`  • ${p.name} (${p.category}): ${p.message}`)); }
+          if (offers.length)   { lines.push("Neighbors offering help:");  offers.forEach((p: any)   => lines.push(`  • ${p.name} (${p.category}): ${p.message}`)); }
           lines.push("");
           lines.push(
             "BOOKING INSTRUCTION: If Frank asks to join, book, sign up for, or register for a specific activity, " +
@@ -583,6 +656,7 @@ Tone: warm, gentle, direct, human — like a trusted friend, not a medical alert
           );
           neighborhoodRef.current = lines.join("\n");
         }
+
         const day = pickLatest(Array.isArray(dailyJson) ? dailyJson : []);
         const fridge = extractFridge(fridgeJson);
         const { note: hydrationNote, colorLevel: hydrationColorLevel } = extractHydration(toiletJson);
@@ -607,7 +681,29 @@ Tone: warm, gentle, direct, human — like a trusted friend, not a medical alert
           fallRiskAlert: dehydrated && gaitConcern,
         };
         setVitals(loaded);
-        vitalsRef.current = loaded; // update ref immediately — don't wait for re-render
+        vitalsRef.current = loaded;
+
+        // Extract latest session gait metrics for health card status
+        const latestGaitDay = [...gaitJson]
+          .filter((d: any) => d?.calendarDate)
+          .sort((a: any, b: any) => String(b.calendarDate).localeCompare(String(a.calendarDate)))[0];
+        if (latestGaitDay?.sessions?.length) {
+          const s = latestGaitDay.sessions[latestGaitDay.sessions.length - 1];
+          const worseStride = Math.min(Number(s.strideLength?.leftCm ?? 999), Number(s.strideLength?.rightCm ?? 999));
+          const worseGCT    = Math.max(Number(s.groundContactTimeMs?.left ?? 0), Number(s.groundContactTimeMs?.right ?? 0));
+          setGaitMetrics({ symmetry: Number(s.stepSymmetryPct ?? 0), variability: Number(s.strideVariabilityPct ?? 0), speed: Number(s.gaitSpeedMs ?? 0), cadence: Number(s.cadence ?? 0), worseStride, worseGCT });
+        }
+
+        // Build step history for trend chart
+        const allDays = (Array.isArray(dailyJson) ? dailyJson : [])
+          .filter((d: any) => d?.calendarDate)
+          .sort((a: any, b: any) => a.calendarDate.localeCompare(b.calendarDate));
+        setStepHistory(
+          allDays.filter((d: any) => d?.totalSteps != null).slice(-14).map((d: any) => ({
+            day: new Date(d.calendarDate + "T12:00:00").toLocaleDateString("en-US", { month: "numeric", day: "numeric" }),
+            steps: Number(d.totalSteps),
+          }))
+        );
       } catch { /* silent */ }
     })();
   }, []);
@@ -616,83 +712,192 @@ Tone: warm, gentle, direct, human — like a trusted friend, not a medical alert
     scrollBottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isThinking]);
 
+  // ── Derived health card status values ────────────────────────────────────
+  const sleepS     = sleepStatus(vitals.sleepHours);
+  const heartS     = heartStatus(vitals.heartRate);
+  const stepsS     = stepsStatus(vitals.steps);
+  const stressS    = stressStatusHelper(vitals.stressLevel);
+  const hydrationS = hydrationStatusHelper(vitals.hydrationColorLevel);
+  const gaitS      = gaitStatusHelper(gaitMetrics.symmetry, gaitMetrics.variability, gaitMetrics.speed, gaitMetrics.cadence, gaitMetrics.worseStride, gaitMetrics.worseGCT);
+
+
+  const stressBarColor = stressS.status === "good" ? "bg-emerald-500" : stressS.status === "fair" ? "bg-amber-500" : "bg-rose-500";
+
+  const renderModalContent = () => {
+    switch (openModal) {
+      case "heart":
+        return (
+          <div className="flex flex-col gap-4">
+            <HeartRateChart />
+            <ECGVisualization />
+          </div>
+        );
+      case "sleep":
+        return <SleepChart />;
+      case "nutrition":
+        return <SmartFridgeCard />;
+      case "stress":
+        return (
+          <ModalCard icon={Brain} iconBg="bg-stress" gradient="from-purple-50 to-violet-50"
+            title="Stress" subtitle={stressS.note}>
+            <div className="space-y-4 max-w-md">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Score today</span>
+                <span className={`text-2xl font-bold ${stressS.color}`}>
+                  {vitals.stressLevel > 0 ? vitals.stressLevel : "—"}
+                  <span className="text-sm font-normal text-muted-foreground"> / 100</span>
+                </span>
+              </div>
+              <div className="h-3 rounded-full bg-muted overflow-hidden">
+                <div className={`h-full rounded-full transition-all ${stressBarColor}`} style={{ width: `${Math.min(100, vitals.stressLevel)}%` }} />
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                <span className="rounded-lg bg-emerald-50 px-2 py-2 text-emerald-700 font-medium">0–35 · Calm</span>
+                <span className="rounded-lg bg-amber-50 px-2 py-2 text-amber-700 font-medium">36–60 · Mild</span>
+                <span className="rounded-lg bg-rose-50 px-2 py-2 text-rose-700 font-medium">61+ · Elevated</span>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Derived from Garmin heart rate variability analysis throughout the day. Scores are averaged across awake hours only.
+              </p>
+            </div>
+          </ModalCard>
+        );
+      case "steps": {
+        const avgSteps = stepHistory.length ? Math.round(stepHistory.reduce((s, d) => s + d.steps, 0) / stepHistory.length) : 0;
+        const maxSteps = stepHistory.length ? Math.max(...stepHistory.map(d => d.steps)) : 0;
+        const prevAvg  = stepHistory.length > 1 ? Math.round(stepHistory.slice(0, -1).reduce((s, d) => s + d.steps, 0) / (stepHistory.length - 1)) : 0;
+        const trendPct = prevAvg > 0 ? Math.round(((vitals.steps - prevAvg) / prevAvg) * 100) : 0;
+        const trendUp  = trendPct >= 0;
+        return (
+          <ModalCard icon={Footprints} iconBg="bg-ecg" gradient="from-blue-50 to-sky-50"
+            title="Steps Today" subtitle={stepsS.note}>
+            <div className="space-y-5">
+              <div className="flex items-end justify-between">
+                <div>
+                  <p className={`text-4xl font-bold ${stepsS.color}`}>{vitals.steps > 0 ? vitals.steps.toLocaleString() : "—"}</p>
+                  <p className="mt-0.5 text-sm text-muted-foreground">{stepsS.label} today</p>
+                </div>
+                {prevAvg > 0 && (
+                  <div className={`text-right ${trendUp ? "text-emerald-600" : "text-rose-600"}`}>
+                    <p className="text-xl font-bold">{trendUp ? "+" : ""}{trendPct}%</p>
+                    <p className="text-xs text-muted-foreground">vs. recent avg</p>
+                  </div>
+                )}
+              </div>
+              {stepHistory.length > 1 && (
+                <div className="grid grid-cols-3 gap-3 text-center">
+                  <div className="rounded-xl bg-muted/40 p-3">
+                    <p className="text-base font-bold text-foreground">{avgSteps.toLocaleString()}</p>
+                    <p className="text-xs text-muted-foreground">Daily avg</p>
+                  </div>
+                  <div className="rounded-xl bg-muted/40 p-3">
+                    <p className="text-base font-bold text-emerald-600">{maxSteps.toLocaleString()}</p>
+                    <p className="text-xs text-muted-foreground">Best day</p>
+                  </div>
+                  <div className="rounded-xl bg-muted/40 p-3">
+                    <p className="text-base font-bold text-muted-foreground">{stepHistory.length}d</p>
+                    <p className="text-xs text-muted-foreground">Tracked</p>
+                  </div>
+                </div>
+              )}
+              {stepHistory.length > 1 && (
+                <>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{stepHistory.length}-day trend</p>
+                  <div className="h-52">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={stepHistory} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="stepsGradientElder" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="hsl(var(--ecg))" stopOpacity={0.35} />
+                            <stop offset="100%" stopColor="hsl(var(--ecg))" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                        <XAxis dataKey="day" tick={{ fontSize: 11, fill: "hsl(215,16%,50%)" }} axisLine={false} tickLine={false} />
+                        <YAxis tick={{ fontSize: 11, fill: "hsl(215,16%,50%)" }} axisLine={false} tickLine={false} />
+                        <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid hsl(var(--border))" }} formatter={(v: number) => [v.toLocaleString(), "Steps"]} />
+                        <ReferenceLine y={5000} stroke="hsl(var(--success))" strokeDasharray="4 4" label={{ value: "Goal 5k", fontSize: 9, fill: "hsl(var(--success))", position: "right" }} />
+                        <Area type="monotone" dataKey="steps" stroke="hsl(var(--ecg))" strokeWidth={2.5} fill="url(#stepsGradientElder)" dot={{ r: 3, fill: "hsl(var(--ecg))", strokeWidth: 0 }} isAnimationActive={false} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                </>
+              )}
+            </div>
+          </ModalCard>
+        );
+      }
+      case "gait":
+        return <WalkingActivityChart />;
+      case "hydration":
+        return <HydrationIndicator />;
+      case "medication":
+        return (
+          <ModalCard icon={Pill} iconBg="bg-blue-500" gradient="from-blue-50 to-indigo-50"
+            title="Medications" subtitle="Active prescriptions">
+            <MedicationDetail />
+          </ModalCard>
+        );
+      default:
+        return null;
+    }
+  };
+
+  const modalTitle: Record<string, string> = {
+    heart: "Heart Health", sleep: "Sleep Analysis", nutrition: "Nutrition & Diet",
+    stress: "Stress", steps: "Steps Today", gait: "Gait Analysis",
+    hydration: "Hydration", medication: "Medications",
+  };
+
   const startRecording = async () => {
     if (isRecording || isThinking) return;
-    unlockAudio(); // synchronous — must be first, before any await
+    unlockAudio();
     try {
       setNohaStatus("Listening…");
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
-
       const mime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
         ? "audio/webm;codecs=opus"
         : MediaRecorder.isTypeSupported("audio/webm")
         ? "audio/webm"
         : "";
-
       const recorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
       recorderRef.current = recorder;
       chunksRef.current = [];
-
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunksRef.current.push(e.data);
-      };
-
+      recorder.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
       recorder.onstop = async () => {
         setIsRecording(false);
         setNohaStatus("Transcribing…");
-
         const blob = new Blob(chunksRef.current, { type: mime || "audio/webm" });
-
         if (blob.size < 2000) {
           setNohaStatus("Too short — try again");
           streamRef.current?.getTracks().forEach((t) => t.stop());
           streamRef.current = null;
           return;
         }
-
         const fd = new FormData();
         fd.append("file", blob, "audio.webm");
-
         try {
           const res = await fetch(`${API_BASE}/api/transcribe`, { method: "POST", body: fd });
           const ct = res.headers.get("content-type") || "";
-          const data: any = ct.includes("application/json")
-            ? await res.json()
-            : { error: await res.text() };
-
-          if (!res.ok || data?.error) {
-            setNohaStatus("Transcription failed");
-            return;
-          }
-
+          const data: any = ct.includes("application/json") ? await res.json() : { error: await res.text() };
+          if (!res.ok || data?.error) { setNohaStatus("Transcription failed"); return; }
           const text = String(data?.transcript || "").trim();
-          if (!text) {
-            setNohaStatus("Didn't catch that — try again");
-            return;
-          }
-
+          if (!text) { setNohaStatus("Didn't catch that — try again"); return; }
           setNohaStatus("");
           const nextMessages: Msg[] = [...messagesRef.current, { role: "user", content: text }];
-          // Add user message + empty assistant bubble immediately
           setMessages([...nextMessages, { role: "assistant", content: "" }]);
           setIsThinking(true);
-
-          // Abort any previous playback and set up a fresh TTS controller for this answer
           speakAbortRef.current?.abort();
           const ttsCtrl = new AbortController();
           speakAbortRef.current = ttsCtrl;
           stopAudio();
-
-          // Stream text internally — UI stays on "Thinking…" so text and audio arrive together
           const fullAnswer = await streamAnswer(
-            text,
-            nextMessages,
+            text, nextMessages,
             () => { /* keep Thinking… visible until TTS is ready */ },
             () => { /* accumulate internally — don't update UI yet */ },
-            buildHealthContext(vitalsRef.current), // RAG: inject Frank's live health data
+            buildHealthContext(vitalsRef.current),
           );
-
           if (!fullAnswer) {
             setMessages((prev) => {
               const msgs = [...prev];
@@ -702,14 +907,9 @@ Tone: warm, gentle, direct, human — like a trusted friend, not a medical alert
               return msgs;
             });
           } else {
-            // Parse silent booking action — [[JOIN:id]] is stripped before display & TTS
-            const joinMatch  = fullAnswer.match(/\[\[JOIN:(\d+)\]\]/i);
+            const joinMatch = fullAnswer.match(/\[\[JOIN:(\d+)\]\]/i);
             const displayAnswer = fullAnswer.replace(/\n?\s*\[\[JOIN:\d+\]\]/gi, "").trim();
-
-            // Fetch TTS for the clean response (no machine tag) — no phrase is ever dropped
             const buf = await fetchTTSBuffer(ttsReady(displayAnswer), ttsCtrl.signal);
-
-            // Reveal text and start audio at the same moment — gap is now zero
             setIsThinking(false);
             setMessages((prev) => {
               const msgs = [...prev];
@@ -718,14 +918,11 @@ Tone: warm, gentle, direct, human — like a trusted friend, not a medical alert
               }
               return msgs;
             });
-
             if (buf && !ttsCtrl.signal.aborted) await decodeAndPlay(buf, ttsCtrl.signal);
-
-            // Fire the join action after audio starts so it feels like a natural confirmation
             if (joinMatch) {
               const activityId = parseInt(joinMatch[1], 10);
               window.dispatchEvent(new CustomEvent("noha-join-activity", { detail: { id: activityId } }));
-              setOpenPanel("activity"); // open the activities panel so Frank sees the confirmation
+              setOpenPanel("activity");
             }
           }
         } catch {
@@ -737,7 +934,6 @@ Tone: warm, gentle, direct, human — like a trusted friend, not a medical alert
           streamRef.current = null;
         }
       };
-
       recorder.start();
       setIsRecording(true);
     } catch {
@@ -787,15 +983,12 @@ Tone: warm, gentle, direct, human — like a trusted friend, not a medical alert
                 : "border-indigo-200 bg-gradient-to-br from-indigo-50 to-violet-50 hover:border-indigo-400 hover:shadow-xl cursor-pointer",
             ].join(" ")}
           >
-            {/* Mic icon */}
             <div className={[
               "flex h-28 w-28 items-center justify-center rounded-full shadow-md transition-all duration-150",
               isRecording ? "bg-white/25 animate-pulse" : isThinking ? "bg-indigo-300" : "bg-indigo-500",
             ].join(" ")}>
               <Mic className={`h-14 w-14 ${isRecording ? "text-white" : isThinking ? "text-indigo-700" : "text-white"}`} />
             </div>
-
-            {/* Label */}
             <div>
               <p className={`text-4xl font-display font-bold leading-tight ${isRecording ? "text-white" : "text-indigo-900"}`}>
                 {isRecording ? "Listening…" : isThinking ? "NOHA is thinking…" : "Talk to NOHA"}
@@ -843,9 +1036,7 @@ Tone: warm, gentle, direct, human — like a trusted friend, not a medical alert
                     </span>
                     <div className="flex items-start gap-2">
                       <p className={`rounded-2xl px-4 py-2 text-base leading-relaxed ${
-                        m.role === "user"
-                          ? "bg-indigo-50 text-indigo-900"
-                          : "bg-violet-50 text-violet-900"
+                        m.role === "user" ? "bg-indigo-50 text-indigo-900" : "bg-violet-50 text-violet-900"
                       }`}>
                         {m.content
                           ? m.content
@@ -887,16 +1078,10 @@ Tone: warm, gentle, direct, human — like a trusted friend, not a medical alert
                 <Activity className={`h-10 w-10 ${openPanel === "health" ? "text-white" : "text-blue-600"}`} />
               </div>
               <div>
-                <p className={`text-xl font-bold leading-tight ${openPanel === "health" ? "text-white" : "text-foreground"}`}>
-                  My Health
-                </p>
-                <p className={`mt-1 text-sm ${openPanel === "health" ? "text-white/80" : "text-muted-foreground"}`}>
-                  Vitals & monitoring data
-                </p>
+                <p className={`text-xl font-bold leading-tight ${openPanel === "health" ? "text-white" : "text-foreground"}`}>My Health</p>
+                <p className={`mt-1 text-sm ${openPanel === "health" ? "text-white/80" : "text-muted-foreground"}`}>Vitals & monitoring data</p>
               </div>
-              {openPanel === "health"
-                ? <ChevronUp className="h-6 w-6 text-white/80" />
-                : <ChevronDown className="h-6 w-6 text-blue-400" />}
+              {openPanel === "health" ? <ChevronUp className="h-6 w-6 text-white/80" /> : <ChevronDown className="h-6 w-6 text-blue-400" />}
             </button>
 
             {/* Neighborhood Activities */}
@@ -912,16 +1097,10 @@ Tone: warm, gentle, direct, human — like a trusted friend, not a medical alert
                 <Users className={`h-10 w-10 ${openPanel === "activity" ? "text-white" : "text-teal-600"}`} />
               </div>
               <div>
-                <p className={`text-xl font-bold leading-tight ${openPanel === "activity" ? "text-white" : "text-foreground"}`}>
-                  Neighborhood Activities
-                </p>
-                <p className={`mt-1 text-sm ${openPanel === "activity" ? "text-white/80" : "text-muted-foreground"}`}>
-                  Events & activities nearby
-                </p>
+                <p className={`text-xl font-bold leading-tight ${openPanel === "activity" ? "text-white" : "text-foreground"}`}>Neighborhood Activities</p>
+                <p className={`mt-1 text-sm ${openPanel === "activity" ? "text-white/80" : "text-muted-foreground"}`}>Events & activities nearby</p>
               </div>
-              {openPanel === "activity"
-                ? <ChevronUp className="h-6 w-6 text-white/80" />
-                : <ChevronDown className="h-6 w-6 text-teal-400" />}
+              {openPanel === "activity" ? <ChevronUp className="h-6 w-6 text-white/80" /> : <ChevronDown className="h-6 w-6 text-teal-400" />}
             </button>
 
             {/* Helping Board */}
@@ -937,16 +1116,10 @@ Tone: warm, gentle, direct, human — like a trusted friend, not a medical alert
                 <HeartHandshake className={`h-10 w-10 ${openPanel === "helping" ? "text-white" : "text-rose-500"}`} />
               </div>
               <div>
-                <p className={`text-xl font-bold leading-tight ${openPanel === "helping" ? "text-white" : "text-foreground"}`}>
-                  Helping Board
-                </p>
-                <p className={`mt-1 text-sm ${openPanel === "helping" ? "text-white/80" : "text-muted-foreground"}`}>
-                  Give or get help from neighbors
-                </p>
+                <p className={`text-xl font-bold leading-tight ${openPanel === "helping" ? "text-white" : "text-foreground"}`}>Helping Board</p>
+                <p className={`mt-1 text-sm ${openPanel === "helping" ? "text-white/80" : "text-muted-foreground"}`}>Give or get help from neighbors</p>
               </div>
-              {openPanel === "helping"
-                ? <ChevronUp className="h-6 w-6 text-white/80" />
-                : <ChevronDown className="h-6 w-6 text-rose-400" />}
+              {openPanel === "helping" ? <ChevronUp className="h-6 w-6 text-white/80" /> : <ChevronDown className="h-6 w-6 text-rose-400" />}
             </button>
           </div>
         </div>
@@ -954,47 +1127,26 @@ Tone: warm, gentle, direct, human — like a trusted friend, not a medical alert
         {/* ── My Health Panel ────────────────────────────────────────── */}
         {openPanel === "health" && (
           <div className="mt-6 rounded-3xl border border-blue-100 bg-white p-6 shadow-lg sm:p-8">
-            <h3 className="mb-6 text-2xl font-display font-bold text-foreground">My Health Today</h3>
 
-            {/* Vital Cards */}
-            <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <VitalCard
-                title="Resting Heart Rate" value={vitals.heartRate} unit="BPM"
-                icon={<Heart className="h-5 w-5" />} variant="heart"
-                trend="stable" trendValue="Today" subtitle=""
-              />
-              <VitalCard
-                title="Sleep" value={vitals.sleepHours ? vitals.sleepHours.toFixed(1) : "—"}
-                unit={vitals.sleepHours ? "hours" : ""}
-                icon={<Moon className="h-5 w-5" />} variant="sleep"
-                trend="stable" trendValue="Last night" subtitle=""
-              />
-              <VitalCard
-                title="Steps" value={vitals.steps} unit=""
-                icon={<Footprints className="h-5 w-5" />} variant="ecg"
-                trend="stable" trendValue="Today" subtitle=""
-              />
-              <VitalCard
-                title="Stress Level" value={vitals.stressLevel || "—"}
-                unit={vitals.stressLevel ? "/ 100" : ""}
-                icon={<Activity className="h-5 w-5" />} variant="stress"
-                trend="stable" trendValue={stressLabel(vitals.stressLevel)} subtitle=""
-              />
+            {/* Section label */}
+            <div className="mb-4 flex items-center gap-3">
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Health Overview</span>
+              <div className="flex-1 h-px bg-border" />
+              <span className="text-xs text-muted-foreground">Tap any card for details</span>
             </div>
 
-            {/* Charts */}
-            <div className="mb-6 grid gap-6 lg:grid-cols-2">
-              <HeartRateChart />
-              <ECGVisualization />
+            {/* 8-card grid */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              <HealthCard icon={Heart} iconBg="bg-heart/15 text-heart" title="Heart Health" label={heartS.label} labelColor={heartS.color} note={heartS.note} onClick={() => setOpenModal("heart")} />
+              <HealthCard icon={Moon} iconBg="bg-sleep/15 text-sleep" title="Sleep Analysis" label={sleepS.label} labelColor={sleepS.color} note={sleepS.note} onClick={() => setOpenModal("sleep")} />
+              <HealthCard icon={Utensils} iconBg="bg-teal-500/15 text-teal-600" title="Nutrition & Diet" label="Meals tracked" labelColor="text-teal-600" note="Smart fridge monitoring" onClick={() => setOpenModal("nutrition")} />
+              <HealthCard icon={Brain} iconBg="bg-stress/15 text-stress" title="Stress" label={stressS.label} labelColor={stressS.color} note={stressS.note} onClick={() => setOpenModal("stress")} />
+              <HealthCard icon={Footprints} iconBg="bg-ecg/15 text-ecg" title="Steps Today" label={stepsS.label} labelColor={stepsS.color} note={stepsS.note} onClick={() => setOpenModal("steps")} />
+              <HealthCard icon={Shield} iconBg="bg-amber-500/15 text-amber-600" title="Gait Analysis" label={gaitS.label} labelColor={gaitS.color} note={gaitS.note} onClick={() => setOpenModal("gait")} />
+              <HealthCard icon={Droplets} iconBg="bg-teal-500/15 text-teal-600" title="Hydration" label={hydrationS.label} labelColor={hydrationS.color} note={hydrationS.note} onClick={() => setOpenModal("hydration")} />
+              <HealthCard icon={Pill} iconBg="bg-blue-500/15 text-blue-600" title="Medication" label="Active Rx" labelColor="text-blue-600" note="Prescriptions & dosage" onClick={() => setOpenModal("medication")} />
             </div>
-            <div className="mb-6 grid gap-6 lg:grid-cols-2">
-              <SleepChart />
-              <HydrationIndicator />
-            </div>
-            <div className="grid gap-6 lg:grid-cols-2">
-              <WalkingActivityChart />
-              <SmartFridgeCard />
-            </div>
+
           </div>
         )}
 
@@ -1014,6 +1166,17 @@ Tone: warm, gentle, direct, human — like a trusted friend, not a medical alert
 
         <div className="h-12" />
       </main>
+
+      {/* ── Detail modal ── */}
+      <Dialog open={openModal !== null} onOpenChange={() => setOpenModal(null)}>
+        <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader className="sr-only">
+            <DialogTitle>{openModal ? modalTitle[openModal] : ""}</DialogTitle>
+          </DialogHeader>
+          {renderModalContent()}
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 };
