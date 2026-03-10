@@ -1,0 +1,26 @@
+# Dependencies & build output
+node_modules/
+dist/
+.vite/
+
+# Python environments
+.venv/
+**/__pycache__/
+**/*.pyc
+
+# IRIS data volume (populated at runtime, not baked into image)
+data/
+
+# Secrets
+.env
+
+# macOS metadata
+**/.DS_Store
+
+# Git
+.git/
+.gitignore
+
+# IDE / editor
+.vscode/
+.claude/

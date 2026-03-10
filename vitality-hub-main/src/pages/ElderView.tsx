@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Header } from "@/components/Header";
 import { CommunityPanel } from "@/components/CommunityPanel";
 import { VitalCard } from "@/components/VitalCard";
-import { HeartRateChart } from "@/components/HeartRateCharttest";
+import { HeartRateChart } from "@/components/HeartRateChart";
 import { ECGVisualization } from "@/components/ECGVisualization";
 import { SleepChart } from "@/components/SleepChart";
 import { HydrationIndicator } from "@/components/HydrationIndicator";

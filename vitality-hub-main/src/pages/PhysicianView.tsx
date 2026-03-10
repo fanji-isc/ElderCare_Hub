@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Stethoscope, User, Calendar, Hash, MapPin, FlaskConical, Activity, Brain } from "lucide-react";
+import { Stethoscope, User, Calendar, Hash, MapPin, FlaskConical, Activity, Brain, ChevronRight, ArrowLeft } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -33,6 +33,10 @@ function fmtYear(dateStr: string) {
   if (!dateStr) return "";
   try { return new Date(dateStr).toLocaleDateString("en-US", { year: "numeric", month: "short" }); }
   catch { return dateStr; }
+}
+
+function calcAge(birthDate: string) {
+  return Math.floor((Date.now() - new Date(birthDate).getTime()) / (1000 * 60 * 60 * 24 * 365.25));
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -89,7 +93,6 @@ const CustomBpDot = (props: any) => {
   return <circle cx={cx} cy={cy} r={5} fill={bpColor(payload.systolic)} stroke="#fff" strokeWidth={1.5} />;
 };
 
-// Horizontal BMI gauge — matches the Health Chart screenshot style
 function BmiGauge({ bmi, weight }: { bmi: number | null; weight: number | null }) {
   const MIN = 10, MAX = 40, RANGE = MAX - MIN;
   const zones = [
@@ -103,7 +106,6 @@ function BmiGauge({ bmi, weight }: { bmi: number | null; weight: number | null }
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Stats row */}
       <div className="flex flex-wrap items-baseline gap-5 text-sm">
         {bmi != null && (
           <span>
@@ -119,8 +121,6 @@ function BmiGauge({ bmi, weight }: { bmi: number | null; weight: number | null }
           </span>
         )}
       </div>
-
-      {/* Colored bar + indicator dot */}
       <div className="relative mt-1">
         <div className="flex h-7 overflow-hidden rounded-full">
           {zones.map((z) => (
@@ -142,8 +142,6 @@ function BmiGauge({ bmi, weight }: { bmi: number | null; weight: number | null }
           </div>
         )}
       </div>
-
-      {/* Scale labels */}
       <div className="flex justify-between px-0.5 text-xs text-muted-foreground">
         <span>10</span>
         <span>18.5</span>
@@ -151,8 +149,6 @@ function BmiGauge({ bmi, weight }: { bmi: number | null; weight: number | null }
         <span>30</span>
         <span>40</span>
       </div>
-
-      {/* Legend */}
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
         {zones.map((z) => (
           <span key={z.label} className="flex items-center gap-1">
@@ -161,7 +157,6 @@ function BmiGauge({ bmi, weight }: { bmi: number | null; weight: number | null }
           </span>
         ))}
       </div>
-
       {cat && bmi != null && (
         <p className="text-sm font-semibold" style={{ color: cat.color }}>
           {cat.label}
@@ -171,8 +166,115 @@ function BmiGauge({ bmi, weight }: { bmi: number | null; weight: number | null }
   );
 }
 
+// ── Top bar shared by both list and detail views ──────────────────────────────
+function PhysicianTopBar({ onBack }: { onBack?: () => void }) {
+  return (
+    <div className="border-b border-border bg-card/40">
+      <div className="container mx-auto flex items-center gap-3 px-4 py-4 sm:px-6">
+        {onBack && (
+          <>
+            <button
+              onClick={onBack}
+              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Patient List
+            </button>
+            <span className="text-muted-foreground">/</span>
+          </>
+        )}
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100">
+            <Stethoscope className="h-4 w-4 text-blue-600" />
+          </div>
+          <span className="rounded-full bg-blue-100 px-3 py-1 text-body-sm font-medium text-blue-700">
+            Physician View
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Patient list banner row ───────────────────────────────────────────────────
+function PatientBanner({ patient, onClick }: { patient: FhirPatient; onClick: () => void }) {
+  const age = patient.birthDate ? calcAge(patient.birthDate) : null;
+  const initials = patient.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
+  return (
+    <Card
+      className="cursor-pointer hover:shadow-md transition-shadow border-l-4 border-l-blue-400"
+      onClick={onClick}
+    >
+      <CardContent className="p-4">
+        <div className="flex items-center gap-4">
+          <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 text-base font-bold text-blue-700">
+            {initials}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-3 flex-wrap">
+              <span className="text-base font-semibold text-foreground">{patient.name}</span>
+              {patient.gender && (
+                <span className="text-sm text-muted-foreground">
+                  <User className="inline h-3.5 w-3.5 mr-0.5" />
+                  {patient.gender.charAt(0).toUpperCase() + patient.gender.slice(1)}
+                  {age !== null ? `, ${age} yrs` : ""}
+                </span>
+              )}
+            </div>
+            <div className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-muted-foreground">
+              {patient.birthDate && (
+                <span className="flex items-center gap-1">
+                  <Calendar className="h-3 w-3" />
+                  DOB: {fmt(patient.birthDate)}
+                </span>
+              )}
+              {patient.mrn && (
+                <span className="flex items-center gap-1">
+                  <Hash className="h-3 w-3" />
+                  MRN: {patient.mrn}
+                </span>
+              )}
+              {patient.address?.city && (
+                <span className="flex items-center gap-1">
+                  <MapPin className="h-3 w-3" />
+                  {[patient.address.city, patient.address.state].filter(Boolean).join(", ")}
+                </span>
+              )}
+            </div>
+          </div>
+          <ChevronRight className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
 const PhysicianView = () => {
-  const [patient, setPatient]             = useState<FhirPatient | null>(null);
+  // ── Patient list state ──────────────────────────────────────────────────
+  const [patients, setPatients] = useState<FhirPatient[]>([]);
+  const [listLoading, setListLoading] = useState(true);
+  const [listError, setListError] = useState("");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/fhir/patients`)
+      .then(r => { if (!r.ok) throw new Error("Failed to load patients"); return r.json(); })
+      .then(data => {
+        const pts: FhirPatient[] = Array.isArray(data) ? data : [];
+        pts.sort((a, b) => {
+          const aFamily = a.name.split(" ").pop() ?? "";
+          const bFamily = b.name.split(" ").pop() ?? "";
+          return aFamily.localeCompare(bFamily);
+        });
+        setPatients(pts);
+      })
+      .catch(e => setListError(e.message))
+      .finally(() => setListLoading(false));
+  }, []);
+
+  // ── Patient detail state ────────────────────────────────────────────────
+  const [patient, setPatient] = useState<FhirPatient | null>(null);
   const [conditions, setConditions]       = useState<Condition[]>([]);
   const [medications, setMedications]     = useState<Medication[]>([]);
   const [vitals, setVitals]               = useState<Observation[]>([]);
@@ -181,26 +283,25 @@ const PhysicianView = () => {
   const [immunizations, setImmunizations] = useState<Immunization[]>([]);
   const [encounters, setEncounters]       = useState<Encounter[]>([]);
   const [bpTrend, setBpTrend]             = useState<BpPoint[]>([]);
-  const [loading, setLoading]             = useState(true);
-  const [error, setError]                 = useState("");
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError]     = useState("");
 
   useEffect(() => {
+    if (!selectedId) return;
+    setPatient(patients.find(p => p.id === selectedId) ?? null);
+    setDetailLoading(true);
+    setDetailError("");
     (async () => {
       try {
-        const patRes = await fetch(`${API_BASE}/api/fhir/patient`);
-        if (!patRes.ok) throw new Error("Patient not found in FHIR server");
-        const pat: FhirPatient = await patRes.json();
-        setPatient(pat);
-        const id = pat.id;
         const [cond, meds, vit, lab, proc, imm, enc, bp] = await Promise.all([
-          fetch(`${API_BASE}/api/fhir/conditions?patient_id=${id}`).then(r => r.json()),
-          fetch(`${API_BASE}/api/fhir/medications?patient_id=${id}`).then(r => r.json()),
-          fetch(`${API_BASE}/api/fhir/vitals?patient_id=${id}`).then(r => r.json()),
-          fetch(`${API_BASE}/api/fhir/labs?patient_id=${id}`).then(r => r.json()),
-          fetch(`${API_BASE}/api/fhir/procedures?patient_id=${id}`).then(r => r.json()),
-          fetch(`${API_BASE}/api/fhir/immunizations?patient_id=${id}`).then(r => r.json()),
-          fetch(`${API_BASE}/api/fhir/encounters?patient_id=${id}`).then(r => r.json()),
-          fetch(`${API_BASE}/api/fhir/bp-trend?patient_id=${id}`).then(r => r.json()),
+          fetch(`${API_BASE}/api/fhir/conditions?patient_id=${selectedId}`).then(r => r.json()),
+          fetch(`${API_BASE}/api/fhir/medications?patient_id=${selectedId}`).then(r => r.json()),
+          fetch(`${API_BASE}/api/fhir/vitals?patient_id=${selectedId}`).then(r => r.json()),
+          fetch(`${API_BASE}/api/fhir/labs?patient_id=${selectedId}`).then(r => r.json()),
+          fetch(`${API_BASE}/api/fhir/procedures?patient_id=${selectedId}`).then(r => r.json()),
+          fetch(`${API_BASE}/api/fhir/immunizations?patient_id=${selectedId}`).then(r => r.json()),
+          fetch(`${API_BASE}/api/fhir/encounters?patient_id=${selectedId}`).then(r => r.json()),
+          fetch(`${API_BASE}/api/fhir/bp-trend?patient_id=${selectedId}`).then(r => r.json()),
         ]);
         setConditions(Array.isArray(cond) ? cond : []);
         setMedications(Array.isArray(meds) ? meds : []);
@@ -211,18 +312,16 @@ const PhysicianView = () => {
         setEncounters(Array.isArray(enc) ? enc : []);
         setBpTrend(Array.isArray(bp) ? bp : []);
       } catch (e: any) {
-        setError(e.message || "Failed to load FHIR data");
+        setDetailError(e.message || "Failed to load patient data");
       } finally {
-        setLoading(false);
+        setDetailLoading(false);
       }
     })();
-  }, []);
+  }, [selectedId]);
 
-  const age = patient?.birthDate
-    ? Math.floor((Date.now() - new Date(patient.birthDate).getTime()) / (1000 * 60 * 60 * 24 * 365.25))
-    : null;
+  // ── Derived values (for detail view) ───────────────────────────────────
+  const age = patient?.birthDate ? calcAge(patient.birthDate) : null;
 
-  // Derived trend data
   const bmiObs = vitals
     .filter(v => v.display.toLowerCase().includes("bmi") || v.display.toLowerCase().includes("mass index"))
     .sort((a, b) => a.date.localeCompare(b.date));
@@ -239,30 +338,71 @@ const PhysicianView = () => {
   const latestWeight = weightObs[weightObs.length - 1];
   const latestBp     = bpChartData[bpChartData.length - 1];
 
+  function handleBack() {
+    setSelectedId(null);
+    setPatient(null);
+    setConditions([]);
+    setMedications([]);
+    setVitals([]);
+    setLabs([]);
+    setProcedures([]);
+    setImmunizations([]);
+    setEncounters([]);
+    setBpTrend([]);
+  }
+
+  // ════════════════════════════════════════════════════════════════════════
+  //  Patient list view
+  // ════════════════════════════════════════════════════════════════════════
+  if (!selectedId) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <PhysicianTopBar />
+        <main className="container mx-auto px-4 py-6 sm:px-6">
+          <div className="mb-5">
+            <h2 className="text-xl font-semibold text-foreground">Patient Registry</h2>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              Select a patient to view their health overview
+            </p>
+          </div>
+
+          {listLoading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-[72px] w-full rounded-xl" />
+              ))}
+            </div>
+          ) : listError ? (
+            <p className="text-sm text-destructive">{listError} — ensure the FHIR server is running and patient data is loaded.</p>
+          ) : patients.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No patients found in FHIR server.</p>
+          ) : (
+            <div className="space-y-3">
+              {patients.map(p => (
+                <PatientBanner key={p.id} patient={p} onClick={() => setSelectedId(p.id)} />
+              ))}
+            </div>
+          )}
+        </main>
+      </div>
+    );
+  }
+
+  // ════════════════════════════════════════════════════════════════════════
+  //  Patient detail / health overview view
+  // ════════════════════════════════════════════════════════════════════════
   return (
     <div className="min-h-screen bg-background">
       <Header />
-
-      {/* ── Top bar ── */}
-      <div className="border-b border-border bg-card/40">
-        <div className="container mx-auto flex items-center px-4 py-4 sm:px-6">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100">
-              <Stethoscope className="h-4 w-4 text-blue-600" />
-            </div>
-            <span className="rounded-full bg-blue-100 px-3 py-1 text-body-sm font-medium text-blue-700">
-              Physician View
-            </span>
-          </div>
-        </div>
-      </div>
+      <PhysicianTopBar onBack={handleBack} />
 
       <main className="container mx-auto px-4 py-6 sm:px-6">
 
         {/* ── Patient header card ── */}
         <Card className="mb-6 shadow-card">
           <CardContent className="p-6">
-            {loading ? (
+            {detailLoading && !patient ? (
               <div className="flex items-center gap-4">
                 <Skeleton className="h-16 w-16 rounded-full" />
                 <div className="flex-1 space-y-2">
@@ -270,12 +410,12 @@ const PhysicianView = () => {
                   <Skeleton className="h-4 w-72" />
                 </div>
               </div>
-            ) : error ? (
-              <p className="text-sm text-destructive">{error} — ensure the FHIR server is running and patient data is loaded.</p>
+            ) : detailError ? (
+              <p className="text-sm text-destructive">{detailError}</p>
             ) : patient ? (
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                 <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 text-xl font-bold text-blue-700">
-                  {patient.name.split(" ").map(n => n[0]).join("").slice(0, 2)}
+                  {patient.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
                   <h2 className="text-2xl font-display font-bold text-foreground">{patient.name}</h2>
@@ -339,7 +479,7 @@ const PhysicianView = () => {
           </CardContent>
         </Card>
 
-        {/* ── 3 Main Tabs ── */}
+        {/* ── Tabs ── */}
         <Tabs defaultValue="overview">
           <TabsList className="mb-6 h-auto">
             <TabsTrigger value="overview" className="flex items-center gap-1.5">
@@ -352,15 +492,11 @@ const PhysicianView = () => {
             </TabsTrigger>
           </TabsList>
 
-          {/* ══════════════════════════════════════════════════════════
-               Tab 1 — Health Overview
-          ══════════════════════════════════════════════════════════ */}
+          {/* ══ Tab 1 — Health Overview ══ */}
           <TabsContent value="overview" className="space-y-6">
 
-            {/* ── Row 1: BP Chart + BMI Gauge ── */}
+            {/* Row 1: BP Chart + BMI Gauge */}
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-
-              {/* Blood Pressure Chart */}
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base">
@@ -374,7 +510,7 @@ const PhysicianView = () => {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  {loading ? <Skeleton className="h-64 w-full" /> : bpChartData.length === 0 ? (
+                  {detailLoading ? <Skeleton className="h-64 w-full" /> : bpChartData.length === 0 ? (
                     <p className="py-8 text-center text-sm text-muted-foreground">No blood pressure data found</p>
                   ) : (
                     <ResponsiveContainer width="100%" height={240}>
@@ -391,64 +527,34 @@ const PhysicianView = () => {
                           contentStyle={{ fontSize: 12 }}
                         />
                         <Legend wrapperStyle={{ fontSize: 12 }} />
-                        <Line
-                          type="monotone"
-                          dataKey="systolic"
-                          name="Systolic"
-                          stroke="#2563eb"
-                          strokeWidth={2}
-                          dot={<CustomBpDot />}
-                          activeDot={{ r: 6 }}
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="diastolic"
-                          name="Diastolic"
-                          stroke="#7c3aed"
-                          strokeWidth={2}
-                          dot={{ r: 4, fill: "#7c3aed" }}
-                          activeDot={{ r: 6 }}
-                        />
+                        <Line type="monotone" dataKey="systolic" name="Systolic" stroke="#2563eb" strokeWidth={2} dot={<CustomBpDot />} activeDot={{ r: 6 }} />
+                        <Line type="monotone" dataKey="diastolic" name="Diastolic" stroke="#7c3aed" strokeWidth={2} dot={{ r: 4, fill: "#7c3aed" }} activeDot={{ r: 6 }} />
                       </ComposedChart>
                     </ResponsiveContainer>
                   )}
                 </CardContent>
               </Card>
 
-              {/* BMI Gauge */}
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base">Height / Weight and BMI</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {loading ? <Skeleton className="h-64 w-full" /> : (
-                    <BmiGauge
-                      bmi={latestBmi?.value ?? null}
-                      weight={latestWeight?.value ?? null}
-                    />
+                  {detailLoading ? <Skeleton className="h-64 w-full" /> : (
+                    <BmiGauge bmi={latestBmi?.value ?? null} weight={latestWeight?.value ?? null} />
                   )}
                 </CardContent>
               </Card>
             </div>
 
-            {/* ── Row 2: Conditions + Medications ── */}
+            {/* Row 2: Conditions + Medications */}
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
               <Card>
                 <CardContent className="p-5">
-                  <SectionHeader
-                    icon={<span className="text-xs font-bold text-blue-600">Dx</span>}
-                    title="Conditions"
-                    count={conditions.length}
-                  />
-                  {loading ? <TableSkeleton cols={3} /> : (
+                  <SectionHeader icon={<span className="text-xs font-bold text-blue-600">Dx</span>} title="Conditions" count={conditions.length} />
+                  {detailLoading ? <TableSkeleton cols={3} /> : (
                     <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Condition</TableHead>
-                          <TableHead>Onset</TableHead>
-                          <TableHead>Status</TableHead>
-                        </TableRow>
-                      </TableHeader>
+                      <TableHeader><TableRow><TableHead>Condition</TableHead><TableHead>Onset</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
                       <TableBody>
                         {conditions.length === 0
                           ? <TableRow><TableCell colSpan={3} className="py-6 text-center text-muted-foreground text-sm">No conditions found</TableCell></TableRow>
@@ -467,20 +573,10 @@ const PhysicianView = () => {
 
               <Card>
                 <CardContent className="p-5">
-                  <SectionHeader
-                    icon={<span className="text-xs font-bold text-blue-600">Rx</span>}
-                    title="Medications"
-                    count={medications.length}
-                  />
-                  {loading ? <TableSkeleton cols={3} /> : (
+                  <SectionHeader icon={<span className="text-xs font-bold text-blue-600">Rx</span>} title="Medications" count={medications.length} />
+                  {detailLoading ? <TableSkeleton cols={3} /> : (
                     <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Drug</TableHead>
-                          <TableHead>Dosage</TableHead>
-                          <TableHead>Status</TableHead>
-                        </TableRow>
-                      </TableHeader>
+                      <TableHeader><TableRow><TableHead>Drug</TableHead><TableHead>Dosage</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
                       <TableBody>
                         {medications.length === 0
                           ? <TableRow><TableCell colSpan={3} className="py-6 text-center text-muted-foreground text-sm">No medications found</TableCell></TableRow>
@@ -498,24 +594,14 @@ const PhysicianView = () => {
               </Card>
             </div>
 
-            {/* ── Row 3: Procedures + Immunizations ── */}
+            {/* Row 3: Procedures + Immunizations */}
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
               <Card>
                 <CardContent className="p-5">
-                  <SectionHeader
-                    icon={<span className="text-xs font-bold text-blue-600">Pr</span>}
-                    title="Procedures"
-                    count={procedures.length}
-                  />
-                  {loading ? <TableSkeleton cols={3} rows={3} /> : (
+                  <SectionHeader icon={<span className="text-xs font-bold text-blue-600">Pr</span>} title="Procedures" count={procedures.length} />
+                  {detailLoading ? <TableSkeleton cols={3} rows={3} /> : (
                     <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Procedure</TableHead>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Status</TableHead>
-                        </TableRow>
-                      </TableHeader>
+                      <TableHeader><TableRow><TableHead>Procedure</TableHead><TableHead>Date</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
                       <TableBody>
                         {procedures.length === 0
                           ? <TableRow><TableCell colSpan={3} className="py-6 text-center text-muted-foreground text-sm">No procedures found</TableCell></TableRow>
@@ -534,20 +620,10 @@ const PhysicianView = () => {
 
               <Card>
                 <CardContent className="p-5">
-                  <SectionHeader
-                    icon={<span className="text-xs font-bold text-blue-600">Imm</span>}
-                    title="Immunizations"
-                    count={immunizations.length}
-                  />
-                  {loading ? <TableSkeleton cols={3} rows={3} /> : (
+                  <SectionHeader icon={<span className="text-xs font-bold text-blue-600">Imm</span>} title="Immunizations" count={immunizations.length} />
+                  {detailLoading ? <TableSkeleton cols={3} rows={3} /> : (
                     <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Vaccine</TableHead>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Status</TableHead>
-                        </TableRow>
-                      </TableHeader>
+                      <TableHeader><TableRow><TableHead>Vaccine</TableHead><TableHead>Date</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
                       <TableBody>
                         {immunizations.length === 0
                           ? <TableRow><TableCell colSpan={3} className="py-6 text-center text-muted-foreground text-sm">No immunizations found</TableCell></TableRow>
@@ -565,24 +641,14 @@ const PhysicianView = () => {
               </Card>
             </div>
 
-            {/* ── Row 4: Encounters + Labs ── */}
+            {/* Row 4: Encounters + Labs */}
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
               <Card>
                 <CardContent className="p-5">
-                  <SectionHeader
-                    icon={<span className="text-xs font-bold text-blue-600">En</span>}
-                    title="Encounters"
-                    count={encounters.length}
-                  />
-                  {loading ? <TableSkeleton cols={3} rows={3} /> : (
+                  <SectionHeader icon={<span className="text-xs font-bold text-blue-600">En</span>} title="Encounters" count={encounters.length} />
+                  {detailLoading ? <TableSkeleton cols={3} rows={3} /> : (
                     <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Type</TableHead>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Status</TableHead>
-                        </TableRow>
-                      </TableHeader>
+                      <TableHeader><TableRow><TableHead>Type</TableHead><TableHead>Date</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
                       <TableBody>
                         {encounters.length === 0
                           ? <TableRow><TableCell colSpan={3} className="py-6 text-center text-muted-foreground text-sm">No encounters found</TableCell></TableRow>
@@ -601,21 +667,10 @@ const PhysicianView = () => {
 
               <Card>
                 <CardContent className="p-5">
-                  <SectionHeader
-                    icon={<FlaskConical className="h-3.5 w-3.5 text-blue-600" />}
-                    title="Lab Results"
-                    count={labs.length}
-                  />
-                  {loading ? <TableSkeleton cols={4} /> : (
+                  <SectionHeader icon={<FlaskConical className="h-3.5 w-3.5 text-blue-600" />} title="Lab Results" count={labs.length} />
+                  {detailLoading ? <TableSkeleton cols={4} /> : (
                     <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Test</TableHead>
-                          <TableHead>Value</TableHead>
-                          <TableHead>Unit</TableHead>
-                          <TableHead>Date</TableHead>
-                        </TableRow>
-                      </TableHeader>
+                      <TableHeader><TableRow><TableHead>Test</TableHead><TableHead>Value</TableHead><TableHead>Unit</TableHead><TableHead>Date</TableHead></TableRow></TableHeader>
                       <TableBody>
                         {labs.length === 0
                           ? <TableRow><TableCell colSpan={4} className="py-6 text-center text-muted-foreground text-sm">No lab results found</TableCell></TableRow>
@@ -636,9 +691,7 @@ const PhysicianView = () => {
 
           </TabsContent>
 
-          {/* ══════════════════════════════════════════════════════════
-               Tab 3 — AI Summary (placeholder)
-          ══════════════════════════════════════════════════════════ */}
+          {/* ══ Tab 2 — AI Summary ══ */}
           <TabsContent value="ai">
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-24 text-center">
@@ -647,7 +700,7 @@ const PhysicianView = () => {
                 </div>
                 <h3 className="text-lg font-semibold text-foreground mb-2">AI Clinical Summary</h3>
                 <p className="text-sm text-muted-foreground max-w-sm">
-                  Coming soon — AI-generated summaries of Frank's clinical history, risk factors, and care recommendations.
+                  Coming soon — AI-generated summaries of {patient?.name?.split(" ")[0] ?? "this patient"}'s clinical history, risk factors, and care recommendations.
                 </p>
               </CardContent>
             </Card>
