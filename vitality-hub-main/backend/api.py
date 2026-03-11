@@ -1402,6 +1402,44 @@ def get_fhir_encounters(patient_id: str = ""):
         })
     return results
 
+@app.get("/api/fhir/appointments")
+def get_fhir_appointments(patient_id: str = ""):
+    today = datetime.now(timezone.utc).date().isoformat()
+    bundle = _fhir_get("Appointment", {
+        "patient": patient_id,
+        "_sort": "date",
+        "_count": "20",
+        "date": f"ge{today}",
+    })
+    results = []
+    for e in bundle.get("entry", []):
+        r = e["resource"]
+        if r.get("status") in ("cancelled", "noshow", "entered-in-error"):
+            continue
+        service = (
+            r.get("serviceType", [{}])[0].get("coding", [{}])[0].get("display")
+            or r.get("description", "Appointment")
+        )
+        practitioner = next(
+            (p["actor"]["display"] for p in r.get("participant", [])
+             if "Practitioner" in p.get("actor", {}).get("reference", "")),
+            ""
+        )
+        location = next(
+            (p["actor"]["display"] for p in r.get("participant", [])
+             if "Location" in p.get("actor", {}).get("reference", "")),
+            ""
+        )
+        results.append({
+            "status": r.get("status", "unknown"),
+            "start":  r.get("start", ""),
+            "end":    r.get("end", ""),
+            "type":   service,
+            "practitioner": practitioner,
+            "location":     location,
+        })
+    return results
+
 @app.get("/api/fhir/bp-trend")
 def get_fhir_bp_trend(patient_id: str = ""):
     bundle = _fhir_get("Observation", {

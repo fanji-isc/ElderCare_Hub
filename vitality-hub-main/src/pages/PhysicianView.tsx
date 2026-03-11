@@ -15,6 +15,12 @@ import {
 
 const API_BASE = "http://localhost:3001";
 
+const FRANK_AVATAR = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMDAgMjAwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCI+CiAgPCEtLSBCYWNrZ3JvdW5kIGNpcmNsZSAtLT4KICA8Y2lyY2xlIGN4PSIxMDAiIGN5PSIxMDAiIHI9IjEwMCIgZmlsbD0iI2RiZWFmZSIvPgoKICA8IS0tIE5lY2sgLS0+CiAgPHJlY3QgeD0iNzgiIHk9IjEzOCIgd2lkdGg9IjQ0IiBoZWlnaHQ9IjM1IiByeD0iOCIgZmlsbD0iI2Y1Y2JhNyIvPgoKICA8IS0tIFNoaXJ0IGNvbGxhciAtLT4KICA8cGF0aCBkPSJNNjggMTY1IFExMDAgMTg1IDEzMiAxNjUgTDE0NSAyMDAgSDU1IFoiIGZpbGw9IiMxZTNhNWYiLz4KICA8cGF0aCBkPSJNMTAwIDE3NSBMODggMTY1IEwxMDAgMTU1IEwxMTIgMTY1IFoiIGZpbGw9IiNmZmZmZmYiIG9wYWNpdHk9IjAuOSIvPgoKICA8IS0tIEhlYWQgc2hhcGUgLS0+CiAgPGVsbGlwc2UgY3g9IjEwMCIgY3k9IjEwNSIgcng9IjQ2IiByeT0iNTIiIGZpbGw9IiNmNWNiYTciLz4KCiAgPCEtLSBFYXJzIC0tPgogIDxlbGxpcHNlIGN4PSI1NCIgY3k9IjExMCIgcng9IjgiIHJ5PSIxMSIgZmlsbD0iI2YwYjg4YSIvPgogIDxlbGxpcHNlIGN4PSIxNDYiIGN5PSIxMTAiIHJ4PSI4IiByeT0iMTEiIGZpbGw9IiNmMGI4OGEiLz4KICA8ZWxsaXBzZSBjeD0iNTQiIGN5PSIxMTAiIHJ4PSI1IiByeT0iNyIgZmlsbD0iI2U4YTg3YyIvPgogIDxlbGxpcHNlIGN4PSIxNDYiIGN5PSIxMTAiIHJ4PSI1IiByeT0iNyIgZmlsbD0iI2U4YTg3YyIvPgoKICA8IS0tIFdoaXRlL3NpbHZlciBoYWlyIG9uIHRvcCAtLT4KICA8ZWxsaXBzZSBjeD0iMTAwIiBjeT0iNjgiIHJ4PSI0NiIgcnk9IjIyIiBmaWxsPSIjZDBkMGQwIi8+CiAgPHBhdGggZD0iTTU2IDc1IFE1OCA1NSA3NSA1MCBRMTAwIDQyIDEyNSA1MCBRMTQyIDU1IDE0NCA3NSIgZmlsbD0iI2M4YzhjOCIvPgogIDwhLS0gSGFpciB0ZXh0dXJlIGxpbmVzIC0tPgogIDxwYXRoIGQ9Ik03MCA1MiBRODAgNDYgMTAwIDQ0IFExMjAgNDYgMTMwIDUyIiBzdHJva2U9IiNiMGIwYjAiIHN0cm9rZS13aWR0aD0iMS41IiBmaWxsPSJub25lIi8+CiAgPHBhdGggZD0iTTY1IDYwIFE4MCA1MiAxMDAgNTAgUTEyMCA1MiAxMzUgNjAiIHN0cm9rZT0iI2IwYjBiMCIgc3Ryb2tlLXdpZHRoPSIxLjUiIGZpbGw9Im5vbmUiLz4KCiAgPCEtLSBTaWRlIGhhaXIgKHRlbXBsZXMsIGdyYXkpIC0tPgogIDxwYXRoIGQ9Ik01NiA4MCBRNTIgOTAgNTQgMTA1IiBzdHJva2U9IiNhYWFhYWEiIHN0cm9rZS13aWR0aD0iNSIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgPHBhdGggZD0iTTE0NCA4MCBRMTQ4IDkwIDE0NiAxMDUiIHN0cm9rZT0iI2FhYWFhYSIgc3Ryb2tlLXdpZHRoPSI1IiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KCiAgPCEtLSBFeWVicm93cyAoYnVzaHksIGdyYXkpIC0tPgogIDxwYXRoIGQ9Ik03MiA5NSBRODIgOTEgOTIgOTMiIHN0cm9rZT0iIzk5OTk5OSIgc3Ryb2tlLXdpZHRoPSIzLjUiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogIDxwYXRoIGQ9Ik0xMDggOTMgUTExOCA5MSAxMjggOTUiIHN0cm9rZT0iIzk5OTk5OSIgc3Ryb2tlLXdpZHRoPSIzLjUiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgoKICA8IS0tIEV5ZXMgLS0+CiAgPGVsbGlwc2UgY3g9IjgyIiBjeT0iMTAyIiByeD0iOSIgcnk9IjciIGZpbGw9IndoaXRlIi8+CiAgPGVsbGlwc2UgY3g9IjExOCIgY3k9IjEwMiIgcng9IjkiIHJ5PSI3IiBmaWxsPSJ3aGl0ZSIvPgogIDxjaXJjbGUgY3g9IjgyIiBjeT0iMTAyIiByPSI1IiBmaWxsPSIjNGE2ZmE1Ii8+CiAgPGNpcmNsZSBjeD0iMTE4IiBjeT0iMTAyIiByPSI1IiBmaWxsPSIjNGE2ZmE1Ii8+CiAgPGNpcmNsZSBjeD0iODIiIGN5PSIxMDIiIHI9IjMiIGZpbGw9IiMxYTFhMmUiLz4KICA8Y2lyY2xlIGN4PSIxMTgiIGN5PSIxMDIiIHI9IjMiIGZpbGw9IiMxYTFhMmUiLz4KICA8IS0tIEV5ZSBoaWdobGlnaHRzIC0tPgogIDxjaXJjbGUgY3g9Ijg0IiBjeT0iMTAwIiByPSIxLjIiIGZpbGw9IndoaXRlIi8+CiAgPGNpcmNsZSBjeD0iMTIwIiBjeT0iMTAwIiByPSIxLjIiIGZpbGw9IndoaXRlIi8+CiAgPCEtLSBDcm93J3MgZmVldCB3cmlua2xlcyAtLT4KICA8cGF0aCBkPSJNOTEgOTggUTk1IDk2IDk2IDk5IiBzdHJva2U9IiNjODk1NmMiIHN0cm9rZS13aWR0aD0iMC44IiBmaWxsPSJub25lIi8+CiAgPHBhdGggZD0iTTkxIDEwNiBROTUgMTA4IDk2IDEwNSIgc3Ryb2tlPSIjYzg5NTZjIiBzdHJva2Utd2lkdGg9IjAuOCIgZmlsbD0ibm9uZSIvPgogIDxwYXRoIGQ9Ik0xMDQgOTkgUTEwNSA5NiAxMDkgOTgiIHN0cm9rZT0iI2M4OTU2YyIgc3Ryb2tlLXdpZHRoPSIwLjgiIGZpbGw9Im5vbmUiLz4KICA8cGF0aCBkPSJNMTA0IDEwNSBRMTA1IDEwOCAxMDkgMTA2IiBzdHJva2U9IiNjODk1NmMiIHN0cm9rZS13aWR0aD0iMC44IiBmaWxsPSJub25lIi8+CgogIDwhLS0gR2xhc3NlcyAtLT4KICA8cmVjdCB4PSI3MCIgeT0iOTUiIHdpZHRoPSIyNCIgaGVpZ2h0PSIxNiIgcng9IjUiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzU1NTU1NSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHJlY3QgeD0iMTA2IiB5PSI5NSIgd2lkdGg9IjI0IiBoZWlnaHQ9IjE2IiByeD0iNSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNTU1NTU1IiBzdHJva2Utd2lkdGg9IjIiLz4KICA8cGF0aCBkPSJNOTQgMTAzIEwxMDYgMTAzIiBzdHJva2U9IiM1NTU1NTUiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxwYXRoIGQ9Ik01NiAxMDAgTDcwIDEwMCIgc3Ryb2tlPSIjNTU1NTU1IiBzdHJva2Utd2lkdGg9IjIiLz4KICA8cGF0aCBkPSJNMTMwIDEwMCBMMTQ0IDEwMCIgc3Ryb2tlPSIjNTU1NTU1IiBzdHJva2Utd2lkdGg9IjIiLz4KCiAgPCEtLSBOb3NlIC0tPgogIDxwYXRoIGQ9Ik05NyAxMDUgUTk0IDExOCA4OCAxMjIgUTk2IDEyNSAxMDAgMTI0IFExMDQgMTI1IDExMiAxMjIgUTEwNiAxMTggMTAzIDEwNSIgZmlsbD0iI2U4YTg3YyIgc3Ryb2tlPSIjZDQ5MTVhIiBzdHJva2Utd2lkdGg9IjAuNSIvPgoKICA8IS0tIFNtaWxlIHdyaW5rbGVzIChuYXNvbGFiaWFsIGZvbGRzKSAtLT4KICA8cGF0aCBkPSJNODYgMTIyIFE4MiAxMzAgODQgMTM4IiBzdHJva2U9IiNkNDkxNWEiIHN0cm9rZS13aWR0aD0iMS4yIiBmaWxsPSJub25lIiBvcGFjaXR5PSIwLjciLz4KICA8cGF0aCBkPSJNMTE0IDEyMiBRMTE4IDEzMCAxMTYgMTM4IiBzdHJva2U9IiNkNDkxNWEiIHN0cm9rZS13aWR0aD0iMS4yIiBmaWxsPSJub25lIiBvcGFjaXR5PSIwLjciLz4KCiAgPCEtLSBGb3JlaGVhZCB3cmlua2xlcyAtLT4KICA8cGF0aCBkPSJNNzggODUgUTEwMCA4MiAxMjIgODUiIHN0cm9rZT0iI2Q0OTE1YSIgc3Ryb2tlLXdpZHRoPSIwLjgiIGZpbGw9Im5vbmUiIG9wYWNpdHk9IjAuNSIvPgogIDxwYXRoIGQ9Ik04MiA3OSBRMTAwIDc2IDExOCA3OSIgc3Ryb2tlPSIjZDQ5MTVhIiBzdHJva2Utd2lkdGg9IjAuOCIgZmlsbD0ibm9uZSIgb3BhY2l0eT0iMC40Ii8+CgogIDwhLS0gTW91dGgg4oCUIGdlbnRsZSBzbWlsZSAtLT4KICA8cGF0aCBkPSJNODcgMTMyIFExMDAgMTQxIDExMyAxMzIiIHN0cm9rZT0iI2MwNzA1MCIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICA8cGF0aCBkPSJNODcgMTMyIFExMDAgMTM2IDExMyAxMzIiIGZpbGw9IiNkNDgwNmEiIG9wYWNpdHk9IjAuNSIvPgoKICA8IS0tIENoaW4gZGVmaW5pdGlvbiAtLT4KICA8cGF0aCBkPSJNODggMTQ4IFExMDAgMTU1IDExMiAxNDgiIHN0cm9rZT0iI2Q0OTE1YSIgc3Ryb2tlLXdpZHRoPSIwLjgiIGZpbGw9Im5vbmUiIG9wYWNpdHk9IjAuNCIvPgo8L3N2Zz4K";
+
+const PATIENT_PHOTOS: Record<string, string> = {
+  "Frank Larson": FRANK_AVATAR,
+};
+
 type FhirPatient  = { id: string; name: string; birthDate: string; gender: string; mrn: string | null; address: { line?: string[]; city?: string; state?: string } };
 type Condition    = { display: string; code: string; status: string; onset: string };
 type Medication   = { drug: string; status: string; authored: string; dosage: string };
@@ -91,7 +97,7 @@ const CustomBpDot = (props: any) => {
 };
 
 // Horizontal BMI gauge — matches the Health Chart screenshot style
-function BmiGauge({ bmi, weight }: { bmi: number | null; weight: number | null }) {
+function BmiGauge({ bmi, weight, height }: { bmi: number | null; weight: number | null; height: number | null }) {
   const MIN = 10, MAX = 40, RANGE = MAX - MIN;
   const zones = [
     { label: "Below 18.5 (Underweight)", color: "#fb923c", start: 10, end: 18.5 },
@@ -101,6 +107,15 @@ function BmiGauge({ bmi, weight }: { bmi: number | null; weight: number | null }
   ];
   const pct  = bmi != null ? Math.max(0, Math.min(100, ((bmi - MIN) / RANGE) * 100)) : null;
   const cat  = bmi != null ? bmiCategory(bmi) : null;
+
+  // Convert metric → US units for display
+  const weightLbs = weight != null ? Math.round(weight * 2.20462) : null;
+  const heightFtIn = height != null ? (() => {
+    const totalInches = height / 2.54;
+    const ft = Math.floor(totalInches / 12);
+    const inches = Math.round(totalInches % 12);
+    return `${ft}'${inches}"`;
+  })() : null;
 
   return (
     <div className="flex flex-col gap-3">
@@ -114,9 +129,14 @@ function BmiGauge({ bmi, weight }: { bmi: number | null; weight: number | null }
             </span>
           </span>
         )}
-        {weight != null && (
+        {weightLbs != null && (
           <span className="text-muted-foreground">
-            Weight: <span className="font-semibold text-foreground">{weight} kg</span>
+            Weight: <span className="font-semibold text-foreground">{weightLbs} lbs</span>
+          </span>
+        )}
+        {heightFtIn != null && (
+          <span className="text-muted-foreground">
+            Height: <span className="font-semibold text-foreground">{heightFtIn}</span>
           </span>
         )}
       </div>
@@ -182,9 +202,17 @@ function PatientBanner({ patient, onClick }: { patient: FhirPatient; onClick: ()
     <Card className="cursor-pointer hover:shadow-md transition-shadow border-l-4 border-l-blue-400" onClick={onClick}>
       <CardContent className="p-4">
         <div className="flex items-center gap-4">
-          <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 text-base font-bold text-blue-700">
-            {initials}
-          </div>
+          {PATIENT_PHOTOS[patient.name] ? (
+            <img
+              src={PATIENT_PHOTOS[patient.name]}
+              alt={patient.name}
+              className="h-12 w-12 flex-shrink-0 rounded-full object-cover border-2 border-blue-100"
+            />
+          ) : (
+            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 text-base font-bold text-blue-700">
+              {initials}
+            </div>
+          )}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-3 flex-wrap">
               <span className="text-base font-semibold text-foreground">{patient.name}</span>
@@ -351,12 +379,17 @@ const PhysicianView = () => {
     .filter(v => v.display.toLowerCase().includes("weight") && !v.display.toLowerCase().includes("bmi"))
     .sort((a, b) => a.date.localeCompare(b.date));
 
+  const heightObs = vitals
+    .filter(v => v.display.toLowerCase().includes("height"))
+    .sort((a, b) => a.date.localeCompare(b.date));
+
   const bpChartData = bpTrend
     .map(p => ({ ...p, date: fmtYear(p.date), rawDate: p.date }))
     .sort((a, b) => a.rawDate.localeCompare(b.rawDate));
 
   const latestBmi    = bmiObs[bmiObs.length - 1];
   const latestWeight = weightObs[weightObs.length - 1];
+  const latestHeight = heightObs[heightObs.length - 1];
   const latestBp     = bpChartData[bpChartData.length - 1];
 
   // ── Patient list view ─────────────────────────────────────────────────────
@@ -377,7 +410,6 @@ const PhysicianView = () => {
         <main className="container mx-auto px-4 py-6 sm:px-6">
           <div className="mb-5">
             <h2 className="text-xl font-semibold text-foreground">My Patients</h2>
-            <p className="text-sm text-muted-foreground mt-0.5">Select a patient to view their health record</p>
           </div>
           {listLoading ? (
             <div className="space-y-3">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-[72px] w-full rounded-xl" />)}</div>
@@ -439,7 +471,22 @@ const PhysicianView = () => {
               <p className="text-sm text-destructive">{error} — ensure the FHIR server is running and patient data is loaded.</p>
             ) : patient ? (
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-                <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 text-xl font-bold text-blue-700">
+                {PATIENT_PHOTOS[patient.name] ? (
+                  <img
+                    src={PATIENT_PHOTOS[patient.name]}
+                    alt={patient.name}
+                    className="h-16 w-16 flex-shrink-0 rounded-full object-cover border-2 border-blue-100"
+                    onError={e => {
+                      const el = e.currentTarget;
+                      el.style.display = "none";
+                      el.nextElementSibling?.removeAttribute("style");
+                    }}
+                  />
+                ) : null}
+                <div
+                  className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 text-xl font-bold text-blue-700"
+                  style={PATIENT_PHOTOS[patient.name] ? { display: "none" } : {}}
+                >
                   {patient.name.split(" ").map(n => n[0]).join("").slice(0, 2)}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -590,6 +637,7 @@ const PhysicianView = () => {
                     <BmiGauge
                       bmi={latestBmi?.value ?? null}
                       weight={latestWeight?.value ?? null}
+                      height={latestHeight?.value ?? null}
                     />
                   )}
                 </CardContent>

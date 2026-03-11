@@ -1,6 +1,7 @@
 import iris, json, os, time
 from config import IRIS_HOST, IRIS_PORT, IRIS_NAMESPACE, IRIS_USERNAME, IRIS_PASSWORD
 
+
 def connect_once_ready(conn_str, user, pwd, tries=60, sleep_s=2):
     for i in range(tries):
         try:
@@ -96,3 +97,4 @@ def main():
         
 if __name__ == "__main__":
     main()
+
