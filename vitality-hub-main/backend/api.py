@@ -1015,14 +1015,14 @@ def clinician_overview():
             - Depression-related risks: major depressive disorder after bereavement with ongoing low mood/appetite/sleep disturbance; social isolation (widowed, living alone) increases risk of functional decline and poor adherence."""
 
 """Summary of home data: 
-            - Garmin sleep metrics from the most recent night show severely fragmented sleep (total sleep 2 h 44 m, 112 restless moments), high average sleep stress ~48.3 and a low recovery score (24). 
-            - Home-fridge logs for 2026-02-26 indicate a single eating event with total protein ≈58 g. 
-            - Smart-toilet recordings show repeated morning urine color Level 6 (consistent with relative dehydration). 
-            - ECG-derived HRV (SDNN) is ≈35 ms (above the 30 ms threshold noted in the protocol). 
-            - Labs previously noted borderline hypernatremia and a mild creatinine rise.
-            - Clinical relevance: 
-                - These concurrent findings—low/late caloric and protein intake, recurrent morning dehydration, and markedly poor nocturnal recovery—are temporally correlated and collectively increase physiologic vulnerability in an older adult (heightened orthostatic and fall risk, impaired overnight autonomic recovery, and potential strain on renal function). 
-                - The SDNN does not meet the low-HRV cutoff, but persistent dehydration and inadequate intake remain important contextual factors when interpreting orthostatic symptoms, fall risk, HRV trends, and renal labs."""
+    - Garmin sleep metrics from the most recent night show severely fragmented sleep (total sleep 2 h 44 m, 112 restless moments), high average sleep stress ~48.3 and a low recovery score (24). 
+    - Home-fridge logs for 2026-02-26 indicate a single eating event with total protein ≈58 g. 
+    - Smart-toilet recordings show repeated morning urine color Level 6 (consistent with relative dehydration). 
+    - ECG-derived HRV (SDNN) is ≈35 ms (above the 30 ms threshold noted in the protocol). 
+    - Labs previously noted borderline hypernatremia and a mild creatinine rise.
+    - Clinical relevance: 
+        - These concurrent findings—low/late caloric and protein intake, recurrent morning dehydration, and markedly poor nocturnal recovery—are temporally correlated and collectively increase physiologic vulnerability in an older adult (heightened orthostatic and fall risk, impaired overnight autonomic recovery, and potential strain on renal function). 
+        - The SDNN does not meet the low-HRV cutoff, but persistent dehydration and inadequate intake remain important contextual factors when interpreting orthostatic symptoms, fall risk, HRV trends, and renal labs."""
 # async def clinician_overview():
     # api_key = os.environ.get("OPENAI_API_KEY")
     # if api_key:

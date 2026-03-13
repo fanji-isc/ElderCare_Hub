@@ -776,7 +776,7 @@ const PhysicianView = () => {
           </TabsContent>
 
           {/* ══════════════════════════════════════════════════════════
-               Tab 3 — AI Summary (placeholder)
+               Tab 2 — AI Summary 
           ══════════════════════════════════════════════════════════ */}
           <TabsContent value="ai">
             <Card className="overflow-hidden border-none shadow-none">
