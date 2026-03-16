@@ -1,6 +1,7 @@
 import iris, json, os, time
 from config import IRIS_HOST, IRIS_PORT, IRIS_NAMESPACE, IRIS_USERNAME, IRIS_PASSWORD
 
+
 def connect_once_ready(conn_str, user, pwd, tries=60, sleep_s=2):
     for i in range(tries):
         try:
@@ -59,6 +60,20 @@ def main():
         # 3. Remove any duplicate rows accumulated from previous restarts
         irispy.classMethodValue("MyApp.Utils", "DeleteDuplicates", patient_id)
 
+        # Create AISummary table for pre-computed AI summaries (ignore if already exists)
+        try:
+            _cur = conn.cursor()
+            _cur.execute("""
+                CREATE TABLE MyApp.AISummary (
+                    PatientID VARCHAR(500),
+                    SummaryText VARCHAR(32000),
+                    UpdatedAt TIMESTAMP
+                )
+            """)
+            print(">>> Created MyApp.AISummary table.", flush=True)
+        except Exception:
+            pass  # Table already exists
+
         # 4. Upsert patient data
         record_id = irispy.classMethodValue(
             "MyApp.Utils",
@@ -82,3 +97,4 @@ def main():
         
 if __name__ == "__main__":
     main()
+

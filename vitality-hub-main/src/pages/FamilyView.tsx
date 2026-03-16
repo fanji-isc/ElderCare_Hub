@@ -3,6 +3,7 @@ import {
   Heart, Moon, Utensils, Brain, Footprints, Shield, Droplets, Pill,
   ShieldCheck, AlertCircle, AlertTriangle,
   Phone, Share2, Clock, Maximize2,
+  Calendar, CheckSquare, Square,
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { HeartRateChart } from "@/components/HeartRateChart";
@@ -183,6 +184,134 @@ function MedicationDetail() {
               }`}>
                 {med.status}
               </span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── Appointments card ────────────────────────────────────────────────────────
+
+type Appt = { status: string; start: string; end: string; type: string; practitioner: string; location: string };
+
+function getApptActions(type: string): string[] {
+  const t = type.toLowerCase();
+  if (t.includes("cardio") || t.includes("cardiac"))
+    return ["Arrange transport", "Bring current medication list", "Remind Frank 1 day before"];
+  if (t.includes("lab") || t.includes("blood") || t.includes("panel"))
+    return ["Remind Frank to fast (no food after midnight)", "Arrange early morning transport"];
+  if (t.includes("primary") || t.includes("general") || t.includes("check"))
+    return ["Arrange transport", "Prepare questions for the doctor", "Remind Frank 1 day before"];
+  return ["Arrange transport", "Remind Frank 1 day before"];
+}
+
+function AppointmentDetail() {
+  const [appts, setAppts] = useState<Appt[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [checked, setChecked] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const patientsRes = await fetch(`${API_BASE}/api/fhir/patients`);
+        if (!patientsRes.ok) throw new Error("Could not load patient list");
+        const patients: { id: string; name: string }[] = await patientsRes.json();
+        const frank = patients.find((p) =>
+          p.name.toLowerCase().includes("frank") && p.name.toLowerCase().includes("larson")
+        );
+        if (!frank) throw new Error("Frank Larson not found in FHIR patient list");
+
+        const res = await fetch(`${API_BASE}/api/fhir/appointments?patient_id=${encodeURIComponent(frank.id)}`);
+        if (!res.ok) throw new Error("Appointment fetch failed");
+        const data: Appt[] = await res.json();
+        setAppts(Array.isArray(data) ? data : []);
+      } catch (e: unknown) {
+        setError(e instanceof Error ? e.message : "Failed to load appointments");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  const toggle = (key: string) => setChecked(prev => ({ ...prev, [key]: !prev[key] }));
+
+  if (loading) return (
+    <div className="flex items-center justify-center py-12">
+      <p className="text-sm text-muted-foreground">Loading appointments…</p>
+    </div>
+  );
+
+  if (error) return (
+    <div className="flex items-center justify-center py-12">
+      <p className="text-sm text-rose-600">{error}</p>
+    </div>
+  );
+
+  if (!appts.length) return (
+    <div className="flex items-center justify-center py-12">
+      <p className="text-sm text-muted-foreground">No upcoming appointments scheduled.</p>
+    </div>
+  );
+
+  return (
+    <div className="space-y-4">
+      {appts.map((appt, i) => {
+        const startDate = appt.start
+          ? new Date(appt.start).toLocaleDateString("en-US", { weekday: "short", year: "numeric", month: "short", day: "numeric" })
+          : null;
+        const startTime = appt.start
+          ? new Date(appt.start).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
+          : null;
+        const actions = getApptActions(appt.type);
+        return (
+          <div key={i} className="rounded-xl border border-violet-100 bg-violet-50/40 overflow-hidden">
+            {/* Appointment header */}
+            <div className="px-4 py-3 bg-violet-50 border-b border-violet-100">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-foreground">{appt.type}</p>
+                  {startDate && (
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {startDate}{startTime ? ` · ${startTime}` : ""}
+                    </p>
+                  )}
+                  {appt.practitioner && (
+                    <p className="mt-0.5 text-xs text-muted-foreground">{appt.practitioner}</p>
+                  )}
+                  {appt.location && (
+                    <p className="mt-0.5 text-xs text-muted-foreground/70">{appt.location}</p>
+                  )}
+                </div>
+                <span className="flex-shrink-0 text-xs font-medium px-2 py-0.5 rounded-full bg-violet-100 text-violet-700 capitalize">
+                  {appt.status}
+                </span>
+              </div>
+            </div>
+            {/* Action checklist */}
+            <div className="px-4 py-3 space-y-2">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Family action items</p>
+              {actions.map((action, j) => {
+                const key = `${i}-${j}`;
+                const done = !!checked[key];
+                return (
+                  <button
+                    key={key}
+                    onClick={() => toggle(key)}
+                    className="flex items-center gap-2.5 w-full text-left group"
+                  >
+                    {done
+                      ? <CheckSquare className="h-4 w-4 flex-shrink-0 text-emerald-500" />
+                      : <Square className="h-4 w-4 flex-shrink-0 text-muted-foreground/50 group-hover:text-violet-400 transition-colors" />
+                    }
+                    <span className={`text-sm leading-snug transition-colors ${done ? "line-through text-muted-foreground/50" : "text-foreground"}`}>
+                      {action}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         );
@@ -510,6 +639,13 @@ const FamilyView = () => {
             <MedicationDetail />
           </ModalCard>
         );
+      case "appointments":
+        return (
+          <ModalCard icon={Calendar} iconBg="bg-violet-500" gradient="from-violet-50 to-purple-50"
+            title="Upcoming Appointments" subtitle="Scheduled visits & family action items">
+            <AppointmentDetail />
+          </ModalCard>
+        );
       default:
         return null;
     }
@@ -524,6 +660,7 @@ const FamilyView = () => {
     gait: "Gait Analysis",
     hydration: "Hydration",
     medication: "Medications",
+    appointments: "Upcoming Appointments",
   };
 
   return (
@@ -586,8 +723,8 @@ const FamilyView = () => {
           <span className="text-xs text-muted-foreground">Click any card for details</span>
         </div>
 
-        {/* ── 8-card grid (4 × 2) ───────────────────────────────────── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {/* ── 9-card grid (3 × 3) ───────────────────────────────────── */}
+        <div className="grid grid-cols-3 gap-3">
           <HealthCard
             icon={Heart} iconBg="bg-heart/15 text-heart"
             title="Heart Health"
@@ -635,6 +772,12 @@ const FamilyView = () => {
             title="Medication"
             label="Active Rx" labelColor="text-blue-600" note="Prescriptions & dosage"
             onClick={() => setOpenModal("medication")}
+          />
+          <HealthCard
+            icon={Calendar} iconBg="bg-violet-500/15 text-violet-600"
+            title="Appointments"
+            label="Upcoming" labelColor="text-violet-600" note="Scheduled visits"
+            onClick={() => setOpenModal("appointments")}
           />
         </div>
 

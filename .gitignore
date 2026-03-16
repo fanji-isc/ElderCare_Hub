@@ -12,3 +12,8 @@ venv/
 /fsh-generated/
 /publisher.jar
 *.jar
+
+# Ignore all other projects at this level — only track vitality-hub-main
+/*
+!/vitality-hub-main/
+!.gitignore

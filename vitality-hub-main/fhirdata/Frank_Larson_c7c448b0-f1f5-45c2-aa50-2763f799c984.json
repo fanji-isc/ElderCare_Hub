@@ -1884,6 +1884,48 @@
       }
     },
     {
+      "fullUrl": "urn:uuid:a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "vital-signs"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "8302-2",
+              "display": "Body Height"
+            }
+          ],
+          "text": "Body height"
+        },
+        "subject": {
+          "reference": "urn:uuid:c7c448b0-f1f5-45c2-aa50-2763f799c984"
+        },
+        "effectiveDateTime": "2026-01-20T10:05:00-05:00",
+        "valueQuantity": {
+          "value": 177,
+          "unit": "cm",
+          "system": "http://unitsofmeasure.org",
+          "code": "cm"
+        }
+      },
+      "request": {
+        "method": "POST",
+        "url": "Observation"
+      }
+    },
+    {
       "fullUrl": "urn:uuid:2bc18f5f-5190-40a7-b793-a2174348ccf3",
       "resource": {
         "resourceType": "Observation",
@@ -4685,6 +4727,119 @@
       "request": {
         "method": "POST",
         "url": "Immunization"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:a1b2c3d4-e5f6-7890-abcd-ef1234567801",
+      "resource": {
+        "resourceType": "Appointment",
+        "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567801",
+        "status": "booked",
+        "serviceType": [
+          { "coding": [{ "display": "Cardiology Follow-up" }] }
+        ],
+        "start": "2026-03-28T10:00:00Z",
+        "end":   "2026-03-28T10:30:00Z",
+        "participant": [
+          {
+            "actor": {
+              "reference": "urn:uuid:c7c448b0-f1f5-45c2-aa50-2763f799c984",
+              "display": "Frank Larson"
+            },
+            "status": "accepted"
+          },
+          {
+            "actor": {
+              "reference": "Practitioner/practitioner-chen",
+              "display": "Dr. Sarah Chen"
+            },
+            "status": "accepted"
+          },
+          {
+            "actor": {
+              "reference": "Location/location-cardiology",
+              "display": "Medfield Cardiology Clinic"
+            },
+            "status": "accepted"
+          }
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "url": "Appointment"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:a1b2c3d4-e5f6-7890-abcd-ef1234567802",
+      "resource": {
+        "resourceType": "Appointment",
+        "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567802",
+        "status": "booked",
+        "serviceType": [
+          { "coding": [{ "display": "Primary Care Check-up" }] }
+        ],
+        "start": "2026-04-08T09:00:00Z",
+        "end":   "2026-04-08T09:30:00Z",
+        "participant": [
+          {
+            "actor": {
+              "reference": "urn:uuid:c7c448b0-f1f5-45c2-aa50-2763f799c984",
+              "display": "Frank Larson"
+            },
+            "status": "accepted"
+          },
+          {
+            "actor": {
+              "reference": "Practitioner/practitioner-patel",
+              "display": "Dr. James Patel"
+            },
+            "status": "accepted"
+          },
+          {
+            "actor": {
+              "reference": "Location/location-familypractice",
+              "display": "Medfield Family Practice"
+            },
+            "status": "accepted"
+          }
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "url": "Appointment"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:a1b2c3d4-e5f6-7890-abcd-ef1234567803",
+      "resource": {
+        "resourceType": "Appointment",
+        "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567803",
+        "status": "booked",
+        "serviceType": [
+          { "coding": [{ "display": "Lab Work - Blood Panel" }] }
+        ],
+        "start": "2026-04-15T08:00:00Z",
+        "end":   "2026-04-15T08:20:00Z",
+        "participant": [
+          {
+            "actor": {
+              "reference": "urn:uuid:c7c448b0-f1f5-45c2-aa50-2763f799c984",
+              "display": "Frank Larson"
+            },
+            "status": "accepted"
+          },
+          {
+            "actor": {
+              "reference": "Location/location-questdiag",
+              "display": "Quest Diagnostics - Medfield"
+            },
+            "status": "accepted"
+          }
+        ]
+      },
+      "request": {
+        "method": "POST",
+        "url": "Appointment"
       }
     }
   ]

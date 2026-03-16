@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import {
   Users, HeartHandshake, ChevronDown, ChevronUp,
   Mic, Activity, Heart, Moon, Footprints, Volume2,
-  ShieldAlert, Brain,
+  ShieldAlert, Brain, Calendar,
   Utensils, Shield, Droplets, Pill, ShieldCheck, AlertCircle, AlertTriangle, Maximize2,
 } from "lucide-react";
 import {
@@ -294,6 +294,71 @@ function MedicationDetail() {
               }`}>
                 {med.status}
               </span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── ElderAppointments ────────────────────────────────────────────────────────
+type Appt = { status: string; start: string; end: string; type: string; practitioner: string; location: string };
+
+function ElderAppointments() {
+  const [appts, setAppts] = useState<Appt[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const patientsRes = await fetch(`${API_BASE}/api/fhir/patients`);
+        if (!patientsRes.ok) throw new Error("Could not load patient list");
+        const patients: { id: string; name: string }[] = await patientsRes.json();
+        const frank = patients.find(p => p.name.toLowerCase().includes("frank") && p.name.toLowerCase().includes("larson"));
+        if (!frank) throw new Error("Frank Larson not found in FHIR patient list");
+        const apptRes = await fetch(`${API_BASE}/api/fhir/appointments?patient_id=${encodeURIComponent(frank.id)}`);
+        if (!apptRes.ok) throw new Error("Appointments fetch failed");
+        const data: Appt[] = await apptRes.json();
+        setAppts(Array.isArray(data) ? data : []);
+      } catch (e: any) {
+        setError(e?.message ?? "Failed to load appointments");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  if (loading) return <div className="flex items-center justify-center py-12"><p className="text-sm text-muted-foreground">Loading appointments…</p></div>;
+  if (error)   return <div className="flex items-center justify-center py-12"><p className="text-sm text-rose-600">{error}</p></div>;
+  if (!appts.length) return <div className="flex items-center justify-center py-12"><p className="text-sm text-muted-foreground">No upcoming appointments scheduled.</p></div>;
+
+  return (
+    <div className="space-y-3">
+      {appts.map((appt, i) => {
+        const startDate = appt.start
+          ? new Date(appt.start).toLocaleDateString("en-US", { weekday: "short", year: "numeric", month: "long", day: "numeric" })
+          : null;
+        const startTime = appt.start
+          ? new Date(appt.start).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
+          : null;
+        return (
+          <div key={i} className="rounded-xl bg-violet-50 border border-violet-100 px-4 py-3">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-violet-100">
+                <Calendar className="h-5 w-5 text-violet-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-foreground">{appt.type}</p>
+                {startDate && (
+                  <p className="mt-0.5 text-sm text-violet-700 font-medium">
+                    {startDate}{startTime ? ` at ${startTime}` : ""}
+                  </p>
+                )}
+                {appt.practitioner && <p className="mt-0.5 text-xs text-muted-foreground">{appt.practitioner}</p>}
+                {appt.location && <p className="text-xs text-muted-foreground">{appt.location}</p>}
+              </div>
             </div>
           </div>
         );
@@ -839,6 +904,13 @@ const ElderView = () => {
             <MedicationDetail />
           </ModalCard>
         );
+      case "appointments":
+        return (
+          <ModalCard icon={Calendar} iconBg="bg-violet-500" gradient="from-violet-50 to-purple-50"
+            title="My Appointments" subtitle="Upcoming scheduled visits">
+            <ElderAppointments />
+          </ModalCard>
+        );
       default:
         return null;
     }
@@ -847,7 +919,7 @@ const ElderView = () => {
   const modalTitle: Record<string, string> = {
     heart: "Heart Health", sleep: "Sleep Analysis", nutrition: "Nutrition & Diet",
     stress: "Stress", steps: "Steps Today", gait: "Gait Analysis",
-    hydration: "Hydration", medication: "Medications",
+    hydration: "Hydration", medication: "Medications", appointments: "My Appointments",
   };
 
   const startRecording = async () => {
@@ -1067,7 +1139,7 @@ const ElderView = () => {
           </div>
         )}
 
-        {/* ── Three Action Cards ─────────────────────────────────────── */}
+        {/* ── Three Action Cards ──────────────────────────────────────── */}
         <div className="mx-auto max-w-3xl">
           <div className="grid gap-4 sm:grid-cols-3">
             {/* My Health */}
@@ -1126,6 +1198,8 @@ const ElderView = () => {
               </div>
               {openPanel === "helping" ? <ChevronUp className="h-6 w-6 text-white/80" /> : <ChevronDown className="h-6 w-6 text-rose-400" />}
             </button>
+
+            {/* My Appointments moved into Health Overview grid */}
           </div>
         </div>
 
@@ -1141,7 +1215,7 @@ const ElderView = () => {
             </div>
 
             {/* 8-card grid */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <HealthCard icon={Heart} iconBg="bg-heart/15 text-heart" title="Heart Health" label={heartS.label} labelColor={heartS.color} note={heartS.note} onClick={() => setOpenModal("heart")} />
               <HealthCard icon={Moon} iconBg="bg-sleep/15 text-sleep" title="Sleep Analysis" label={sleepS.label} labelColor={sleepS.color} note={sleepS.note} onClick={() => setOpenModal("sleep")} />
               <HealthCard icon={Utensils} iconBg="bg-teal-500/15 text-teal-600" title="Nutrition & Diet" label="Meals tracked" labelColor="text-teal-600" note="Smart fridge monitoring" onClick={() => setOpenModal("nutrition")} />
@@ -1150,6 +1224,7 @@ const ElderView = () => {
               <HealthCard icon={Shield} iconBg="bg-amber-500/15 text-amber-600" title="Gait Analysis" label={gaitS.label} labelColor={gaitS.color} note={gaitS.note} onClick={() => setOpenModal("gait")} />
               <HealthCard icon={Droplets} iconBg="bg-teal-500/15 text-teal-600" title="Hydration" label={hydrationS.label} labelColor={hydrationS.color} note={hydrationS.note} onClick={() => setOpenModal("hydration")} />
               <HealthCard icon={Pill} iconBg="bg-blue-500/15 text-blue-600" title="Medication" label="Active Rx" labelColor="text-blue-600" note="Prescriptions & dosage" onClick={() => setOpenModal("medication")} />
+              <HealthCard icon={Calendar} iconBg="bg-violet-500/15 text-violet-600" title="Appointments" label="Upcoming" labelColor="text-violet-600" note="Scheduled visits" onClick={() => setOpenModal("appointments")} />
             </div>
 
           </div>
