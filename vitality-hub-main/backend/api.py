@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException, Body
+from fastapi import FastAPI, UploadFile, File, HTTPException, Body, Query
 from fastapi.responses import Response, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -11,8 +11,6 @@ import numpy as np
 from scipy.signal import find_peaks
 from datetime import datetime, timezone
 from openai import OpenAI
-from agents import set_default_openai_key, set_tracing_disabled
-from agents import Agent, Runner, function_tool
 from backend.config import IRIS_HOST, IRIS_PORT, IRIS_NAMESPACE, IRIS_USERNAME, IRIS_PASSWORD
 FHIR_BASE = "http://localhost:52773/csp/healthshare/demo/fhir/r4"
 FHIR_AUTH = ("_SYSTEM", "demo")
@@ -37,123 +35,6 @@ def get_openai_client():
 def get_iris():
     conn_str = f"{IRIS_HOST}:{IRIS_PORT}/{IRIS_NAMESPACE}"
     return iris.connect(conn_str, IRIS_USERNAME, IRIS_PASSWORD, sharedmemory=False)
-
-def get_FHIR_from_json() -> dict:
-    """This function retrieves the Patient Bundle from the given FHIR file path.
-    
-    returns: Status of the execution of this function, and the FHIR bundle json"""
-    try:
-        file_path = os.path.join(os.path.dirname(__file__), os.pardir, "fhirdata", "Frank_Larson_c7c448b0-f1f5-45c2-aa50-2763f799c984.json")
-        with open(file_path, 'r') as file:
-            FHIR_Bundle = json.load(file)
-        return {"status": "success", "data": FHIR_Bundle}
-    except FileNotFoundError:
-        return {"status": "error", "message": "The filepath was not valid."}
-    except Exception as e:
-        return {"status": "error", "message": f"The following error was found: {e}."}
-
-# Patient summary could be generated via the UI during account creation in order to provide more details?
-def _get_patient_desc():
-    return """
-           **Frank Larson**, 74-year-old man — retired civil engineer, widowed, living alone at home in Medfield, MA. He has:
-            - hypertension,
-            - hyperlipidemia,
-            - type 2 diabetes,
-            - severe right knee osteoarthritis — right total knee replacement (Mar 2024) with good recovery,
-            - recurrent orthostatic dizziness/near-falls with dehydration risk (noted Jan 2026; borderline hypernatremia, mild creatinine rise),
-            - and major depressive disorder (bereavement-related after spouse's death in Jan 2025; on sertraline).
-
-            Independent ambulation post-TKA; fall-prevention and hydration education in place.
-
-            His son **David** is his primary contact. His primary care provider is **Dr. Sarah Mitchell** (Medfield Family Health Center)."""
-    patient_fhir = get_FHIR_from_json()
-    if patient_fhir.get("status") == "success":
-        patient_fhir = patient_fhir.get("data")
-    else:
-        raise Exception(detail=patient_fhir.get("message"))
-    
-    client = get_openai_client()
-    if client is None:
-        raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
-    
-    example = """
-    **Eleanor Turner**, 82-year-old woman — retired schoolteacher, living alone in her apartment. She has: 
-    - active Parkinson's disease, 
-    - orthostatic hypotension, 
-    - age-related macular degeneration (AMD) - Missed AMD clinic appointment in Mar 2025, 
-    - osteoporosis, 
-    - type 2 diabetes, 
-    - prior neck-of-femur fracture (Feb 2024 total hip replacement), 
-    - and recent lobar pneumonia (Dec 2025). 
-
-    She uses a walking stick, and has home safety rails installed. 
-
-    Her daughter **Linda** lives 45 minutes away. Her primary care provider is **NP Davis**."""
-
-    response = client.chat.completions.create(
-        model="gpt-5", 
-        messages=[
-            {
-                "role": "system", 
-                "content": "You are an expert medical data analyst specializing in FHIR R4 working as part of a Smart Home Hub. "
-                            "When given a FHIR bundle, you should analyse the patient's medical history and generate a short summary of them to provide as context to other agents. "
-                            "The format of the answer should be plain text. "
-                            "Be clear and concise, only include whatever is most necessary. "
-                            "DO NOT try and provide any advise on further actions or perform any diagnoses yourself."
-            },
-            {
-                "role": "system",
-                "content": f"Your answer should follow the following template: \n{example}"
-                
-            },
-            {
-                "role": "user", 
-                "content": f"Analyze this FHIR bundle and provide a short summary of their medical history:\n\n{patient_fhir}"
-            }
-        ]
-    )
-    return response.choices[0].message.content
-
-def _get_clinical_risks():
-    """This function analyses the Patient Bundle from the given FHIR file path to determine what conditions they are at risk for.
-    
-    returns: The short clinician appropriate summary"""
-    return """
-            Clinical risk summary (Mr. Frank Larson, 74):
-            - High fall and syncope risk: recurrent orthostatic dizziness with two near-falls (2026-01-20); polypharmacy with hypotensive/CNS-active agents (HCTZ, lisinopril, metoprolol, gabapentin, sertraline); beta-blocker-related bradycardia (HR 62-64 bpm); lives alone.
-            - Volume depletion/dehydration and electrolyte disturbance: borderline hypernatremia (Na 146 mmol/L) with poor intake; on thiazide diuretic; symptoms of dizziness consistent with volume loss.
-            - Acute kidney injury risk: rising creatinine to 1.3 mg/dL (from 1.0 in 2024) in the setting of dehydration plus ACE inhibitor and thiazide (prerenal risk).
-            - Metformin-associated lactic acidosis risk: dehydration and reduced renal function increase risk while on metformin.
-            - High atherosclerotic cardiovascular disease (ASCVD) risk: age >70, male, long-standing hypertension, type 2 diabetes, and hyperlipidemia (BPs typically 135-150/84-93).
-            - Depression-related risks: major depressive disorder after bereavement with ongoing low mood/appetite/sleep disturbance; social isolation (widowed, living alone) increases risk of functional decline and poor adherence.
-            """
-    patient_fhir = get_FHIR_from_json()
-    if patient_fhir.get("status") == "success":
-        patient_fhir = patient_fhir.get("data")
-    else:
-        raise Exception(detail=patient_fhir.get("message"))
-    
-    client = get_openai_client()
-    if client is None:
-        raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
-    
-    response = client.chat.completions.create(
-        model="gpt-5", 
-        messages=[
-            {
-                "role": "system", 
-                "content": "You are an expert medical data analyst specializing in FHIR R4 speaking directly to a clinician. When given a FHIR bundle, you should analyse the patient's medical history to determine what conditions they are at risk for. "
-                            "The format of the answer should be plain text. "
-                            "Be clear and concise, only include conditions that are high risk so that a clinician can interprete this quickly. "
-                            "DO NOT try and provide the clinician with any advise on further actions or perform any diagnoses yourself."
-            },
-            {
-                "role": "user", 
-                "content": f"Analyze this FHIR bundle and provide a short summary of their clinical risks:\n\n{patient_fhir}"
-            }
-        ]
-    )
-    return response.choices[0].message.content
 
 # ── IRIS Home data endpoints ─────────────────────────────────────────────────────
 
@@ -263,7 +144,6 @@ def get_phone_calls(patient_id: str = ""):
     finally:
         conn.close()
 
-@function_tool
 def interprete_garmin() -> dict:
     """This function retrieves a summary of the Patient's ECG, HR, and Sleep Data from their Garmin Watch.
 
@@ -577,16 +457,6 @@ def interprete_garmin() -> dict:
         raw_ecg_data = data.get("ecg", {})
         raw_hr_data = data.get("hr", {})
         raw_sleep_data = data.get("sleep", {})
-        # garmin_dir = os.path.join(os.path.dirname(__file__), os.pardir, "garmin")
-        # file = open(os.path.join(garmin_dir, "ECG.json"), "r", encoding='utf-8')
-        # raw_ecg_data = file.read()
-        # file.close()
-        # file = open(os.path.join(garmin_dir, "heart_rate.json"), "r", encoding='utf-8')
-        # raw_hr_data = file.read()
-        # file.close()
-        # file = open(os.path.join(garmin_dir, "sleep.json"), "r", encoding='utf-8')
-        # raw_sleep_data = file.read()
-        # file.close()
 
         ecg_data = get_ecgdata(raw_ecg_data)
         ecg_response = client.responses.create(
@@ -611,7 +481,6 @@ def interprete_garmin() -> dict:
     finally:
         conn.close()
 
-@function_tool
 def interprete_home_data() -> dict:
     """This function retrieves a summary of the Patient's Toilet, Fridge, and Light Data from their smart home hub.
 
@@ -745,13 +614,6 @@ def interprete_home_data() -> dict:
         
         raw_toilet_data = data.get("toilet", {})
         raw_fridge_data = data.get("fridge", {})
-        # garmin_dir = os.path.join(os.path.dirname(__file__), os.pardir, "garmin")
-        # file = open(os.path.join(garmin_dir, "toilet_hydration.json"), "r", encoding='utf-8')
-        # raw_toilet_data = file.read()
-        # file.close()
-        # file = open(os.path.join(garmin_dir, "fridge.json"), "r", encoding='utf-8')
-        # raw_fridge_data = file.read()
-        # file.close()
     
         toilet_data = get_toiletdata(raw_toilet_data)
         toilet_response = client.responses.create(
@@ -770,471 +632,6 @@ def interprete_home_data() -> dict:
         return {"status": "error", "message": f"The following error was found: {e}."}
     finally:
         conn.close()
-
-# ── AI response endpoints ─────────────────────────────────────────────────────
-
-@app.post("/api/answer")
-async def answer(payload: dict = Body(...)):
-    client = get_openai_client()
-    if client is None:
-        raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
-
-    user_text = (payload.get("text") or "").strip()
-    if not user_text:
-        raise HTTPException(status_code=400, detail="Empty input")
-
-    history = payload.get("messages") or []
-    history = history[-5:]
-    # history is like: [{"role":"user","content":"..."}, {"role":"assistant","content":"..."}]
-
-    system_msg = {
-        "role": "system",
-        "content": (
-            "You are a calm, friendly elder-care assistant. "
-            "Speak clearly, briefly, and reassuringly. "
-            "DO NOT give medical diagnoses. "
-            "If unsure, suggest contacting a healthcare professional."
-        )
-    }
-
-    chat = [system_msg] + history + [{"role": "user", "content": user_text}]
-
-    completion = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=chat,
-        temperature=0.3,
-    )
-
-    answer_text = completion.choices[0].message.content.strip()
-    return {"answer": answer_text}
-
-@app.post("/api/answer/stream")
-async def answer_stream(payload: dict = Body(...)):
-    client = get_openai_client()
-    if client is None:
-        raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
-
-    user_text = (payload.get("text") or "").strip()
-    if not user_text:
-        raise HTTPException(status_code=400, detail="Empty input")
-
-    history = (payload.get("messages") or [])[-5:]
-
-    # Allow callers to inject a custom system prompt (e.g. RAG context with personal health data).
-    # Fall back to the generic elder-care prompt if none is provided.
-    custom_system = (payload.get("system") or "").strip()
-    system_msg = {
-        "role": "system",
-        "content": custom_system if custom_system else (
-            "You are a calm, friendly elder-care assistant. "
-            "Speak clearly, briefly, and reassuringly. "
-            "DO NOT give medical diagnoses. "
-            "If unsure, suggest contacting a healthcare professional."
-        )
-    }
-
-    chat = [system_msg] + history + [{"role": "user", "content": user_text}]
-
-    def generate():
-        try:
-            stream = client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=chat,
-                temperature=0.3,
-                stream=True,
-            )
-            for chunk in stream:
-                delta = chunk.choices[0].delta.content or ""
-                if delta:
-                    yield json.dumps({"delta": delta}) + "\n"
-        except Exception as e:
-            yield json.dumps({"error": str(e)}) + "\n"
-        yield json.dumps({"done": True}) + "\n"
-
-    return StreamingResponse(generate(), media_type="application/x-ndjson")
-
-@app.post("/api/transcribe")
-async def transcribe(file: UploadFile = File(...)):
-    client = get_openai_client()
-    if client is None:
-        return {"error": "OPENAI_API_KEY not set in api container"}
-
-    # Save uploaded audio temporarily
-    suffix = ".webm"
-    if file.filename and "." in file.filename:
-        suffix = "." + file.filename.split(".")[-1].lower()
-
-    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-        tmp.write(await file.read())
-        tmp_path = tmp.name
-
-    try:
-        with open(tmp_path, "rb") as f:
-            r = client.audio.transcriptions.create(
-                model="gpt-4o-mini-transcribe",
-                file=f,
-            )
-        return {"transcript": getattr(r, "text", "")}
-    except Exception as e:
-        print("Transcribe error:", repr(e))
-        return {"error": str(e)}
-    finally:
-        try:
-            os.remove(tmp_path)
-        except:
-            pass
-
-@app.post("/api/speak")
-async def speak(payload: dict = Body(...)):
-    client = get_openai_client()
-    if client is None:
-        raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
-
-    text = (payload.get("text") or "").strip()
-    if not text:
-        raise HTTPException(status_code=400, detail="Empty text")
-
-    try:
-        audio = client.audio.speech.create(
-            model="gpt-4o-mini-tts",
-            # voice="alloy",
-            voice="marin",
-            input=text,
-        )
-        return Response(
-            content=audio.read(),
-            media_type="audio/mpeg",
-        )
-    except Exception as e:
-        print("TTS error:", repr(e))
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/api/good_morning")
-def morning_message():
-    return """Good morning, Frank — I'm glad you're up. 
-                Your Garmin and home sensors show a very restless, short night of sleep, only one meal yesterday with low protein, and dark morning urine — that combination raises your dizziness/fall risk today. 
-                Please sip 250-500 ml of water slowly now, have a small protein snack (two eggs, turkey slices, or Greek yogurt are easy options), and avoid getting up or walking alone right away: sit for a minute before standing and take slow, supported steps if you need to move. 
-                Rest through the morning, try to add more fluids and a bit more protein over the next few hours, and if you feel faint, have chest pain, or become very confused, call emergency services or contact Dr. Mitchell (or David) right away."""
-# async def morning_message():
-    # # TODO: test if this is even necessary
-    # api_key = os.environ.get("OPENAI_API_KEY")
-    # if api_key:
-    #     set_default_openai_key(api_key)
-    #     set_tracing_disabled(True)
-    # else:
-    #     raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
-
-    # triage_desc = f"""
-    # ### ROLE: ELDERLY SYSTEMIC RISK ANALYST
-
-    # # CONTEXT:
-    # You are a Senior Clinical Data Scientist specializing in Geriatric Health. You analyze data from five distinct health monitoring systems (ECG, HR, Sleep, Hydration, and Nutrition) to create a unified safety and recovery profile for an elderly user.
- 
-    # # INTERPRETATION FRAMEWORK
-    # You must cross-reference the data provided using the following clinical logic:
-    # 1. **Hydration-Cardiac Link:** 
-    # - Correlate Smart Toilet `colorLevel` with ECG `sdnn_hrv_ms`. Dark urine (Level 5+) + low HRV (SDNN < 30) = High risk for orthostatic hypotension (dizziness when standing).
-    # 2. **Nutrition-Sleep-Stability Chain:** 
-    # - Connect `protein_intake` (Fridge) with `deep_pct` and `restless_moments` (Sleep). Low protein or skipped meals in the elderly often trigger poor deep sleep and increased nighttime restlessness, which is a fall risk.
-    # 3. **The Digestion Tax:** 
-    # - Compare Fridge `last_meal_time` with Sleep `avg_sleep_stress`. If dinner is late, explain how it prevents the heart rate from dropping, stealing recovery time.
-    # 4. **Geriatric Safety Flags:** 
-    # - **Critical:** "Appetite Loss" or "Skipped Meals" (Fridge) + "Rising Sleep Stress" (Sleep).
-    # - **Warning:** Low `spo2` (HR) + High `respiration` (HR/Sleep) + "Dehydration" (Toilet).
-
-    # # OUTPUT STRUCTURE
-    # Your response must follow this template:
-
-    # ---
-    # ### ⚠️ OVERALL RISK LEVEL: [LOW | ELEVATED | CRITICAL]
-    # **Primary Driver:** [Identify the #1 system causing the risk today]
-
-    # #### 1. THE "WHY" (Unified Insight)
-    # [A concise narrative explaining how the different data points are interacting. E.g., "The user is electrically stable but physically vulnerable due to under-fueling and dehydration."]
-
-    # #### 2. CROSS-SYSTEM CORRELATIONS
-    # * **[Link 1]:** (e.g., Nutrition vs. Sleep)
-    # * **[Link 2]:** (e.g., Hydration vs. Cardiac)
-
-    # #### 3. GUARDIAN ACTION ITEMS
-    # * **Immediate:** [Action to take now, e.g., Drink 500ml water]
-    # * **Daily Goal:** [Nutritional or activity adjustment]
-    # * **Watch For:** [Clinical symptom to observe, e.g., Dizziness, gait changes]
-    # ---
-    # """
-    # triage_agent = Agent(
-    #     name="Triage Agent",
-    #     instructions=triage_desc,
-    #     tools=[interprete_garmin, interprete_home_data],
-    #     model="gpt-5-mini"
-    # )
-    # summarise_request = f"Generate a summary of the patient's Garmin and Home Appliance data for their clinician to interprete."
-    # result = await Runner.run(triage_agent, summarise_request)
-    # triage_answer = result.final_output
-
-    # patient_desc = _get_patient_desc()
-    # wellbeing_desc = f"""
-    # ### ROLE: Elder-care assitant
-
-    # # CONTEXT: 
-    # You are a calm, friendly elder-care assistant. You are speaking directly to the following patient:
-
-    # {patient_desc}
-
-    # # TONE:
-    # Speak clearly, briefly, and reassuringly. 
-
-    # # RESTRICTIONS:
-    # DO NOT give medical diagnoses. 
-    # If unsure, suggest contacting their healthcare professional.
-
-    # # DATA SUMMARY: 
-
-    # {triage_answer}
-    # """
-    # wellbeing_agent = Agent(
-    #     name="Wellbeing Agent",
-    #     instructions=wellbeing_desc,
-    #     model="gpt-5-mini"
-    # )
-    # morning_request = "Provide a good morning message including a gentle summary of what the system has noticed based on their garmin and household data, and some advice for how best to behave today. Avoid returning too long of a message, your response should not require bullet points."
-    # result = await Runner.run(wellbeing_agent, morning_request)
-    # answer_text = result.final_output
-
-    # return {"answer": answer_text}
-
-@app.get("/api/clinician_summary")
-def clinician_overview(patient_id: str = ""):
-    # --- Original hardcoded summary for Mr. Frank Larson (kept as style/format reference) ---
-    # return """
-    #         Clinical risk summary (Mr. Frank Larson, 74):
-    #         - High fall and syncope risk: recurrent orthostatic dizziness with two near-falls (2026-01-20); polypharmacy with hypotensive/CNS-active agents (HCTZ, lisinopril, metoprolol, gabapentin, sertraline); beta-blocker-related bradycardia (HR 62-64 bpm); lives alone.
-    #         - Volume depletion/dehydration and electrolyte disturbance: borderline hypernatremia (Na 146 mmol/L) with poor intake; on thiazide diuretic; symptoms of dizziness consistent with volume loss.
-    #         - Acute kidney injury risk: rising creatinine to 1.3 mg/dL (from 1.0 in 2024) in the setting of dehydration plus ACE inhibitor and thiazide (prerenal risk).
-    #         - Metformin-associated lactic acidosis risk: dehydration and reduced renal function increase risk while on metformin.
-    #         - High atherosclerotic cardiovascular disease (ASCVD) risk: age >70, male, long-standing hypertension, type 2 diabetes, and hyperlipidemia (BPs typically 135-150/84-93).
-    #         - Depression-related risks: major depressive disorder after bereavement with ongoing low mood/appetite/sleep disturbance; social isolation (widowed, living alone) increases risk of functional decline and poor adherence."""
-
-    # --- Original dead-code string literals (home data supplement, kept for reference) ---
-    # """Summary of home data:
-    #         - Garmin sleep metrics from the most recent night show severely fragmented sleep (total sleep 2 h 44 m, 112 restless moments), high average sleep stress ~48.3 and a low recovery score (24).
-    #         - Home-fridge logs for 2026-02-26 indicate a single eating event with total protein ≈58 g.
-    #         - Smart-toilet recordings show repeated morning urine color Level 6 (consistent with relative dehydration).
-    #         - ECG-derived HRV (SDNN) is ≈35 ms (above the 30 ms threshold noted in the protocol).
-    #         - Labs previously noted borderline hypernatremia and a mild creatinine rise.
-    #         - Clinical relevance:
-    #             - These concurrent findings—low/late caloric and protein intake, recurrent morning dehydration, and markedly poor nocturnal recovery—are temporally correlated and collectively increase physiologic vulnerability in an older adult (heightened orthostatic and fall risk, impaired overnight autonomic recovery, and potential strain on renal function).
-    #             - The SDNN does not meet the low-HRV cutoff, but persistent dehydration and inadequate intake remain important contextual factors when interpreting orthostatic symptoms, fall risk, HRV trends, and renal labs."""
-
-    conn = get_iris()
-    try:
-        cur = conn.cursor()
-        cur.execute(
-            "SELECT TOP 1 SummaryText FROM MyApp.AISummary WHERE PatientID = ? ORDER BY UpdatedAt DESC",
-            [patient_id]
-        )
-        row = cur.fetchone()
-        return row[0] if row else ""
-    finally:
-        conn.close()
-
-@app.post("/api/clinician_summary/generate")
-def generate_clinician_summary(patient_id: str = ""):
-    # 1. Fetch FHIR data using existing endpoint functions
-    conditions  = get_fhir_conditions(patient_id)
-    medications = get_fhir_medications(patient_id)
-    vitals      = get_fhir_vitals(patient_id)
-    labs        = get_fhir_labs(patient_id)
-    bp_trend    = get_fhir_bp_trend(patient_id)
-
-    # 2. Fetch patient demographics
-    try:
-        patient_bundle = _fhir_get("Patient", {"_id": patient_id})
-        entries = patient_bundle.get("entry", [])
-        patient_info = _parse_patient(entries[0]["resource"]) if entries else {}
-    except Exception:
-        patient_info = {}
-
-    # 3. Build prompt context
-    name = patient_info.get("name", "Unknown patient")
-    birth = patient_info.get("birthDate", "")
-    age_str = ""
-    if birth:
-        try:
-            bdate = datetime.strptime(birth, "%Y-%m-%d")
-            age_yrs = (datetime.now() - bdate).days // 365
-            age_str = f", {age_yrs} years old"
-        except Exception:
-            pass
-
-    cond_text  = "\n".join(
-        f"  - {c['display']} ({c['status']}, onset {c['onset'][:10] if c.get('onset') else 'unknown'})"
-        for c in conditions[:20]
-    ) or "  None"
-    med_text   = "\n".join(
-        f"  - {m['drug']} ({m['status']}, {m['dosage']})"
-        for m in medications[:20]
-    ) or "  None"
-    vital_text = "\n".join(
-        f"  - {v['display']}: {v['value']} {v['unit']} ({v['date'][:10] if v.get('date') else ''})"
-        for v in vitals[:20]
-    ) or "  None"
-    lab_text   = "\n".join(
-        f"  - {l['display']}: {l['value']} {l['unit']} ({l['date'][:10] if l.get('date') else ''})"
-        for l in labs[:20]
-    ) or "  None"
-    bp_text    = "\n".join(
-        f"  - {b['date'][:10]}: {b['systolic']}/{b['diastolic']} mmHg"
-        for b in bp_trend[-10:]
-    ) or "  None"
-
-    context = f"""Patient: {name}{age_str}
-
-Conditions:
-{cond_text}
-
-Medications:
-{med_text}
-
-Recent Vitals:
-{vital_text}
-
-Recent Labs:
-{lab_text}
-
-Blood Pressure Trend (most recent readings):
-{bp_text}"""
-
-    # 4. Call OpenAI GPT-4o-mini
-    # Style reference: the original hardcoded Frank Larson summary above uses titled header line
-    # followed by dash-prefixed bullet items covering key geriatric risk domains.
-    client = get_openai_client()
-    if not client:
-        raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
-
-    system_prompt = (
-        "You are a geriatric clinical risk analyst preparing a concise structured summary for a physician.\n"
-        "Format your response exactly like this example — a titled header line, then dash-prefixed bullets:\n\n"
-        "Clinical risk summary (Name, Age):\n"
-        "- Risk domain 1: concise explanation with supporting data values\n"
-        "- Risk domain 2: concise explanation with supporting data values\n\n"
-        "Cover the most clinically relevant domains from: fall risk, volume/hydration/electrolytes, "
-        "renal function, cardiovascular risk, medication interactions, mental health/cognition.\n"
-        "Use plain text only — no markdown, no asterisks, no bold. Start with the highest-priority risk first.\n"
-        "Keep each bullet concise but data-rich. Do not invent data not present in the input."
-    )
-
-    completion = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": f"Generate a clinical risk summary for this patient:\n\n{context}"},
-        ],
-        temperature=0.3,
-        max_tokens=800,
-    )
-    summary_text = completion.choices[0].message.content.strip()
-
-    # 5. Upsert into IRIS (delete existing row, insert new)
-    conn = get_iris()
-    try:
-        cur = conn.cursor()
-        cur.execute("DELETE FROM MyApp.AISummary WHERE PatientID = ?", [patient_id])
-        cur.execute(
-            "INSERT INTO MyApp.AISummary (PatientID, SummaryText, UpdatedAt) VALUES (?, ?, NOW())",
-            [patient_id, summary_text],
-        )
-    finally:
-        conn.close()
-
-    return summary_text
-# async def clinician_overview():
-    # api_key = os.environ.get("OPENAI_API_KEY")
-    # if api_key:
-    #     set_default_openai_key(api_key)
-    #     set_tracing_disabled(True)
-    # else:
-    #     raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
-
-    # triage_desc = f"""
-    # ### ROLE: ELDERLY SYSTEMIC RISK ANALYST
-
-    # # CONTEXT:
-    # You are a Senior Clinical Data Scientist specializing in Geriatric Health. You analyze data from five distinct health monitoring systems (ECG, HR, Sleep, Hydration, and Nutrition) to create a unified safety and recovery profile for an elderly user.
- 
-    # # INTERPRETATION FRAMEWORK
-    # You must cross-reference the data provided using the following clinical logic:
-    # 1. **Hydration-Cardiac Link:** 
-    # - Correlate Smart Toilet `colorLevel` with ECG `sdnn_hrv_ms`. Dark urine (Level 5+) + low HRV (SDNN < 30) = High risk for orthostatic hypotension (dizziness when standing).
-    # 2. **Nutrition-Sleep-Stability Chain:** 
-    # - Connect `protein_intake` (Fridge) with `deep_pct` and `restless_moments` (Sleep). Low protein or skipped meals in the elderly often trigger poor deep sleep and increased nighttime restlessness, which is a fall risk.
-    # 3. **The Digestion Tax:** 
-    # - Compare Fridge `last_meal_time` with Sleep `avg_sleep_stress`. If dinner is late, explain how it prevents the heart rate from dropping, stealing recovery time.
-    # 4. **Geriatric Safety Flags:** 
-    # - **Critical:** "Appetite Loss" or "Skipped Meals" (Fridge) + "Rising Sleep Stress" (Sleep).
-    # - **Warning:** Low `spo2` (HR) + High `respiration` (HR/Sleep) + "Dehydration" (Toilet).
-
-    # # OUTPUT STRUCTURE
-    # Your response must follow this template:
-
-    # ---
-    # ### ⚠️ OVERALL RISK LEVEL: [LOW | ELEVATED | CRITICAL]
-    # **Primary Driver:** [Identify the #1 system causing the risk today]
-
-    # #### 1. THE "WHY" (Unified Insight)
-    # [A concise narrative explaining how the different data points are interacting. E.g., "The user is electrically stable but physically vulnerable due to under-fueling and dehydration."]
-
-    # #### 2. CROSS-SYSTEM CORRELATIONS
-    # * **[Link 1]:** (e.g., Nutrition vs. Sleep)
-    # * **[Link 2]:** (e.g., Hydration vs. Cardiac)
-
-    # #### 3. GUARDIAN ACTION ITEMS
-    # * **Immediate:** [Action to take now, e.g., Drink 500ml water]
-    # * **Daily Goal:** [Nutritional or activity adjustment]
-    # * **Watch For:** [Clinical symptom to observe, e.g., Dizziness, gait changes]
-    # ---
-    # """
-    # triage_agent = Agent(
-    #     name="Triage Agent",
-    #     instructions=triage_desc,
-    #     tools=[interprete_garmin, interprete_home_data],
-    #     model="gpt-5-mini"
-    # )
-    # summarise_request = f"Generate a summary of the patient's Garmin and Home Appliance data for their clinician to interprete."
-    # result = await Runner.run(triage_agent, summarise_request)
-    # triage_answer = result.final_output
-
-    # patient_desc = _get_patient_desc()
-    # risks = _get_clinical_risks()
-    # clinician_desc = f"""
-    # ### ROLE: Elder-care Clinical Assistant
-
-    # # CONTEXT: 
-    # You are a elder-care clinical assistant speaking directly to the following patient's clinician:
-
-    # {patient_desc}
-
-    # # TONE:
-    # Speak clearly and briefly, providing supporting data wherever possible. The clinician will want as much data as possible so as to perform the analysis themselves.
-
-    # # RESTRICTIONS:
-    # DO NOT try and provide any advise on further actions or perform any diagnoses yourself.
-    # Do not make clinical decisions, and do not invent data.
-
-    # # DATA SUMMARY: 
-
-    # {triage_answer}
-    # """
-    # clinical_agent = Agent(
-    #     name="Clinical Agent",
-    #     instructions=clinician_desc,
-    #     model="gpt-5-mini"
-    # )
-    # summary_request = "Provide a summary for a clinician to interprete of the patient's garmin and household data, and how this is relevant in a clinical context. Avoid returning too long of a message, your response should not require bullet points."
-    # result = await Runner.run(clinical_agent, summary_request)
-    # answer_text = result.final_output
-
-    # return {"answer": risks + "\n\n" + answer_text}
 
 # ── FHIR proxy endpoints ──────────────────────────────────────────────────────
 
@@ -1464,3 +861,409 @@ def get_fhir_bp_trend(patient_id: str = ""):
                 "diastolic": diastolic,
             })
     return results
+
+# ── AI response endpoints ─────────────────────────────────────────────────────
+
+# Patient summary could be generated via the UI during account creation in order to provide more details?
+def get_patient_desc(patient_id: str = ""):
+    return """
+           **Frank Larson**, 74-year-old man — retired civil engineer, widowed, living alone at home in Medfield, MA. He has:
+            - hypertension,
+            - hyperlipidemia,
+            - type 2 diabetes,
+            - severe right knee osteoarthritis — right total knee replacement (Mar 2024) with good recovery,
+            - recurrent orthostatic dizziness/near-falls with dehydration risk (noted Jan 2026; borderline hypernatremia, mild creatinine rise),
+            - and major depressive disorder (bereavement-related after spouse's death in Jan 2025; on sertraline).
+
+            Independent ambulation post-TKA; fall-prevention and hydration education in place.
+
+            His son **David** is his primary contact. His primary care provider is **Dr. Sarah Mitchell** (Medfield Family Health Center)."""
+    params = {
+        "_id": patient_id,
+        "_revinclude": [
+            "Condition:subject", 
+            "Encounter:subject",
+            "Observation:subject", 
+            "MedicationRequest:subject",
+            "Procedure:subject",
+            "Immunization:patient",
+            "Appointment:participant",
+            "CareTeam:subject",
+            "CarePlan:subject"
+        ]
+    }
+    patient_fhir = _fhir_get("Patient", params)
+    
+    client = get_openai_client()
+    if client is None:
+        raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
+    
+    example = """
+    **Eleanor Turner**, 82-year-old woman — retired schoolteacher, living alone in her apartment. She has: 
+    - active Parkinson's disease, 
+    - orthostatic hypotension, 
+    - age-related macular degeneration (AMD) - Missed AMD clinic appointment in Mar 2025, 
+    - osteoporosis, 
+    - type 2 diabetes, 
+    - prior neck-of-femur fracture (Feb 2024 total hip replacement), 
+    - and recent lobar pneumonia (Dec 2025). 
+
+    She uses a walking stick, and has home safety rails installed. 
+
+    Her daughter **Linda** lives 45 minutes away. Her primary care provider is **NP Davis**."""
+
+    response = client.chat.completions.create(
+        model="gpt-5", 
+        messages=[
+            {
+                "role": "system", 
+                "content": "You are an expert medical data analyst specializing in FHIR R4 working as part of a Smart Home Hub. "
+                            "When given a FHIR bundle, you should analyse the patient's medical history and generate a short summary of them to provide as context to other agents. "
+                            "The format of the answer should be plain text. "
+                            "Be clear and concise, only include whatever is most necessary. "
+                            "DO NOT try and provide any advise on further actions or perform any diagnoses yourself."
+            },
+            {
+                "role": "system",
+                "content": f"Your answer should follow the following template: \n{example}"
+                
+            },
+            {
+                "role": "user", 
+                "content": f"Analyze this FHIR bundle and provide a short summary of their medical history:\n\n{patient_fhir}"
+            }
+        ]
+    )
+    return response.choices[0].message.content
+
+@app.post("/api/answer")
+async def answer(payload: dict = Body(...)):
+    client = get_openai_client()
+    if client is None:
+        raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
+
+    user_text = (payload.get("text") or "").strip()
+    if not user_text:
+        raise HTTPException(status_code=400, detail="Empty input")
+
+    history = payload.get("messages") or []
+    history = history[-5:]
+    # history is like: [{"role":"user","content":"..."}, {"role":"assistant","content":"..."}]
+    
+    # frank_desc = get_patient_desc()
+    system_msg = {
+        "role": "system",
+        "content": (
+            "You are a calm, friendly elder-care assistant. "
+            "Speak clearly, briefly, and reassuringly. "
+            "DO NOT give medical diagnoses. "
+            "If unsure, suggest contacting a healthcare professional."
+            # f"You are replying to the following patient: {frank_desc}"
+        )
+    }
+
+    chat = [system_msg] + history + [{"role": "user", "content": user_text}]
+
+    completion = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=chat,
+        temperature=0.3,
+    )
+
+    answer_text = completion.choices[0].message.content.strip()
+    return {"answer": answer_text}
+
+@app.post("/api/answer/stream")
+async def answer_stream(payload: dict = Body(...)):
+    client = get_openai_client()
+    if client is None:
+        raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
+
+    user_text = (payload.get("text") or "").strip()
+    if not user_text:
+        raise HTTPException(status_code=400, detail="Empty input")
+
+    history = (payload.get("messages") or [])[-5:]
+
+    # Allow callers to inject a custom system prompt (e.g. RAG context with personal health data).
+    # Fall back to the generic elder-care prompt if none is provided.
+    custom_system = (payload.get("system") or "").strip()
+    
+    # frank_desc = get_patient_desc()
+    system_msg = {
+        "role": "system",
+        "content": custom_system if custom_system else (
+            "You are a calm, friendly elder-care assistant. "
+            "Speak clearly, briefly, and reassuringly. "
+            "DO NOT give medical diagnoses. "
+            "If unsure, suggest contacting a healthcare professional."
+            # f"You are replying to the following patient: {frank_desc}"
+        )
+    }
+
+    chat = [system_msg] + history + [{"role": "user", "content": user_text}]
+
+    def generate():
+        try:
+            stream = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=chat,
+                temperature=0.3,
+                stream=True,
+            )
+            for chunk in stream:
+                delta = chunk.choices[0].delta.content or ""
+                if delta:
+                    yield json.dumps({"delta": delta}) + "\n"
+        except Exception as e:
+            yield json.dumps({"error": str(e)}) + "\n"
+        yield json.dumps({"done": True}) + "\n"
+
+    return StreamingResponse(generate(), media_type="application/x-ndjson")
+
+@app.post("/api/transcribe")
+async def transcribe(file: UploadFile = File(...)):
+    client = get_openai_client()
+    if client is None:
+        return {"error": "OPENAI_API_KEY not set in api container"}
+
+    # Save uploaded audio temporarily
+    suffix = ".webm"
+    if file.filename and "." in file.filename:
+        suffix = "." + file.filename.split(".")[-1].lower()
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+        tmp.write(await file.read())
+        tmp_path = tmp.name
+
+    try:
+        with open(tmp_path, "rb") as f:
+            r = client.audio.transcriptions.create(
+                model="gpt-4o-mini-transcribe",
+                file=f,
+            )
+        return {"transcript": getattr(r, "text", "")}
+    except Exception as e:
+        print("Transcribe error:", repr(e))
+        return {"error": str(e)}
+    finally:
+        try:
+            os.remove(tmp_path)
+        except:
+            pass
+
+@app.post("/api/speak")
+async def speak(payload: dict = Body(...)):
+    client = get_openai_client()
+    if client is None:
+        raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
+
+    text = (payload.get("text") or "").strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="Empty text")
+
+    try:
+        audio = client.audio.speech.create(
+            model="gpt-4o-mini-tts",
+            # voice="alloy",
+            voice="marin",
+            input=text,
+        )
+        return Response(
+            content=audio.read(),
+            media_type="audio/mpeg",
+        )
+    except Exception as e:
+        print("TTS error:", repr(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/good_morning")
+def morning_message():
+    return """Good morning, Frank — I'm glad you're up. 
+                Your Garmin and home sensors show a very restless, short night of sleep, only one meal yesterday with low protein, and dark morning urine — that combination raises your dizziness/fall risk today. 
+                Please sip 250-500 ml of water slowly now, have a small protein snack (two eggs, turkey slices, or Greek yogurt are easy options), and avoid getting up or walking alone right away: sit for a minute before standing and take slow, supported steps if you need to move. 
+                Rest through the morning, try to add more fluids and a bit more protein over the next few hours, and if you feel faint, have chest pain, or become very confused, call emergency services or contact Dr. Mitchell (or David) right away."""
+    client = get_openai_client()
+    if client is None:
+        raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
+    
+    triage_desc = f"""
+    ### ROLE: ELDERLY SYSTEMIC RISK ANALYST
+
+    # CONTEXT:
+    You are a Senior Clinical Data Scientist specializing in Geriatric Health. You analyze data from five distinct health monitoring systems (ECG, HR, Sleep, Hydration, and Nutrition) to create a unified safety and recovery profile for an elderly user.
+ 
+    # INTERPRETATION FRAMEWORK
+    You must cross-reference the data provided using the following clinical logic:
+    1. **Hydration-Cardiac Link:** 
+    - Correlate Smart Toilet `colorLevel` with ECG `sdnn_hrv_ms`. Dark urine (Level 5+) + low HRV (SDNN < 30) = High risk for orthostatic hypotension (dizziness when standing).
+    2. **Nutrition-Sleep-Stability Chain:** 
+    - Connect `protein_intake` (Fridge) with `deep_pct` and `restless_moments` (Sleep). Low protein or skipped meals in the elderly often trigger poor deep sleep and increased nighttime restlessness, which is a fall risk.
+    3. **The Digestion Tax:** 
+    - Compare Fridge `last_meal_time` with Sleep `avg_sleep_stress`. If dinner is late, explain how it prevents the heart rate from dropping, stealing recovery time.
+    4. **Geriatric Safety Flags:** 
+    - **Critical:** "Appetite Loss" or "Skipped Meals" (Fridge) + "Rising Sleep Stress" (Sleep).
+    - **Warning:** Low `spo2` (HR) + High `respiration` (HR/Sleep) + "Dehydration" (Toilet).
+
+    # OUTPUT STRUCTURE
+    Your response must follow this template:
+
+    ---
+    ### ⚠️ OVERALL RISK LEVEL: [LOW | ELEVATED | CRITICAL]
+    **Primary Driver:** [Identify the #1 system causing the risk today]
+
+    #### 1. THE "WHY" (Unified Insight)
+    [A concise narrative explaining how the different data points are interacting. E.g., "The user is electrically stable but physically vulnerable due to under-fueling and dehydration."]
+
+    #### 2. CROSS-SYSTEM CORRELATIONS
+    * **[Link 1]:** (e.g., Nutrition vs. Sleep)
+    * **[Link 2]:** (e.g., Hydration vs. Cardiac)
+
+    #### 3. GUARDIAN ACTION ITEMS
+    * **Immediate:** [Action to take now, e.g., Drink 500ml water]
+    * **Daily Goal:** [Nutritional or activity adjustment]
+    * **Watch For:** [Clinical symptom to observe, e.g., Dizziness, gait changes]
+    ---
+    """
+    garmin_dict = interprete_garmin()
+    home_dict = interprete_home_data()
+    if garmin_dict.get("status") == "error" or home_dict.get("status") == "error":
+        garmin_data = "None"
+        home_data = "None"
+    else:
+        garmin_data = garmin_dict.get("data")
+        home_data = home_dict.get("data")
+    
+    response = client.chat.completions.create(
+        model="gpt-5-mini", 
+        messages=[
+            {
+                "role": "system", 
+                "content": triage_desc
+            },
+            {
+                "role": "system", 
+                "content": "The patient's Garmin data is: \n" + garmin_data
+            },
+            {
+                "role": "system", 
+                "content": "The patient's Home data is: \n" + home_data
+            },
+            {
+                "role": "user",
+                "content": "Generate a summary of the patient's Garmin and Home Appliance data for their clinician to interprete."
+
+            }
+        ]
+    )
+    triage_answer = response.choices[0].message.content
+
+    patient_desc = get_patient_desc()
+    wellbeing_desc = f"""
+    ### ROLE: Elder-care assitant
+
+    # CONTEXT: 
+    You are a calm, friendly elder-care assistant. You are speaking directly to the following patient:
+
+    {patient_desc}
+
+    # TONE:
+    Speak clearly, briefly, and reassuringly. 
+
+    # RESTRICTIONS:
+    DO NOT give medical diagnoses. 
+    If unsure, suggest contacting their healthcare professional.
+
+    # DATA SUMMARY: 
+
+    {triage_answer}
+    """
+    response = client.chat.completions.create(
+        model="gpt-5-mini", 
+        messages=[
+            {
+                "role": "system", 
+                "content": wellbeing_desc
+            },
+            {
+                "role": "user",
+                "content": "Provide a good morning message including a gentle summary of what the system has noticed based on their garmin and household data, and some advice for how best to behave today. "
+                            "Avoid returning too long of a message, your response should not require bullet points."
+
+            }
+        ]
+    )
+    answer_text = response.choices[0].message.content
+
+    return {"answer": answer_text}
+
+@app.get("/api/clinician_summary")
+def clinician_overview(patient_id: str = Query(...)):
+    conn = get_iris()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT TOP 1 SummaryText FROM MyApp.AISummary WHERE PatientID = ? ORDER BY UpdatedAt DESC",
+            [patient_id]
+        )
+        row = cur.fetchone()
+        return row[0] if row else ""
+    finally:
+        conn.close()
+
+@app.post("/api/clinician_summary/generate")
+def generate_clinician_summary(patient_id: str = Query(...)):
+    """This function analyses the Patient Bundle from the given FHIR file path to determine what conditions they are at risk for.
+    
+    returns: The short clinician appropriate summary"""
+    params = {
+        "_id": patient_id,
+        "_revinclude": [
+            "Condition:subject", 
+            "Encounter:subject",
+            "Observation:subject", 
+            "MedicationRequest:subject",
+            "Procedure:subject",
+            "Immunization:patient",
+            "Appointment:participant",
+            "CareTeam:subject",
+            "CarePlan:subject"
+        ]
+    }
+    patient_fhir = _fhir_get("Patient", params)
+    
+    client = get_openai_client()
+    if client is None:
+        raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
+    
+    response = client.chat.completions.create(
+        model="gpt-5", 
+        messages=[
+            {
+                "role": "system", 
+                "content": "You are an expert medical data analyst specializing in FHIR R4 speaking directly to a clinician. When given a FHIR bundle, you should analyse the patient's medical history to determine what are their clinical risks. "
+                            "The format of the answer should be plain text. "
+                            "Be clear and concise, only include conditions and problems that are high risk so that a clinician can interprete this quickly. "
+                            "DO NOT try and provide the clinician with any advise on further actions or perform any diagnoses yourself."
+            },
+            {
+                "role": "user", 
+                "content": f"Analyze this FHIR bundle and provide a short summary of their clinical risks:\n\n{patient_fhir}"
+            }
+        ]
+    )
+    summary_text = response.choices[0].message.content
+
+    # Upsert into IRIS (delete existing row, insert new)
+    conn = get_iris()
+    try:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM MyApp.AISummary WHERE PatientID = ?", [patient_id])
+        cur.execute(
+            "INSERT INTO MyApp.AISummary (PatientID, SummaryText, UpdatedAt) VALUES (?, ?, NOW())",
+            [patient_id, summary_text],
+        )
+    finally:
+        conn.close()
+
+    # return summary_text

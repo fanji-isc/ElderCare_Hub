@@ -329,7 +329,7 @@ const PhysicianView = () => {
     setSummaryLoading(true);
     setSummaryError(null);
 
-    fetch(`${API_BASE}/api/clinician_summary?patient_id=${encodeURIComponent(selectedId)}`)
+    fetch(`${API_BASE}/api/clinician_summary?patient_id=${selectedId}`)
       .then(r => {
         if (!r.ok) throw new Error("Could not load summary");
         return r.text();
@@ -352,7 +352,7 @@ const PhysicianView = () => {
     setSummaryError(null);
     try {
       const r = await fetch(
-        `${API_BASE}/api/clinician_summary/generate?patient_id=${encodeURIComponent(selectedId)}`,
+        `${API_BASE}/api/clinician_summary/generate?patient_id=${selectedId}`,
         { method: "POST" }
       );
       if (!r.ok) throw new Error("Failed to generate summary");
@@ -850,7 +850,7 @@ const PhysicianView = () => {
           </TabsContent>
 
           {/* ══════════════════════════════════════════════════════════
-               Tab 3 — AI Summary (placeholder)
+               Tab 2 — AI Summary 
           ══════════════════════════════════════════════════════════ */}
           <TabsContent value="ai">
             <Card className="overflow-hidden border-none shadow-none">
