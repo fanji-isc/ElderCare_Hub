@@ -53,7 +53,6 @@ function extractStress(day: any): number {
   return Math.round(Number(awake?.averageStressLevel ?? 0));
 }
 
-
 function extractSleep(sleepJson: any): number {
   if (!Array.isArray(sleepJson)) return 0;
   const latest = pickLatest(sleepJson.filter((x: any) =>
@@ -785,7 +784,6 @@ const ElderView = () => {
   const stressS    = stressStatusHelper(vitals.stressLevel);
   const hydrationS = hydrationStatusHelper(vitals.hydrationColorLevel);
   const gaitS      = gaitStatusHelper(gaitMetrics.symmetry, gaitMetrics.variability, gaitMetrics.speed, gaitMetrics.cadence, gaitMetrics.worseStride, gaitMetrics.worseGCT);
-
 
   const stressBarColor = stressS.status === "good" ? "bg-emerald-500" : stressS.status === "fair" ? "bg-amber-500" : "bg-rose-500";
 
