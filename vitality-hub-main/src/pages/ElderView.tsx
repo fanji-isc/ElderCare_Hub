@@ -53,7 +53,6 @@ function extractStress(day: any): number {
   return Math.round(Number(awake?.averageStressLevel ?? 0));
 }
 
-
 function extractSleep(sleepJson: any): number {
   if (!Array.isArray(sleepJson)) return 0;
   const latest = pickLatest(sleepJson.filter((x: any) =>
