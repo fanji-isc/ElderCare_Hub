@@ -785,7 +785,6 @@ const ElderView = () => {
   const hydrationS = hydrationStatusHelper(vitals.hydrationColorLevel);
   const gaitS      = gaitStatusHelper(gaitMetrics.symmetry, gaitMetrics.variability, gaitMetrics.speed, gaitMetrics.cadence, gaitMetrics.worseStride, gaitMetrics.worseGCT);
 
-
   const stressBarColor = stressS.status === "good" ? "bg-emerald-500" : stressS.status === "fair" ? "bg-amber-500" : "bg-rose-500";
 
   const renderModalContent = () => {
