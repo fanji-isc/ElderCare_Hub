@@ -52,11 +52,21 @@ def _get_patient_desc(patient_id: str = ""):
     #         Independent ambulation post-TKA; fall-prevention and hydration education in place.
 
     #         His son **David** is his primary contact. His primary care provider is **Dr. Sarah Mitchell** (Medfield Family Health Center)."""
-    patient_fhir = get_patient_bundle(patient_id)
-    if patient_fhir.get("status") == "success":
-        patient_fhir = patient_fhir.get("data")
-    else:
-        raise Exception(detail=patient_fhir.get("message"))
+    params = {
+        "_id": patient_id,
+        "_revinclude": [
+            "Condition:subject", 
+            "Encounter:subject",
+            "Observation:subject", 
+            "MedicationRequest:subject",
+            "Procedure:subject",
+            "Immunization:patient",
+            "Appointment:participant",
+            "CareTeam:subject",
+            "CarePlan:subject"
+        ]
+    }
+    patient_fhir = _fhir_get("Patient", params)
     
     client = get_openai_client()
     if client is None:
