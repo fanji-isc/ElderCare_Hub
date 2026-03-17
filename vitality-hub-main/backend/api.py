@@ -46,7 +46,6 @@ def get_ecg(patient_id: str = ""):
         # Fetch the combined record
         txt = irispy.classMethodValue("MyApp.Utils", "GetLatestJSONFile", patient_id)
         data = json.loads(txt) if txt else {}
-        
         # Only return the ECG part
         return data.get("ecg", {})
     finally:
@@ -57,9 +56,9 @@ def get_hr(patient_id: str = ""):
     conn = get_iris()
     try:
         irispy = iris.createIRIS(conn)
+        # Fetch the combined record
         txt = irispy.classMethodValue("MyApp.Utils", "GetLatestJSONFile", patient_id)
         data = json.loads(txt) if txt else {}
-        
         # Only return the Heart Rate part
         return data.get("hr", {})
     finally:
@@ -70,9 +69,10 @@ def get_sleep(patient_id: str = ""):
     conn = get_iris()
     try:
         irispy = iris.createIRIS(conn)
+        # Fetch the combined record
         txt = irispy.classMethodValue("MyApp.Utils", "GetLatestJSONFile", patient_id)
         data = json.loads(txt) if txt else {}
-        
+        # Only return the Sleep part
         return data.get("sleep", {})
     finally:
         conn.close()
@@ -82,9 +82,10 @@ def get_dailySummary(patient_id: str = ""):
     conn = get_iris()
     try:
         irispy = iris.createIRIS(conn)
+        # Fetch the combined record
         txt = irispy.classMethodValue("MyApp.Utils", "GetLatestJSONFile", patient_id)
         data = json.loads(txt) if txt else {}
-        
+        # Only return the Daily Summary part
         return data.get("dailySummary", {})
     finally:
         conn.close()
@@ -94,8 +95,10 @@ def get_toilet(patient_id: str = ""):
     conn = get_iris()
     try:
         irispy = iris.createIRIS(conn)
+        # Fetch the combined record
         txt = irispy.classMethodValue("MyApp.Utils", "GetLatestJSONFile", patient_id)
         data = json.loads(txt) if txt else {}
+        # Only return the Toilet part
         return data.get("toilet", [])
     finally:
         conn.close()
@@ -105,8 +108,10 @@ def get_gait(patient_id: str = ""):
     conn = get_iris()
     try:
         irispy = iris.createIRIS(conn)
+        # Fetch the combined record
         txt = irispy.classMethodValue("MyApp.Utils", "GetLatestJSONFile", patient_id)
         data = json.loads(txt) if txt else {}
+        # Only return the Gait part
         return data.get("gait", [])
     finally:
         conn.close()
@@ -116,8 +121,10 @@ def get_fridge(patient_id: str = ""):
     conn = get_iris()
     try:
         irispy = iris.createIRIS(conn)
+        # Fetch the combined record
         txt = irispy.classMethodValue("MyApp.Utils", "GetLatestJSONFile", patient_id)
         data = json.loads(txt) if txt else {}
+        # Only return the Fridge part
         return data.get("fridge", [])
     finally:
         conn.close()
@@ -127,8 +134,10 @@ def get_neighborhood(patient_id: str = ""):
     conn = get_iris()
     try:
         irispy = iris.createIRIS(conn)
+        # Fetch the combined record
         txt = irispy.classMethodValue("MyApp.Utils", "GetLatestJSONFile", patient_id)
         data = json.loads(txt) if txt else {}
+        # Only return the Neighborhood part
         return data.get("neighborhood", [])
     finally:
         conn.close()
@@ -138,8 +147,10 @@ def get_phone_calls(patient_id: str = ""):
     conn = get_iris()
     try:
         irispy = iris.createIRIS(conn)
+        # Fetch the combined record
         txt = irispy.classMethodValue("MyApp.Utils", "GetLatestJSONFile", patient_id)
         data = json.loads(txt) if txt else {}
+        # Only return the Phone Calls part
         return data.get("phoneCalls", [])
     finally:
         conn.close()
@@ -482,9 +493,9 @@ def interprete_garmin() -> dict:
         conn.close()
 
 def interprete_home_data() -> dict:
-    """This function retrieves a summary of the Patient's Toilet, Fridge, and Light Data from their smart home hub.
+    """This function retrieves a summary of the Patient's Toilet and Fridge Data from their smart home hub.
 
-    returns: Status of the execution of this function, and a dictionary of the 'Hydration Summary', 'Nutrition Summary', and 'Light Summary'."""
+    returns: Status of the execution of this function, and a dictionary of the 'Hydration Summary' and 'Nutrition Summary'."""
     def get_toiletdata(ToiletData):
         """
         Filters raw Smart Toilet data into a concise dictionary optimized for LLM analysis and summarization.
@@ -862,6 +873,154 @@ def get_fhir_bp_trend(patient_id: str = ""):
             })
     return results
 
+def get_fhir_care_teams(patient_id: str = ""):
+    bundle = _fhir_get("CareTeam", {"patient": patient_id, "status": "active"})
+    results = []
+    
+    for e in bundle.get("entry", []):
+        r = e["resource"]
+        
+        participants = []
+        for p in r.get("participant", []):
+            member = p.get("member", {}).get("display", "Unknown Member")
+            role_data = p.get("role", [{}])[0].get("coding", [{}])[0]
+            role = role_data.get("display") or p.get("role", [{}])[0].get("text", "Member")
+            participants.append(f"{member} ({role})")
+        
+        reasons = []
+        for code_obj in r.get("reasonCode", []):
+            reason_display = code_obj.get("coding", [{}])[0].get("display") or code_obj.get("text")
+            if reason_display:
+                reasons.append(reason_display)
+
+        orgs = [org.get("display", "Unknown Organization") for org in r.get("managingOrganization", [])]
+        
+        results.append({
+            "name": r.get("name", "Unnamed Team"),
+            "status": r.get("status"),
+            "managing_org": ", ".join(orgs) if orgs else "N/A",
+            "reasons": reasons,
+            "participants": participants,
+            "period_start": r.get("period", {}).get("start", "N/A")
+        })
+        
+    return results
+
+def get_fhir_care_plans(patient_id: str = ""):
+    bundle = _fhir_get("CarePlan", {"patient": patient_id, "status": "active", "_sort": "-date"})
+    results = []
+    
+    for e in bundle.get("entry", []):
+        r = e["resource"]
+        
+        category_obj = r.get("category", [{}])[0]
+        category_text = (
+            category_obj.get("text") or 
+            category_obj.get("coding", [{}])[0].get("display") or 
+            "General Care Plan"
+        )
+        
+        activities = []
+        for act in r.get("activity", []):
+            detail = act.get("detail", {})
+            desc = detail.get("description") or detail.get("code", {}).get("text", "Planned activity")
+            activities.append(desc)
+            
+        results.append({
+            "title": r.get("title") or category_text,
+            "category": category_text,
+            "status": r.get("status"),
+            "activities": activities,
+            "start_date": r.get("period", {}).get("start", "N/A")
+        })
+        
+    return results
+
+def get_patient_context(patient_id: str = ""):
+    conditions  = get_fhir_conditions(patient_id)
+    medications = get_fhir_medications(patient_id)
+    vitals      = get_fhir_vitals(patient_id)
+    labs        = get_fhir_labs(patient_id)
+    bp_trend    = get_fhir_bp_trend(patient_id)
+    care_plans  = get_fhir_care_plans(patient_id)
+    care_teams  = get_fhir_care_teams(patient_id)
+    
+    try:
+        patient_bundle = _fhir_get("Patient", {"_id": patient_id})
+        entries = patient_bundle.get("entry", [])
+        patient_info = _parse_patient(entries[0]["resource"]) if entries else {}
+    except Exception:
+        patient_info = {}
+
+    name = patient_info.get("name", "Unknown patient")
+    birth = patient_info.get("birthDate", "")
+    age_str = ""
+    if birth:
+        try:
+            bdate = datetime.strptime(birth, "%Y-%m-%d")
+            age_yrs = (datetime.now() - bdate).days // 365
+            age_str = f", {age_yrs} years old"
+        except Exception:
+            pass
+
+    cond_text  = "\n".join(
+        f"  - {c['display']} ({c['status']}, onset {c['onset'][:10] if c.get('onset') else 'unknown'})"
+        for c in conditions[:20]
+    ) or "  None"
+    med_text   = "\n".join(
+        f"  - {m['drug']} ({m['status']}, {m['dosage']})"
+        for m in medications[:20]
+    ) or "  None"
+    vital_text = "\n".join(
+        f"  - {v['display']}: {v['value']} {v['unit']} ({v['date'][:10] if v.get('date') else ''})"
+        for v in vitals[:20]
+    ) or "  None"
+    lab_text   = "\n".join(
+        f"  - {l['display']}: {l['value']} {l['unit']} ({l['date'][:10] if l.get('date') else ''})"
+        for l in labs[:20]
+    ) or "  None"
+    bp_text    = "\n".join(
+        f"  - {b['date'][:10]}: {b['systolic']}/{b['diastolic']} mmHg"
+        for b in bp_trend[-10:]
+    ) or "  None"
+    cteam_text = "\n".join(
+        f"  - {t['name']} (Status: {t['status']}, Org: {t['managing_org']}, Start: {t['period_start'][:10] if t.get('period_start') else 'unknown'})\n"
+        f"    Participants: {', '.join(t['participants']) if t['participants'] else 'None'}\n"
+        f"    Reasons: {', '.join(t['reasons']) if t['reasons'] else 'Not specified'}"
+        for t in care_teams
+    ) or "  None"
+    cplan_text = "\n".join(
+        f"  - {p['title']}: {p['category']} ({p['status']}, Start: {p['start_date'][:10] if p.get('start_date') else 'unknown'})\n"
+        f"    Activities: {', '.join(p['activities']) if p['activities'] else 'No activities listed'}"
+        for p in care_plans
+    ) or "  None"
+
+    context = f"""
+    Patient: {name} {age_str}
+
+    Conditions:
+    {cond_text}
+
+    Medications:
+    {med_text}
+
+    Recent Vitals:
+    {vital_text}
+
+    Recent Labs:
+    {lab_text}
+
+    Blood Pressure Trend (most recent readings):
+    {bp_text}
+
+    Care Plans:
+    {cplan_text}
+
+    Care Teams:
+    {cteam_text}
+    """
+    return context
+
 # ── AI response endpoints ─────────────────────────────────────────────────────
 
 # Patient summary could be generated via the UI during account creation in order to provide more details?
@@ -878,21 +1037,22 @@ def get_patient_desc(patient_id: str = ""):
             Independent ambulation post-TKA; fall-prevention and hydration education in place.
 
             His son **David** is his primary contact. His primary care provider is **Dr. Sarah Mitchell** (Medfield Family Health Center)."""
-    params = {
-        "_id": patient_id,
-        "_revinclude": [
-            "Condition:subject", 
-            "Encounter:subject",
-            "Observation:subject", 
-            "MedicationRequest:subject",
-            "Procedure:subject",
-            "Immunization:patient",
-            "Appointment:participant",
-            "CareTeam:subject",
-            "CarePlan:subject"
-        ]
-    }
-    patient_fhir = _fhir_get("Patient", params)
+    # params = {
+    #     "_id": patient_id,
+    #     "_revinclude": [
+    #         "Condition:subject", 
+    #         "Encounter:subject",
+    #         "Observation:subject", 
+    #         "MedicationRequest:subject",
+    #         "Procedure:subject",
+    #         "Immunization:patient",
+    #         "Appointment:participant",
+    #         "CareTeam:subject",
+    #         "CarePlan:subject"
+    #     ]
+    # }
+    # patient_fhir = _fhir_get("Patient", params)
+    patient_fhir = get_patient_context(patient_id)
     
     client = get_openai_client()
     if client is None:
@@ -1184,7 +1344,6 @@ def clinician_overview(patient_id: str = Query(...)):
     finally:
         conn.close()
 
-@app.post("/api/clinician_summary/generate")
 def generate_clinician_summary(patient_id: str = Query(...)):
     """This function analyses the Patient Bundle from the given FHIR file path to determine what conditions they are at risk for.
     
@@ -1232,6 +1391,56 @@ def generate_clinician_summary(patient_id: str = Query(...)):
     summary_text = response.output_text
 
     # Upsert into IRIS (delete existing row, insert new)
+    conn = get_iris()
+    try:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM MyApp.AISummary WHERE PatientID = ?", [patient_id])
+        cur.execute(
+            "INSERT INTO MyApp.AISummary (PatientID, SummaryText, UpdatedAt) VALUES (?, ?, NOW())",
+            [patient_id, summary_text],
+        )
+    finally:
+        conn.close()
+
+    return summary_text
+
+@app.post("/api/clinician_summary/generate")
+def generate_clinician_summary_fast(patient_id: str = Query(...)):
+    patient_fhir = get_patient_context(patient_id)
+
+    client = get_openai_client()
+    if not client:
+        raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
+
+    medical_analyst = f"""
+    # ROLE: FHIR R4 Expert
+
+    # CONTEXT: 
+    You are an expert medical data analyst specializing in FHIR R4 speaking directly to a clinician. When given a FHIR bundle, you should analyse the patient's medical history to determine what are their clinical risks.
+    Cover the most clinically relevant domains from: fall risk, volume/hydration/electrolytes, renal function, cardiovascular risk, medication interactions, mental health/cognition.
+
+	# RESPONSE STRUCTURE:
+    The format of the answer should be plain text — no markdown, no asterisks, no bold. Start with the highest-priority risk first.
+    Keep each explanation concise but data-rich. Do not invent data not present in the input.
+    Format your response exactly like this example — a titled header line, then dash-prefixed bullets:
+    
+    Clinical risk summary (Name, Age):
+    - Risk domain 1: concise explanation with supporting data values
+    - Risk domain 2: concise explanation with supporting data values
+    ...
+
+    # TONE:
+    Be clear and concise, only include conditions and problems that are high risk so that a clinician can interprete this quickly. 
+    DO NOT try and provide the clinician with any advise on further actions or perform any diagnoses yourself. 
+    """
+
+    response = client.responses.create(
+        model="gpt-5-mini",
+        instructions = medical_analyst,
+        input = f"Analyze this FHIR bundle and provide a short summary of their clinical risks:\n\n{patient_fhir}"
+    )
+    summary_text = response.output_text
+
     conn = get_iris()
     try:
         cur = conn.cursor()
