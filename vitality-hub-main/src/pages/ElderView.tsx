@@ -12,7 +12,7 @@ import {
   Users, HeartHandshake, ChevronDown, ChevronUp,
   Mic, Activity, Heart, Moon, Footprints, Volume2,
   ShieldAlert, Brain, Calendar,
-  Utensils, Shield, Droplets, Pill, ShieldCheck, AlertCircle, AlertTriangle, Maximize2,
+  Utensils, Shield, Droplets, Pill, Maximize2,
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
