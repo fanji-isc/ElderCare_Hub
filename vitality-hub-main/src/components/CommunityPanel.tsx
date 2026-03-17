@@ -179,7 +179,7 @@ export function CommunityPanel({ section = "all" }: { section?: CommunitySection
       .finally(() => setLoading(false));
   }, []);
 
-  // Listen for NOHA booking a class via voice command — fires when NOHA responds with [[JOIN:id]]
+  // Listen for NHH booking a class via voice command — fires when NHH responds with [[JOIN:id]]
   useEffect(() => {
     const handler = (e: Event) => {
       const id = (e as CustomEvent<{ id: number }>).detail.id;
@@ -188,12 +188,12 @@ export function CommunityPanel({ section = "all" }: { section?: CommunitySection
         const next = new Set(prev);
         next.add(id);
         const act = activitiesRef.current.find((a) => a.id === id);
-        toast.success(`NOHA signed you up for ${act?.title ?? "the activity"}!`);
+        toast.success(`NHH signed you up for ${act?.title ?? "the activity"}!`);
         return next;
       });
     };
-    window.addEventListener("noha-join-activity", handler);
-    return () => window.removeEventListener("noha-join-activity", handler);
+    window.addEventListener("NHH-join-activity", handler);
+    return () => window.removeEventListener("NHH-join-activity", handler);
   }, []);
 
   const handleHelp = (id: number, name: string) => {
