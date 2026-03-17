@@ -873,7 +873,6 @@ def get_fhir_bp_trend(patient_id: str = ""):
             })
     return results
 
-@app.get("/api/fhir/care-teams")
 def get_fhir_care_teams(patient_id: str = ""):
     bundle = _fhir_get("CareTeam", {"patient": patient_id, "status": "active"})
     results = []
@@ -907,7 +906,6 @@ def get_fhir_care_teams(patient_id: str = ""):
         
     return results
 
-@app.get("/api/fhir/care-plans")
 def get_fhir_care_plans(patient_id: str = ""):
     bundle = _fhir_get("CarePlan", {"patient": patient_id, "status": "active", "_sort": "-date"})
     results = []
