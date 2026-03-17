@@ -460,19 +460,19 @@ def interprete_garmin() -> dict:
 
         ecg_data = get_ecgdata(raw_ecg_data)
         ecg_response = client.responses.create(
-            model="gpt-5.2",
+            model="gpt-o4-mini",
             input= ecg_analyst + json.dumps(ecg_data)
         )
 
         hr_data = get_hrdata(raw_hr_data)
         hr_response = client.responses.create(
-            model="gpt-5.2",
+            model="gpt-o4-mini",
             input= hr_coach + json.dumps(hr_data)
         )
 
         sleep_data = get_sleepdata(raw_sleep_data)
         sleep_response = client.responses.create(
-            model="gpt-5.2",
+            model="gpt-o4-mini",
             input= sleep_coach + json.dumps(sleep_data)
         )
         return {"status": "success", "data": {"ECG Summary": ecg_response.output_text, "HR Summary": hr_response.output_text, "Sleep Summary": sleep_response.output_text}}
@@ -617,13 +617,13 @@ def interprete_home_data() -> dict:
     
         toilet_data = get_toiletdata(raw_toilet_data)
         toilet_response = client.responses.create(
-            model="gpt-5.2",
+            model="gpt-o4-mini",
             input= hydration_coach + json.dumps(toilet_data)
         )
 
         fridge_data, inventory_str = get_fridgedata(raw_fridge_data)
         fridge_response = client.responses.create(
-            model="gpt-5.2",
+            model="gpt-o4-mini",
             input= nutrition_coach + f"Current inventory: \n{inventory_str}\n\n Fridge Data: \n{json.dumps(fridge_data)}"
         )
 
@@ -897,44 +897,34 @@ def get_patient_desc(patient_id: str = ""):
     client = get_openai_client()
     if client is None:
         raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
-    
-    example = """
-    **Eleanor Turner**, 82-year-old woman — retired schoolteacher, living alone in her apartment. She has: 
-    - active Parkinson's disease, 
-    - orthostatic hypotension, 
-    - age-related macular degeneration (AMD) - Missed AMD clinic appointment in Mar 2025, 
-    - osteoporosis, 
-    - type 2 diabetes, 
-    - prior neck-of-femur fracture (Feb 2024 total hip replacement), 
-    - and recent lobar pneumonia (Dec 2025). 
 
-    She uses a walking stick, and has home safety rails installed. 
+    medical_analyst = """You are an expert medical data analyst specializing in FHIR R4 working as part of a Smart Home Hub. 
+                        When given a FHIR bundle, you should analyse the patient's medical history and generate a short summary of them to provide as context to other agents. 
+                        The format of the answer should be plain text. 
+                        Be clear and concise, only include whatever is most necessary. 
+                        DO NOT try and provide any advise on further actions or perform any diagnoses yourself.
 
-    Her daughter **Linda** lives 45 minutes away. Her primary care provider is **NP Davis**."""
+                        Your answer should follow the following template: 
+                        **Eleanor Turner**, 82-year-old woman — retired schoolteacher, living alone in her apartment. She has: 
+                            - active Parkinson's disease, 
+                            - orthostatic hypotension, 
+                            - age-related macular degeneration (AMD) - Missed AMD clinic appointment in Mar 2025, 
+                            - osteoporosis, 
+                            - type 2 diabetes, 
+                            - prior neck-of-femur fracture (Feb 2024 total hip replacement), 
+                            - and recent lobar pneumonia (Dec 2025). 
 
-    response = client.chat.completions.create(
-        model="gpt-5", 
-        messages=[
-            {
-                "role": "system", 
-                "content": "You are an expert medical data analyst specializing in FHIR R4 working as part of a Smart Home Hub. "
-                            "When given a FHIR bundle, you should analyse the patient's medical history and generate a short summary of them to provide as context to other agents. "
-                            "The format of the answer should be plain text. "
-                            "Be clear and concise, only include whatever is most necessary. "
-                            "DO NOT try and provide any advise on further actions or perform any diagnoses yourself."
-            },
-            {
-                "role": "system",
-                "content": f"Your answer should follow the following template: \n{example}"
-                
-            },
-            {
-                "role": "user", 
-                "content": f"Analyze this FHIR bundle and provide a short summary of their medical history:\n\n{patient_fhir}"
-            }
-        ]
+                        She uses a walking stick, and has home safety rails installed. 
+
+                        Her daughter **Linda** lives 45 minutes away. Her primary care provider is **NP Davis**.
+                        """
+    response = client.responses.create(
+        model="gpt-5-mini",
+        instructions = medical_analyst,
+        input= f"Analyze this FHIR bundle and provide a short summary of their medical history:\n\n{patient_fhir}"
     )
-    return response.choices[0].message.content
+    
+    return response.output_text
 
 @app.post("/api/answer")
 async def answer(payload: dict = Body(...)):
@@ -1087,11 +1077,21 @@ def morning_message():
     if client is None:
         raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
     
+    garmin_dict = interprete_garmin()
+    home_dict = interprete_home_data()
+    if garmin_dict.get("status") == "error" or home_dict.get("status") == "error":
+        garmin_data = "None"
+        home_data = "None"
+    else:
+        garmin_data = garmin_dict.get("data")
+        home_data = home_dict.get("data")
+
     triage_desc = f"""
     ### ROLE: ELDERLY SYSTEMIC RISK ANALYST
 
     # CONTEXT:
     You are a Senior Clinical Data Scientist specializing in Geriatric Health. You analyze data from five distinct health monitoring systems (ECG, HR, Sleep, Hydration, and Nutrition) to create a unified safety and recovery profile for an elderly user.
+    Your goal is to generate a summary of the patient's Garmin and Home Appliance data for their clinician to interprete.
  
     # INTERPRETATION FRAMEWORK
     You must cross-reference the data provided using the following clinical logic:
@@ -1124,41 +1124,23 @@ def morning_message():
     * **Daily Goal:** [Nutritional or activity adjustment]
     * **Watch For:** [Clinical symptom to observe, e.g., Dizziness, gait changes]
     ---
+
+    # INPUT:    
+    1. The patient's Garmin data is: 
+    {garmin_data}
+
+    2. The patient's Home data is: 
+    {home_data}
     """
-    garmin_dict = interprete_garmin()
-    home_dict = interprete_home_data()
-    if garmin_dict.get("status") == "error" or home_dict.get("status") == "error":
-        garmin_data = "None"
-        home_data = "None"
-    else:
-        garmin_data = garmin_dict.get("data")
-        home_data = home_dict.get("data")
-    
-    response = client.chat.completions.create(
-        model="gpt-5-mini", 
-        messages=[
-            {
-                "role": "system", 
-                "content": triage_desc
-            },
-            {
-                "role": "system", 
-                "content": "The patient's Garmin data is: \n" + garmin_data
-            },
-            {
-                "role": "system", 
-                "content": "The patient's Home data is: \n" + home_data
-            },
-            {
-                "role": "user",
-                "content": "Generate a summary of the patient's Garmin and Home Appliance data for their clinician to interprete."
-
-            }
-        ]
+    response = client.responses.create(
+        model="gpt-o4-mini",
+        instructions = medical_analyst,
+        input = "Generate a summary of the patient's Garmin and Home Appliance data for their clinician to interprete."
     )
-    triage_answer = response.choices[0].message.content
-
+    
+    triage_answer = response.output_text
     patient_desc = get_patient_desc()
+
     wellbeing_desc = f"""
     ### ROLE: Elder-care assitant
 
@@ -1178,22 +1160,13 @@ def morning_message():
 
     {triage_answer}
     """
-    response = client.chat.completions.create(
-        model="gpt-5-mini", 
-        messages=[
-            {
-                "role": "system", 
-                "content": wellbeing_desc
-            },
-            {
-                "role": "user",
-                "content": "Provide a good morning message including a gentle summary of what the system has noticed based on their garmin and household data, and some advice for how best to behave today. "
-                            "Avoid returning too long of a message, your response should not require bullet points."
-
-            }
-        ]
+    response = client.responses.create(
+        model="gpt-5-mini",
+        instructions = wellbeing_desc,
+        input = "Provide a good morning message including a gentle summary of what the system has noticed based on their garmin and household data, and some advice for how best to behave today. "
+                "Avoid returning too long of a message, your response should not require bullet points."
     )
-    answer_text = response.choices[0].message.content
+    answer_text = response.output_text
 
     return {"answer": answer_text}
 
@@ -1236,23 +1209,27 @@ def generate_clinician_summary(patient_id: str = Query(...)):
     if client is None:
         raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
     
-    response = client.chat.completions.create(
-        model="gpt-5", 
-        messages=[
-            {
-                "role": "system", 
-                "content": "You are an expert medical data analyst specializing in FHIR R4 speaking directly to a clinician. When given a FHIR bundle, you should analyse the patient's medical history to determine what are their clinical risks. "
-                            "The format of the answer should be plain text. "
-                            "Be clear and concise, only include conditions and problems that are high risk so that a clinician can interprete this quickly. "
-                            "DO NOT try and provide the clinician with any advise on further actions or perform any diagnoses yourself."
-            },
-            {
-                "role": "user", 
-                "content": f"Analyze this FHIR bundle and provide a short summary of their clinical risks:\n\n{patient_fhir}"
-            }
-        ]
+    medical_analyst = f"""
+    # ROLE: FHIR R4 Expert
+
+    # CONTEXT: 
+    You are an expert medical data analyst specializing in FHIR R4 speaking directly to a clinician. When given a FHIR bundle, you should analyse the patient's medical history to determine what are their clinical risks.
+
+	# RESPONSE STRUCTURE:
+    The format of the answer should be plain text. 
+    In your response, you should start with the following header, filling in the appropriate patient details 
+    ## Clinical risk summary (Patient Name, Gender, DOB):
+    
+    # TONE:
+    Be clear and concise, only include conditions and problems that are high risk so that a clinician can interprete this quickly. 
+    DO NOT try and provide the clinician with any advise on further actions or perform any diagnoses yourself. 
+    """
+    response = client.responses.create(
+        model="gpt-5-mini",
+        instructions = medical_analyst,
+        input = f"Analyze this FHIR bundle and provide a short summary of their clinical risks:\n\n{patient_fhir}"
     )
-    summary_text = response.choices[0].message.content
+    summary_text = response.output_text
 
     # Upsert into IRIS (delete existing row, insert new)
     conn = get_iris()
@@ -1266,4 +1243,4 @@ def generate_clinician_summary(patient_id: str = Query(...)):
     finally:
         conn.close()
 
-    # return summary_text
+    return summary_text
