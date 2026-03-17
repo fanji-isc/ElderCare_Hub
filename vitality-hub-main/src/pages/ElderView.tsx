@@ -380,10 +380,10 @@ const ElderView = () => {
   const [stepHistory, setStepHistory] = useState<{ day: string; steps: number }[]>([]);
   const [openModal, setOpenModal] = useState<string | null>(null);
 
-  // NOHA voice state
+  // NHH voice state
   const [isRecording, setIsRecording] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
-  const [nohaStatus, setNohaStatus] = useState("");
+  const [NHHStatus, setNHHStatus] = useState("");
   const [messages, setMessages] = useState<Msg[]>([]);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
@@ -477,7 +477,7 @@ const ElderView = () => {
 
   const buildHealthContext = (v: Vitals): string => {
     const lines: string[] = [
-      "You are NOHA, a warm and caring AI health companion for Frank, an elderly person living independently.",
+      "You are NHH, a warm and caring AI health companion for Frank, an elderly person living independently.",
       "",
       "Frank's current health data (from his wearable sensors and smart home devices):",
     ];
@@ -569,7 +569,7 @@ const ElderView = () => {
       }
       if (v.fallRiskAlert) dataLines.push(`- COMBINED FALL RISK ALERT: gait irregularities together with dehydration significantly increase fall risk today`);
       prompt = dataLines.length
-        ? `You are NOHA, a warm and caring safety companion for Frank, an elderly person living independently.
+        ? `You are NHH, a warm and caring safety companion for Frank, an elderly person living independently.
 
       Here is Frank's fall-risk evidence right now:
       ${dataLines.join("\n")}
@@ -579,7 +579,7 @@ const ElderView = () => {
       Then tell him clearly whether he needs to be extra careful today.
       If there is a COMBINED FALL RISK ALERT, say it first, explain whether his gait or hydration are concerning, and give him 2 simple practical tips (e.g. drink a glass of water once he gets up, move slowly, hold handrails).
       Keep it to 4-5 sentences. Address him as Frank.`
-        : `You are NOHA. Warmly reassure Frank that his walking looks steady today and encourage him to keep moving safely and looking after himself. One sentence only. Don't be patronising. Address him as Frank.`;
+        : `You are NHH. Warmly reassure Frank that his walking looks steady today and encourage him to keep moving safely and looking after himself. One sentence only. Don't be patronising. Address him as Frank.`;
 
     } else {
       if (v.sleepHours) {
@@ -612,7 +612,7 @@ const ElderView = () => {
       const socialWithdrawal = v.phoneCallTrend.length >= 3 &&
         v.phoneCallTrend[v.phoneCallTrend.length - 1] < v.phoneCallTrend[0] * 0.4;
       const concernCount = [poorSleep, skippedMeals, socialWithdrawal].filter(Boolean).length;
-      prompt = `You are NOHA, Frank's warm and caring AI companion. Frank is an elderly person living independently. You have been watching over him and you are genuinely concerned.
+      prompt = `You are NHH, Frank's warm and caring AI companion. Frank is an elderly person living independently. You have been watching over him and you are genuinely concerned.
 
                 Here is what you know about Frank today:
                 ${dataLines.join("\n")}
@@ -924,7 +924,7 @@ const ElderView = () => {
     if (isRecording || isThinking) return;
     unlockAudio();
     try {
-      setNohaStatus("Listening…");
+      setNHHStatus("Listening…");
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
       const mime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
@@ -938,10 +938,10 @@ const ElderView = () => {
       recorder.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
       recorder.onstop = async () => {
         setIsRecording(false);
-        setNohaStatus("Transcribing…");
+        setNHHStatus("Transcribing…");
         const blob = new Blob(chunksRef.current, { type: mime || "audio/webm" });
         if (blob.size < 2000) {
-          setNohaStatus("Too short — try again");
+          setNHHStatus("Too short — try again");
           streamRef.current?.getTracks().forEach((t) => t.stop());
           streamRef.current = null;
           return;
@@ -952,14 +952,14 @@ const ElderView = () => {
           const res = await fetch(`${API_BASE}/api/transcribe`, { method: "POST", body: fd });
           const ct = res.headers.get("content-type") || "";
           const data: any = ct.includes("application/json") ? await res.json() : { error: await res.text() };
-          if (!res.ok || data?.error) { setNohaStatus("Transcription failed"); return; }
+          if (!res.ok || data?.error) { setNHHStatus("Transcription failed"); return; }
           const text = String(data?.transcript || "").trim();
           if (!text) {
-            setNohaStatus("I didn't catch that — please try again");
+            setNHHStatus("I didn't catch that — please try again");
             return;
           }
 
-          setNohaStatus("");
+          setNHHStatus("");
           const nextMessages: Msg[] = [...messagesRef.current, { role: "user", content: text }];
           setMessages([...nextMessages, { role: "assistant", content: "" }]);
           setIsThinking(true);
@@ -996,12 +996,12 @@ const ElderView = () => {
             if (buf && !ttsCtrl.signal.aborted) await decodeAndPlay(buf, ttsCtrl.signal);
             if (joinMatch) {
               const activityId = parseInt(joinMatch[1], 10);
-              window.dispatchEvent(new CustomEvent("noha-join-activity", { detail: { id: activityId } }));
+              window.dispatchEvent(new CustomEvent("NHH-join-activity", { detail: { id: activityId } }));
               setOpenPanel("activity");
             }
           }
         } catch {
-          setNohaStatus("Network error");
+          setNHHStatus("Network error");
           setMessages((prev) => [...prev, { role: "assistant", content: "Sorry — network error." }]);
         } finally {
           setIsThinking(false);
@@ -1012,7 +1012,7 @@ const ElderView = () => {
       recorder.start();
       setIsRecording(true);
     } catch {
-      setNohaStatus("Mic permission denied");
+      setNHHStatus("Mic permission denied");
     }
   };
 
@@ -1040,7 +1040,7 @@ const ElderView = () => {
           </h2>
         </div>
 
-        {/* ── NOHA Hold-to-Talk Button ────────────────────────────────── */}
+        {/* ── NHH Hold-to-Talk Button ────────────────────────────────── */}
         <div className="mx-auto mb-4 max-w-2xl">
           <button
             onPointerDown={startRecording}
@@ -1066,14 +1066,14 @@ const ElderView = () => {
             </div>
             <div>
               <p className={`text-4xl font-display font-bold leading-tight ${isRecording ? "text-white" : "text-indigo-900"}`}>
-                {isRecording ? "Listening…" : isThinking ? "NOHA is thinking…" : "Talk to NOHA"}
+                {isRecording ? "Listening…" : isThinking ? "NHH is thinking…" : "Talk to NHH"}
               </p>
               <p className={`mt-2 text-xl ${isRecording ? "text-white/80" : "text-indigo-500"}`}>
                 {isRecording
                   ? "Release to send"
                   : isThinking
                   ? messages.length === 0 ? "Preparing your morning check-in…" : "Getting your answer…"
-                  : nohaStatus || "Hold to speak"}
+                  : NHHStatus || "Hold to speak"}
               </p>
             </div>
           </button>
@@ -1107,7 +1107,7 @@ const ElderView = () => {
                 {messages.map((m, i) => (
                   <div key={i} className={`flex gap-3 ${m.role === "user" ? "flex-row-reverse" : ""}`}>
                     <span className={`shrink-0 text-base font-bold ${m.role === "user" ? "text-indigo-700" : "text-violet-700"}`}>
-                      {m.role === "user" ? "You" : "NOHA"}
+                      {m.role === "user" ? "You" : "NHH"}
                     </span>
                     <div className="flex items-start gap-2">
                       <p className={`rounded-2xl px-4 py-2 text-base leading-relaxed ${
