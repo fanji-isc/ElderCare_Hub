@@ -10,7 +10,7 @@
 - Skips meals or eats the same simple things
 - Sleeps irregularly — wakes at 2–3am, can't fall back asleep, stays in bed until late
 - Tells his son **David** he's "fine" every Sunday phone call — the calls have been getting shorter
-- Was recently screened for mild depression by **Dr. Kim** — not on medication yet, but being monitored
+- Was recently screened for mild depression by **Dr. Sarah Mitchell** — not on medication yet, but being monitored
 
 **Medical background:**
 - Right knee replacement surgery (10 months ago — recovery went well, but his gait has never fully returned to normal)
@@ -40,16 +40,16 @@ Frank hasn't gotten out of bed yet. NHH has been working overnight — and NHH, 
 
 ---
 
-## Panel 1 — Care Provider View (Dr. Kim's Dashboard)
+## Panel 1 — Care Provider View (Dr. Sarah Mitchell's Dashboard)
 
-> "Here's what Dr. Kim sees when she logs in — two sections: Frank's full medical record on the left, NHH's AI summary on the right."
+> "Here's what Dr. Sarah Mitchell sees when she logs in — two sections: Frank's full medical record on the left, NHH's AI summary on the right."
 
 ---
 
 ### Medical Record
 
 **Patient:** Frank, 74 · Male · DOB: March 1951
-**Primary care:** Dr. Kim · Last visit: 6 weeks ago
+**Primary care:** Dr. Sarah Mitchell · Last visit: 6 weeks ago
 **Next scheduled:** 3 weeks out
 
 **Diagnoses on file:**
@@ -91,7 +91,7 @@ Frank hasn't gotten out of bed yet. NHH has been working overnight — and NHH, 
 
 ---
 
-Dr. Kim sends a care note to Frank's file, places a call flag for this morning, and submits the PT referral.
+Dr. Sarah Mitchell sends a care note to Frank's file, places a call flag for this morning, and submits the PT referral.
 
 ---
 
@@ -117,7 +117,7 @@ He doesn't need the clinical details. He just knows to check in.
 
 At 7:02am, before Frank says a word, NHH speaks:
 
-> "Good morning, Frank. It's Tuesday, and I've been keeping an eye on you overnight. A few things I want to share. You had a restless night — you woke around 2:30am and your heart was working harder than usual. I also noticed yesterday afternoon your walking looked different — slower and uneven, with your right leg doing less of the work than usual. I suspect your knee is bothering you. Now, before you get up — your smart toilet detected this morning that you're significantly dehydrated. Please drink a full glass of water right now, before you do anything else. This is important because your metoprolol can cause dizziness when you stand up, and being dehydrated makes that dizziness much more likely to happen. Drinking water first can help prevent a dizzy spell when you get out of bed. Dr. Kim has been notified, and David left you a message. Take your time getting up — don't rush. How are you feeling right now?"
+> "Good morning, Frank. It's Tuesday, and I've been keeping an eye on you overnight. A few things I want to share. You had a restless night — you woke around 2:30am and your heart was working harder than usual. I also noticed yesterday afternoon your walking looked different — slower and uneven, with your right leg doing less of the work than usual. I suspect your knee is bothering you. Now, before you get up — your smart toilet detected this morning that you're significantly dehydrated. Please drink a full glass of water right now, before you do anything else. This is important because your metoprolol can cause dizziness when you stand up, and being dehydrated makes that dizziness much more likely to happen. Drinking water first can help prevent a dizzy spell when you get out of bed. Dr. Sarah Mitchell has been notified, and David left you a message. Take your time getting up — don't rush. How are you feeling right now?"
 
 Frank didn't have to ask anything. NHH came to him.
 
@@ -145,7 +145,7 @@ Frank didn't have to ask anything. NHH came to him.
 - Right-leg gait asymmetry flagged Monday at 3:45pm — 15 hours before the high-risk window
 - Smart toilet confirmed dehydration at 6:45am; fridge data showed two days of minimal fluid intake
 - NHH checked in at 7am unprompted — named the medication risk, addressed hydration, advised slow movement, alerted David
-- Dr. Kim reviewed the full picture before her first patient — PT referral sent, hydration plan added to file
+- Dr. Sarah Mitchell reviewed the full picture before her first patient — PT referral sent, hydration plan added to file
 - Frank got up slowly, drank his water, took a short careful walk. Used his cane. Called David.
 
 ---

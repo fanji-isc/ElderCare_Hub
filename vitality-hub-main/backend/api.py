@@ -1100,7 +1100,7 @@ async def answer(payload: dict = Body(...)):
     history = history[-5:]
     # history is like: [{"role":"user","content":"..."}, {"role":"assistant","content":"..."}]
     
-    # frank_desc = get_patient_desc()
+    frank_desc = get_patient_desc()
     system_msg = {
         "role": "system",
         "content": (
@@ -1108,7 +1108,7 @@ async def answer(payload: dict = Body(...)):
             "Speak clearly, briefly, and reassuringly. "
             "DO NOT give medical diagnoses. "
             "If unsure, suggest contacting a healthcare professional."
-            # f"You are replying to the following patient: {frank_desc}"
+            f"You are replying to the following patient: {frank_desc}"
         )
     }
 
@@ -1139,7 +1139,7 @@ async def answer_stream(payload: dict = Body(...)):
     # Fall back to the generic elder-care prompt if none is provided.
     custom_system = (payload.get("system") or "").strip()
     
-    # frank_desc = get_patient_desc()
+    frank_desc = get_patient_desc()
     system_msg = {
         "role": "system",
         "content": custom_system if custom_system else (
@@ -1147,7 +1147,7 @@ async def answer_stream(payload: dict = Body(...)):
             "Speak clearly, briefly, and reassuringly. "
             "DO NOT give medical diagnoses. "
             "If unsure, suggest contacting a healthcare professional."
-            # f"You are replying to the following patient: {frank_desc}"
+            f"You are replying to the following patient: {frank_desc}"
         )
     }
 
