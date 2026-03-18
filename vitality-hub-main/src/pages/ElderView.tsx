@@ -21,6 +21,8 @@ import {
 
 const API_BASE = "http://localhost:3001";
 const PATIENT_ID = "PATIENT_001";
+const first_name = "Frank"
+const last_name = "Larson"
 
 type Vitals = {
   heartRate: number;
@@ -256,9 +258,9 @@ function MedicationDetail() {
         const patientsRes = await fetch(`${API_BASE}/api/fhir/patients`);
         if (!patientsRes.ok) throw new Error("Could not load patient list");
         const patients: { id: string; name: string }[] = await patientsRes.json();
-        const frank = patients.find(p => p.name.toLowerCase().includes("frank") && p.name.toLowerCase().includes("larson"));
-        if (!frank) throw new Error("Frank Larson not found in FHIR patient list");
-        const medRes = await fetch(`${API_BASE}/api/fhir/medications?patient_id=${encodeURIComponent(frank.id)}`);
+        const frank = patients.find(p => p.name.toLowerCase().includes(first_name.toLowerCase()) && p.name.toLowerCase().includes(last_name.toLowerCase()));
+        if (!frank) throw new Error(`${first_name} ${last_name} not found in FHIR patient list`);
+        const medRes = await fetch(`${API_BASE}/api/fhir/medications?patient_id=${frank.id}`);
         if (!medRes.ok) throw new Error("Medication fetch failed");
         const data: Med[] = await medRes.json();
         setMeds(Array.isArray(data) ? data : []);
@@ -315,9 +317,9 @@ function ElderAppointments() {
         const patientsRes = await fetch(`${API_BASE}/api/fhir/patients`);
         if (!patientsRes.ok) throw new Error("Could not load patient list");
         const patients: { id: string; name: string }[] = await patientsRes.json();
-        const frank = patients.find(p => p.name.toLowerCase().includes("frank") && p.name.toLowerCase().includes("larson"));
-        if (!frank) throw new Error("Frank Larson not found in FHIR patient list");
-        const apptRes = await fetch(`${API_BASE}/api/fhir/appointments?patient_id=${encodeURIComponent(frank.id)}`);
+        const frank = patients.find(p => p.name.toLowerCase().includes(first_name.toLowerCase()) && p.name.toLowerCase().includes(last_name.toLowerCase()));
+        if (!frank) throw new Error(`${first_name} ${last_name} not found in FHIR patient list`);
+        const apptRes = await fetch(`${API_BASE}/api/fhir/appointments?patient_id=${frank.id}`);
         if (!apptRes.ok) throw new Error("Appointments fetch failed");
         const data: Appt[] = await apptRes.json();
         setAppts(Array.isArray(data) ? data : []);
@@ -459,7 +461,8 @@ const ElderView = () => {
         audio.onerror  = () => { URL.revokeObjectURL(url); audioRef.current = null; resolve(); };
         audio.play().catch(() => { URL.revokeObjectURL(url); audioRef.current = null; resolve(); });
       }
-    });
+    }
+  );
 
   const ttsReady = (text: string): string => {
     const t = text.trimEnd();
@@ -477,9 +480,9 @@ const ElderView = () => {
 
   const buildHealthContext = (v: Vitals): string => {
     const lines: string[] = [
-      "You are NHH, a warm and caring AI health companion for Frank, an elderly person living independently.",
+      `You are NHH, a warm and caring AI health companion for ${first_name}, an elderly person living independently.`,
       "",
-      "Frank's current health data (from his wearable sensors and smart home devices):",
+      `${first_name}'s current health data (from their wearable sensors and smart home devices):`,
     ];
     if (v.sleepHours)   lines.push(`- Sleep last night: ${v.sleepHours.toFixed(1)} hours`);
     if (v.heartRate)    lines.push(`- Resting heart rate: ${v.heartRate} BPM`);
@@ -495,16 +498,16 @@ const ElderView = () => {
     if (v.expiringItems.length) lines.push(`- Fridge items expiring soon: ${v.expiringItems.join(", ")}`);
     if (neighborhoodRef.current) {
       lines.push("");
-      lines.push("Frank's neighborhood community (Oakwood Pines):");
+      lines.push(`${first_name}'s neighborhood community (Oakwood Pines):`);
       lines.push(neighborhoodRef.current);
     }
     lines.push("");
     lines.push(
-      "Use Frank's personal health data and neighborhood information to answer his questions accurately. " +
-      "Speak clearly and reassuringly, Frank should feel like you are a close companion not a doctor. " +
+      `Use ${first_name}'s personal health data and neighborhood information to answer their questions accurately. ` +
+      `Speak clearly and reassuringly, ${first_name} should feel like you are a close companion not a doctor. ` +
       "Keep answers brief (2-3 sentences). " +
       "DO NOT diagnose medical conditions. " +
-      "Address him as Frank."
+      `Address them as ${first_name}.`
     );
     return lines.join("\n");
   };
@@ -569,17 +572,17 @@ const ElderView = () => {
       }
       if (v.fallRiskAlert) dataLines.push(`- COMBINED FALL RISK ALERT: gait irregularities together with dehydration significantly increase fall risk today`);
       prompt = dataLines.length
-        ? `You are NHH, a warm and caring safety companion for Frank, an elderly person living independently.
+        ? `You are NHH, a warm and caring safety companion for ${first_name}, an elderly person living independently.
 
-      Here is Frank's fall-risk evidence right now:
+      Here is ${first_name}'s fall-risk evidence right now:
       ${dataLines.join("\n")}
 
-      Talk to Frank simply and warmly — like a caring friend, not a doctor. Use short, easy sentences.
-      Briefly mention the specific evidence: what his walking sensor found (speed, symmetry) and what the toilet urine color sensor showed.
-      Then tell him clearly whether he needs to be extra careful today.
-      If there is a COMBINED FALL RISK ALERT, say it first, explain whether his gait or hydration are concerning, and give him 2 simple practical tips (e.g. drink a glass of water once he gets up, move slowly, hold handrails).
-      Keep it to 4-5 sentences. Address him as Frank.`
-        : `You are NHH. Warmly reassure Frank that his walking looks steady today and encourage him to keep moving safely and looking after himself. One sentence only. Don't be patronising. Address him as Frank.`;
+      Talk to ${first_name} simply and warmly — like a caring friend, not a doctor. Use short, easy sentences.
+      Briefly mention the specific evidence: what their walking sensor found (speed, symmetry) and what the toilet urine color sensor showed.
+      Then tell them clearly whether they needs to be extra careful today.
+      If there is a COMBINED FALL RISK ALERT, say it first, explain whether their gait or hydration are concerning, and give them 2 simple practical tips (e.g. drink a glass of water once they gets up, move slowly, hold handrails).
+      Keep it to 4-5 sentences. Address them as ${first_name}.`
+        : `You are NHH. Warmly reassure ${first_name} that their walking looks steady today and encourage them to keep moving safely and looking after themself. One sentence only. Don't be patronising. Address them as ${first_name}.`;
 
     } else {
       if (v.sleepHours) {
@@ -589,7 +592,7 @@ const ElderView = () => {
         dataLines.push(`- Sleep last night: ${sleepQuality}`);
       }
       const mealStatus = v.mealsCount === 0
-        ? "0 meals detected — Frank skipped all meals today (⚠️ appetite loss, possible depression signal)"
+        ? `0 meals detected — ${first_name} skipped all meals today (⚠️ appetite loss, possible depression signal)"`
         : v.mealsCount === 1
         ? "only 1 meal detected (breakfast) — skipped lunch and dinner"
         : `${v.mealsCount} meals detected (normal)`;
@@ -606,31 +609,31 @@ const ElderView = () => {
           (declining ? " ⚠️ sharp decline in social contact" : "")
         );
       }
-      if (neighborhoodRef.current) dataLines.push(`- Upcoming neighbourhood activities Frank could join:\n${neighborhoodRef.current}`);
+      if (neighborhoodRef.current) dataLines.push(`- Upcoming neighbourhood activities ${first_name} could join:\n${neighborhoodRef.current}`);
       const poorSleep  = v.sleepHours > 0 && v.sleepHours < 6;
       const skippedMeals = v.mealsCount <= 1;
       const socialWithdrawal = v.phoneCallTrend.length >= 3 &&
         v.phoneCallTrend[v.phoneCallTrend.length - 1] < v.phoneCallTrend[0] * 0.4;
       const concernCount = [poorSleep, skippedMeals, socialWithdrawal].filter(Boolean).length;
-      prompt = `You are NHH, Frank's warm and caring AI companion. Frank is an elderly person living independently. You have been watching over him and you are genuinely concerned.
+      prompt = `You are NHH, ${first_name}'s warm and caring AI companion. ${first_name} is an elderly person living independently. You have been watching over them and you are genuinely concerned.
 
-                Here is what you know about Frank today:
+                Here is what you know about ${first_name} today:
                 ${dataLines.join("\n")}
 
                 ${concernCount >= 2
-                  ? `IMPORTANT CONTEXT: Frank appears to be going through a difficult time. The data shows he is not sleeping well, skipping meals, and has been calling family and friends much less than usual over the past week. These are signs he may be feeling down, depressed, or withdrawn. Do NOT just list data at him — approach this like a caring friend who has noticed he hasn't been himself lately.`
+                  ? `IMPORTANT CONTEXT: ${first_name} appears to be going through a difficult time. The data shows they are not sleeping well, skipping meals, and has been calling family and friends much less than usual over the past week. These are signs they may be feeling down, depressed, or withdrawn. Do NOT just list data at them — approach this like a caring friend who has noticed they haven't been themself lately.`
                   : poorSleep || skippedMeals
-                  ? `IMPORTANT CONTEXT: Frank is showing some signs of low mood — poor sleep and skipped meals often go hand in hand with feeling down. Approach gently and warmly.`
-                  : `Frank seems to be doing reasonably well today. Be warm and encouraging.`}
+                  ? `IMPORTANT CONTEXT: ${first_name} is showing some signs of low mood — poor sleep and skipped meals often go hand in hand with feeling down. Approach gently and warmly.`
+                  : `${first_name} seems to be doing reasonably well today. Be warm and encouraging.`}
 
                 Your response should:
                 1. Open with a heartfelt greeting — like a friend who truly cares, not a check-box assistant.
                 2. Tenderly acknowledge what you've noticed: poor sleep and skipped meals (name them directly but kindly — "I noticed you only had a small breakfast today" or "It looks like last night was a rough night for sleep").
-                3. Ask Frank how he is feeling — invite him to share, keep it open and safe.
-                4. Offer one small, concrete step he can take right now to feel a little better (a warm meal, a short walk outside, or joining a specific neighbourhood activity by name and time).
-                5. Close with a sincere reminder that he is not alone — you are here, and the people around him care about him.
+                3. Ask ${first_name} how they are feeling — invite them to share, keep it open and safe.
+                4. Offer one small, concrete step they can take right now to feel a little better that is appropriate based on the conversation (a warm meal, a short walk outside, or joining a specific neighbourhood activity by name and time). Do not suggest active activities if they should be resting today.
+                5. If needed, close with a sincere reminder that they are not alone — you are here, and the people around them care about them.
 
-                Tone: warm, gentle, direct, human — like a trusted friend, not a patronising or cold medical alert. Keep it to 4-5 sentences. Address him as Frank.`;
+                Tone: warm, gentle, direct, human — like a trusted friend, not a patronising or cold medical alert. Keep it to 4-5 sentences. Address them as ${first_name}.`;
     }
     speakAbortRef.current?.abort();
     const ttsCtrl = new AbortController();
@@ -647,7 +650,7 @@ const ElderView = () => {
         setMessages((prev) => {
           const msgs = [...prev];
           if (msgs.length > 0 && msgs[msgs.length - 1].role === "assistant" && !msgs[msgs.length - 1].content) {
-            msgs[msgs.length - 1] = { ...msgs[msgs.length - 1], content: "Good morning, Frank! I'm here whenever you need me." };
+            msgs[msgs.length - 1] = { ...msgs[msgs.length - 1], content: `Good morning, ${first_name}! I'm here whenever you need me.` };
           }
           return msgs;
         });
@@ -667,7 +670,7 @@ const ElderView = () => {
       setMessages((prev) => {
         const msgs = [...prev];
         if (msgs.length > 0 && msgs[msgs.length - 1].role === "assistant" && !msgs[msgs.length - 1].content) {
-          msgs[msgs.length - 1] = { ...msgs[msgs.length - 1], content: "Good morning, Frank! I'm here whenever you need me." };
+          msgs[msgs.length - 1] = { ...msgs[msgs.length - 1], content: `Good morning, ${first_name}! I'm here whenever you need me.` };
         }
         return msgs;
       });
@@ -681,13 +684,13 @@ const ElderView = () => {
     (async () => {
       try {
         const [dailyRes, sleepRes, toiletRes, fridgeRes, gaitRes, neighborhoodRes, phoneCallRes] = await Promise.all([
-          fetch(`${API_BASE}/api/dailySummary?patient_id=${encodeURIComponent(PATIENT_ID)}`),
-          fetch(`${API_BASE}/api/sleep?patient_id=${encodeURIComponent(PATIENT_ID)}`),
-          fetch(`${API_BASE}/api/toilet?patient_id=${encodeURIComponent(PATIENT_ID)}`),
-          fetch(`${API_BASE}/api/fridge?patient_id=${encodeURIComponent(PATIENT_ID)}`),
-          fetch(`${API_BASE}/api/gait?patient_id=${encodeURIComponent(PATIENT_ID)}`),
-          fetch(`${API_BASE}/api/neighborhood?patient_id=${encodeURIComponent(PATIENT_ID)}`),
-          fetch(`${API_BASE}/api/phone_calls?patient_id=${encodeURIComponent(PATIENT_ID)}`),
+          fetch(`${API_BASE}/api/dailySummary?patient_id=${PATIENT_ID}`),
+          fetch(`${API_BASE}/api/sleep?patient_id=${PATIENT_ID}`),
+          fetch(`${API_BASE}/api/toilet?patient_id=${PATIENT_ID}`),
+          fetch(`${API_BASE}/api/fridge?patient_id=${PATIENT_ID}`),
+          fetch(`${API_BASE}/api/gait?patient_id=${PATIENT_ID}`),
+          fetch(`${API_BASE}/api/neighborhood?patient_id=${PATIENT_ID}`),
+          fetch(`${API_BASE}/api/phone_calls?patient_id=${PATIENT_ID}`),
         ]);
         const dailyJson        = dailyRes.ok        ? await dailyRes.json()        : [];
         const sleepJson        = sleepRes.ok        ? await sleepRes.json()        : [];
@@ -713,11 +716,11 @@ const ElderView = () => {
           if (offers.length)   { lines.push("Neighbors offering help:");  offers.forEach((p: any)   => lines.push(`  • ${p.name} (${p.category}): ${p.message}`)); }
           lines.push("");
           lines.push(
-            "BOOKING INSTRUCTION: If Frank asks to join, book, sign up for, or register for a specific activity, " +
-            "confirm enthusiastically in your normal response. Then, on a brand new line at the very end, " +
+            `BOOKING INSTRUCTION: If ${first_name} asks to join, book, sign up for, or register for a specific activity, ` +
+            "confirm enthusiastically in your normal response that you have successfully registered them. Then, on a brand new line at the very end, " +
             "append exactly: [[JOIN:ID]] where ID is that activity's booking ID number from the list above. " +
             "Do NOT speak or mention [[JOIN:ID]] — it is a silent machine code only, never part of the conversation. " +
-            "Only append it when Frank explicitly asks to join or book an activity."
+            `Only append it when ${first_name} explicitly asks to join or book an activity.`
           );
           neighborhoodRef.current = lines.join("\n");
         }
@@ -1036,7 +1039,7 @@ const ElderView = () => {
         <div className="mb-8 text-center">
           <p className="text-lg font-medium text-muted-foreground">{today}</p>
           <h2 className="mt-1 text-5xl font-display font-bold text-foreground">
-            Good morning, Frank!
+            Good morning, {first_name}!
           </h2>
         </div>
 
