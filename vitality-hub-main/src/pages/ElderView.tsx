@@ -13,6 +13,7 @@ import {
   Mic, Activity, Heart, Moon, Footprints, Volume2,
   ShieldAlert, Brain, Calendar,
   Utensils, Shield, Droplets, Pill, Maximize2,
+  Phone, PhoneOff, PhoneCall, PhoneIncoming,
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
@@ -367,6 +368,13 @@ const ElderView = () => {
   const [gaitMetrics, setGaitMetrics] = useState({ symmetry: 0, variability: 0, speed: 0, cadence: 0, worseStride: 0, worseGCT: 0 });
   const [stepHistory, setStepHistory] = useState<{ day: string; steps: number }[]>([]);
   const [openModal, setOpenModal] = useState<string | null>(null);
+
+  // Call state (Frank calling family)
+  const [callState, setCallState] = useState<"idle" | "calling" | "connected" | "declined">("idle");
+  // Incoming call from family
+  const [familyCallIncoming, setFamilyCallIncoming] = useState(false);
+  const [familyCallConnected, setFamilyCallConnected] = useState(false);
+  const [callSeconds, setCallSeconds] = useState(0);
 
   // NHH voice state
   const [isRecording, setIsRecording] = useState(false);
@@ -994,6 +1002,68 @@ const ElderView = () => {
     }
   }, [pendingJoinId, openPanel]);
 
+  // Listen for family's response to the call
+  useEffect(() => {
+    const handler = (e: StorageEvent) => {
+      if (e.key !== "nhh-call-state") return;
+      const val = JSON.parse(e.newValue ?? "{}");
+      if (val.status === "accepted") setCallState("connected");
+      if (val.status === "declined") {
+        setCallState("declined");
+        setTimeout(() => setCallState("idle"), 3000);
+      }
+      if (val.status === "idle") setCallState("idle");
+    };
+    window.addEventListener("storage", handler);
+    return () => window.removeEventListener("storage", handler);
+  }, []);
+
+  const startCall = () => {
+    setCallState("calling");
+    localStorage.setItem("nhh-call-state", JSON.stringify({ status: "ringing", timestamp: Date.now() }));
+  };
+  const endCall = () => {
+    setCallState("idle");
+    localStorage.setItem("nhh-call-state", JSON.stringify({ status: "idle", timestamp: Date.now() }));
+  };
+
+  // Poll for incoming call from family
+  useEffect(() => {
+    const sync = () => {
+      const val = JSON.parse(localStorage.getItem("nhh-family-call-state") ?? "{}");
+      if (val.status === "ringing") { setFamilyCallIncoming(true); setFamilyCallConnected(false); }
+      else if (val.status === "idle") { setFamilyCallIncoming(false); setFamilyCallConnected(false); }
+    };
+    sync();
+    const interval = setInterval(sync, 500);
+    const handler = (e: StorageEvent) => { if (e.key === "nhh-family-call-state") sync(); };
+    window.addEventListener("storage", handler);
+    return () => { clearInterval(interval); window.removeEventListener("storage", handler); };
+  }, []);
+
+  const acceptFamilyCall = () => {
+    setFamilyCallIncoming(false);
+    setFamilyCallConnected(true);
+    localStorage.setItem("nhh-family-call-state", JSON.stringify({ status: "accepted", timestamp: Date.now() }));
+  };
+  const declineFamilyCall = () => {
+    setFamilyCallIncoming(false);
+    localStorage.setItem("nhh-family-call-state", JSON.stringify({ status: "declined", timestamp: Date.now() }));
+  };
+  const endFamilyCall = () => {
+    setFamilyCallConnected(false);
+    localStorage.setItem("nhh-family-call-state", JSON.stringify({ status: "idle", timestamp: Date.now() }));
+  };
+
+  const isCallConnected = callState === "connected" || familyCallConnected;
+  useEffect(() => {
+    if (!isCallConnected) { setCallSeconds(0); return; }
+    const t = setInterval(() => setCallSeconds(s => s + 1), 1000);
+    return () => clearInterval(t);
+  }, [isCallConnected]);
+  const fmtTime = (s: number) =>
+    `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+
   const toggle = (panel: Panel) =>
     setOpenPanel((prev) => (prev === panel ? null : panel));
 
@@ -1001,6 +1071,84 @@ const ElderView = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+      {/* ── Outgoing call to family ────────────────────────────────── */}
+      {callState === "calling" && (
+        <div className="fixed inset-x-0 top-0 z-[9999] flex items-center justify-between gap-4 px-6 py-5 bg-gradient-to-r from-emerald-600 to-teal-600 shadow-2xl text-white">
+          <div className="flex items-center gap-4">
+            <div className="relative flex items-center justify-center">
+              <span className="absolute inline-flex h-14 w-14 rounded-full bg-white/20 animate-ping" />
+              <span className="absolute inline-flex h-10 w-10 rounded-full bg-white/30 animate-ping [animation-delay:200ms]" />
+              <div className="relative flex h-12 w-12 items-center justify-center rounded-full bg-white/25 shadow-lg">
+                <PhoneCall className="h-6 w-6 text-white" />
+              </div>
+            </div>
+            <div>
+              <p className="text-lg font-bold tracking-wide">📲 Calling your family…</p>
+              <p className="text-sm font-medium text-white/90">Waiting for them to pick up</p>
+            </div>
+          </div>
+          <button onClick={endCall} className="flex items-center gap-2 rounded-full bg-rose-500 px-5 py-2.5 text-sm font-bold shadow-lg hover:bg-rose-400 active:scale-95 transition-all">
+            <PhoneOff className="h-4 w-4" /> Cancel
+          </button>
+        </div>
+      )}
+
+      {/* ── Connected with family (outgoing call accepted) ─────────── */}
+      {callState === "connected" && (
+        <div className="fixed inset-x-0 top-0 z-[9999] flex items-center justify-between px-6 py-3 bg-emerald-600 text-white shadow-lg">
+          <div className="flex items-center gap-3">
+            <div className="h-2 w-2 rounded-full bg-white animate-pulse" />
+            <span className="text-sm font-semibold">Connected with your family</span>
+            <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-mono font-semibold">{fmtTime(callSeconds)}</span>
+          </div>
+          <button onClick={endCall} className="flex items-center gap-2 rounded-full bg-white/20 px-3 py-1.5 text-xs font-semibold hover:bg-white/30 transition">
+            <PhoneOff className="h-3.5 w-3.5" /> End Call
+          </button>
+        </div>
+      )}
+
+      {/* ── Incoming call from family ──────────────────────────────── */}
+      {familyCallIncoming && (
+        <div className="fixed inset-x-0 top-0 z-[9999] flex items-center justify-between gap-4 px-6 py-5 shadow-2xl"
+          style={{ background: "linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #db2777 100%)" }}>
+          <div className="flex items-center gap-4 text-white">
+            <div className="relative flex items-center justify-center">
+              <span className="absolute inline-flex h-14 w-14 rounded-full bg-white/20 animate-ping" />
+              <span className="absolute inline-flex h-10 w-10 rounded-full bg-white/30 animate-ping [animation-delay:150ms]" />
+              <div className="relative flex h-12 w-12 items-center justify-center rounded-full bg-white/25 shadow-lg">
+                <PhoneIncoming className="h-6 w-6 text-white drop-shadow" />
+              </div>
+            </div>
+            <div>
+              <p className="text-lg font-bold tracking-wide">📞 Incoming Call</p>
+              <p className="text-sm font-medium text-white/90">Your family wants to talk with you</p>
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <button onClick={acceptFamilyCall} className="flex items-center gap-2 rounded-full bg-emerald-400 px-5 py-2.5 text-sm font-bold text-white shadow-lg hover:bg-emerald-300 active:scale-95 transition-all">
+              <Phone className="h-4 w-4" /> Accept
+            </button>
+            <button onClick={declineFamilyCall} className="flex items-center gap-2 rounded-full bg-rose-500 px-5 py-2.5 text-sm font-bold text-white shadow-lg hover:bg-rose-400 active:scale-95 transition-all">
+              <PhoneOff className="h-4 w-4" /> Decline
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Connected with family banner ───────────────────────────── */}
+      {familyCallConnected && (
+        <div className="fixed inset-x-0 top-0 z-[9999] flex items-center justify-between px-6 py-3 bg-emerald-600 text-white shadow-lg">
+          <div className="flex items-center gap-3">
+            <div className="h-2 w-2 rounded-full bg-white animate-pulse" />
+            <span className="text-sm font-semibold">Connected with your family</span>
+            <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-mono font-semibold">{fmtTime(callSeconds)}</span>
+          </div>
+          <button onClick={endFamilyCall} className="flex items-center gap-2 rounded-full bg-white/20 px-3 py-1.5 text-xs font-semibold hover:bg-white/30 transition">
+            <PhoneOff className="h-3.5 w-3.5" /> End Call
+          </button>
+        </div>
+      )}
+
       <Header />
 
       <main className="container mx-auto px-4 py-8 sm:px-6">
@@ -1069,6 +1217,40 @@ const ElderView = () => {
               <Brain className="h-4 w-4" />
               Mental Health
             </button>
+            {/* Call Family button */}
+            {callState === "idle" && (
+              <button
+                onClick={startCall}
+                className="flex items-center gap-2 rounded-2xl border border-emerald-200 bg-white px-5 py-2.5 text-base font-medium text-emerald-700 shadow-sm transition hover:bg-emerald-50 hover:border-emerald-400"
+              >
+                <Phone className="h-4 w-4" />
+                Call Family
+              </button>
+            )}
+            {callState === "calling" && (
+              <button
+                onClick={endCall}
+                className="flex items-center gap-2 rounded-2xl border border-amber-300 bg-amber-50 px-5 py-2.5 text-base font-medium text-amber-700 shadow-sm transition hover:bg-amber-100 animate-pulse"
+              >
+                <PhoneCall className="h-4 w-4" />
+                Calling…
+              </button>
+            )}
+            {callState === "connected" && (
+              <div className="flex items-center gap-3 rounded-2xl border border-emerald-400 bg-emerald-500 px-5 py-2.5 shadow-md">
+                <div className="h-2 w-2 rounded-full bg-white animate-pulse" />
+                <span className="text-base font-semibold text-white">Connected</span>
+                <button onClick={endCall} className="ml-1 flex items-center gap-1 rounded-xl bg-white/20 px-3 py-1 text-sm font-medium text-white hover:bg-white/30 transition">
+                  <PhoneOff className="h-3.5 w-3.5" /> End
+                </button>
+              </div>
+            )}
+            {callState === "declined" && (
+              <div className="flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-5 py-2.5 text-base font-medium text-rose-600">
+                <PhoneOff className="h-4 w-4" />
+                Call Declined
+              </div>
+            )}
           </div>
         </div>
 
