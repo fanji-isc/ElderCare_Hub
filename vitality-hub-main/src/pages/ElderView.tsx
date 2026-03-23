@@ -33,8 +33,6 @@ type Vitals = {
   expiringItems: string[];
   currentItems: string[];
   mealsCount: number;
-  phoneCallMinutes: number;
-  phoneCallTrend: number[];
   gaitNote: string;
   fallRiskAlert: boolean;
 };
@@ -100,17 +98,6 @@ function extractFridge(fridgeJson: any): { waterLiters: number; currentItems: st
   };
 }
 
-function extractPhoneCalls(callJson: any): { minutes: number; trend: number[] } {
-  if (!Array.isArray(callJson) || callJson.length === 0) return { minutes: 0, trend: [] };
-  const sorted = [...callJson].sort((a, b) =>
-    String(a?.calendarDate || "").localeCompare(String(b?.calendarDate || ""))
-  );
-  const last7 = sorted.slice(-7);
-  const trend = last7.map((d: any) => Number(d?.totalMinutes ?? 0));
-  const todayEntry = pickLatest(callJson);
-  const minutes = Number(todayEntry?.totalMinutes ?? 0);
-  return { minutes, trend };
-}
 
 function extractGait(gaitJson: any): { note: string; riskLevel: "low" | "moderate" | "high" } | null {
   if (!Array.isArray(gaitJson) || gaitJson.length === 0) return null;
@@ -370,7 +357,8 @@ type Panel = "health" | "activity" | "helping" | null;
 
 const ElderView = () => {
   const [openPanel, setOpenPanel] = useState<Panel>(null);
-  const emptyVitals: Vitals = { heartRate: 0, steps: 0, stressLevel: 0, sleepHours: 0, hydrationNote: "", hydrationColorLevel: 0, waterLiters: 0, expiringItems: [], currentItems: [], mealsCount: 0, phoneCallMinutes: 0, phoneCallTrend: [], gaitNote: "", fallRiskAlert: false };
+  const [pendingJoinId, setPendingJoinId] = useState<number | null>(null);
+  const emptyVitals: Vitals = { heartRate: 0, steps: 0, stressLevel: 0, sleepHours: 0, hydrationNote: "", hydrationColorLevel: 0, waterLiters: 0, expiringItems: [], currentItems: [], mealsCount: 0, gaitNote: "", fallRiskAlert: false };
   const [vitals, setVitals] = useState<Vitals>(emptyVitals);
   const vitalsRef = useRef<Vitals>(emptyVitals);
   vitalsRef.current = vitals;
@@ -440,29 +428,21 @@ const ElderView = () => {
   const decodeAndPlay = (arrayBuffer: ArrayBuffer, signal: AbortSignal): Promise<void> =>
     new Promise((resolve) => {
       if (signal.aborted) { resolve(); return; }
-      if (audioCtxRef.current) {
-        audioCtxRef.current.decodeAudioData(arrayBuffer).then((audioBuffer) => {
-          if (signal.aborted) { resolve(); return; }
-          const source = audioCtxRef.current!.createBufferSource();
-          source.buffer = audioBuffer;
-          source.connect(audioCtxRef.current!.destination);
-          audioSourceRef.current = source;
-          source.onended = () => { audioSourceRef.current = null; resolve(); };
-          source.start(0);
-        }).catch(() => resolve());
-      } else {
-        const blob = new Blob([arrayBuffer]);
-        const url = URL.createObjectURL(blob);
-        const audio = new Audio(url);
-        audioRef.current = audio;
-        audio.onended  = () => { URL.revokeObjectURL(url); audioRef.current = null; resolve(); };
-        audio.onerror  = () => { URL.revokeObjectURL(url); audioRef.current = null; resolve(); };
-        audio.play().catch(() => { URL.revokeObjectURL(url); audioRef.current = null; resolve(); });
-      }
+      // Use <audio> element rather than decodeAudioData: Chrome's Web Audio MP3 decoder
+      // uses the Xing/LAME header to determine duration, which TTS-generated MP3s often
+      // report inaccurately (shorter than actual speech), silently trimming the last sentence.
+      // The <audio> element decodes frame-by-frame and always plays the complete file.
+      const blob = new Blob([arrayBuffer], { type: "audio/mpeg" });
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      audio.onended  = () => { URL.revokeObjectURL(url); audioRef.current = null; resolve(); };
+      audio.onerror  = () => { URL.revokeObjectURL(url); audioRef.current = null; resolve(); };
+      audio.play().catch(() => { URL.revokeObjectURL(url); audioRef.current = null; resolve(); });
     });
 
   const ttsReady = (text: string): string => {
-    const t = text.trimEnd();
+    const t = text.trim().replace(/[\r\n]+/g, " ");
     return /[.!?]$/.test(t) ? t : t + ".";
   };
 
@@ -529,7 +509,11 @@ const ElderView = () => {
     let firstChunk = true;
     while (true) {
       const { done, value } = await reader.read();
-      if (done) break;
+      if (done) {
+        // Flush any remaining bytes held by the TextDecoder
+        buffer += decoder.decode();
+        break;
+      }
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split("\n");
       buffer = lines.pop() ?? "";
@@ -546,6 +530,16 @@ const ElderView = () => {
           }
         } catch { /* ignore individual parse errors */ }
       }
+    }
+    // Process any remaining content left in the buffer after the stream closes
+    if (buffer.trim()) {
+      try {
+        const parsed = JSON.parse(buffer);
+        if (parsed.delta) {
+          fullText += parsed.delta;
+          onChunk(fullText);
+        }
+      } catch { /* ignore incomplete trailing data */ }
     }
     return fullText;
   };
@@ -596,22 +590,10 @@ const ElderView = () => {
       dataLines.push(`- Diet today (smart fridge): ${mealStatus}`);
       if (v.steps) dataLines.push(`- Steps today: ${v.steps.toLocaleString()} — ${v.steps < 2000 ? "very low, barely moved" : v.steps < 4000 ? "low activity" : "good"}`);
       if (v.stressLevel) dataLines.push(`- Stress level: ${v.stressLevel}/100`);
-      if (v.phoneCallTrend.length > 0) {
-        const trendStr = v.phoneCallTrend.join(" → ");
-        const declining = v.phoneCallTrend.length >= 3 &&
-          v.phoneCallTrend[v.phoneCallTrend.length - 1] < v.phoneCallTrend[0] * 0.4;
-        dataLines.push(
-          `- Phone / social contact (last ${v.phoneCallTrend.length} days, minutes): ${trendStr}` +
-          (v.phoneCallMinutes === 0 ? " — NO calls today" : ` — ${v.phoneCallMinutes} min today`) +
-          (declining ? " ⚠️ sharp decline in social contact" : "")
-        );
-      }
       if (neighborhoodRef.current) dataLines.push(`- Upcoming neighbourhood activities Frank could join:\n${neighborhoodRef.current}`);
       const poorSleep  = v.sleepHours > 0 && v.sleepHours < 6;
       const skippedMeals = v.mealsCount <= 1;
-      const socialWithdrawal = v.phoneCallTrend.length >= 3 &&
-        v.phoneCallTrend[v.phoneCallTrend.length - 1] < v.phoneCallTrend[0] * 0.4;
-      const concernCount = [poorSleep, skippedMeals, socialWithdrawal].filter(Boolean).length;
+      const concernCount = [poorSleep, skippedMeals].filter(Boolean).length;
       prompt = `You are NHH, Frank's warm and caring AI companion. Frank is an elderly person living independently. You have been watching over him and you are genuinely concerned.
 
                 Here is what you know about Frank today:
@@ -638,11 +620,7 @@ const ElderView = () => {
     stopAudio();
     setMessages([{ role: "assistant", content: "" }]);
     try {
-      const fullText = await streamAnswer(
-        prompt, [],
-        () => { /* keep Thinking… visible until TTS is ready */ },
-        () => { /* accumulate internally — don't update UI yet */ },
-      );
+      const fullText = await streamAnswer(prompt, [], () => {}, () => {});
       if (!fullText) {
         setMessages((prev) => {
           const msgs = [...prev];
@@ -654,14 +632,7 @@ const ElderView = () => {
         return;
       }
       const buf = await fetchTTSBuffer(ttsReady(fullText), ttsCtrl.signal);
-      setIsThinking(false);
-      setMessages((prev) => {
-        const msgs = [...prev];
-        if (msgs.length > 0 && msgs[msgs.length - 1].role === "assistant") {
-          msgs[msgs.length - 1] = { ...msgs[msgs.length - 1], content: fullText };
-        }
-        return msgs;
-      });
+      setMessages([{ role: "assistant", content: fullText }]);
       if (buf && !ttsCtrl.signal.aborted) await decodeAndPlay(buf, ttsCtrl.signal);
     } catch {
       setMessages((prev) => {
@@ -680,14 +651,13 @@ const ElderView = () => {
   useEffect(() => {
     (async () => {
       try {
-        const [dailyRes, sleepRes, toiletRes, fridgeRes, gaitRes, neighborhoodRes, phoneCallRes] = await Promise.all([
+        const [dailyRes, sleepRes, toiletRes, fridgeRes, gaitRes, neighborhoodRes] = await Promise.all([
           fetch(`${API_BASE}/api/dailySummary?patient_id=${encodeURIComponent(PATIENT_ID)}`),
           fetch(`${API_BASE}/api/sleep?patient_id=${encodeURIComponent(PATIENT_ID)}`),
           fetch(`${API_BASE}/api/toilet?patient_id=${encodeURIComponent(PATIENT_ID)}`),
           fetch(`${API_BASE}/api/fridge?patient_id=${encodeURIComponent(PATIENT_ID)}`),
           fetch(`${API_BASE}/api/gait?patient_id=${encodeURIComponent(PATIENT_ID)}`),
           fetch(`${API_BASE}/api/neighborhood?patient_id=${encodeURIComponent(PATIENT_ID)}`),
-          fetch(`${API_BASE}/api/phone_calls?patient_id=${encodeURIComponent(PATIENT_ID)}`),
         ]);
         const dailyJson        = dailyRes.ok        ? await dailyRes.json()        : [];
         const sleepJson        = sleepRes.ok        ? await sleepRes.json()        : [];
@@ -695,7 +665,6 @@ const ElderView = () => {
         const fridgeJson       = fridgeRes.ok       ? await fridgeRes.json()       : [];
         const gaitJson         = gaitRes.ok         ? await gaitRes.json()         : [];
         const neighborhoodJson = neighborhoodRes.ok ? await neighborhoodRes.json() : [];
-        const phoneCallJson    = phoneCallRes.ok    ? await phoneCallRes.json()    : [];
 
         // Build neighborhood RAG text
         const latest = Array.isArray(neighborhoodJson) && neighborhoodJson.length > 0 ? neighborhoodJson[0] : null;
@@ -713,11 +682,11 @@ const ElderView = () => {
           if (offers.length)   { lines.push("Neighbors offering help:");  offers.forEach((p: any)   => lines.push(`  • ${p.name} (${p.category}): ${p.message}`)); }
           lines.push("");
           lines.push(
-            "BOOKING INSTRUCTION: If Frank asks to join, book, sign up for, or register for a specific activity, " +
-            "confirm enthusiastically in your normal response. Then, on a brand new line at the very end, " +
+            "BOOKING INSTRUCTION: If Frank asks to join, book, sign up for, register for, or asks you to pick and sign him up for an activity, " +
+            "choose one if he hasn't specified, confirm enthusiastically in your normal response. Then, on a brand new line at the very end, " +
             "append exactly: [[JOIN:ID]] where ID is that activity's booking ID number from the list above. " +
             "Do NOT speak or mention [[JOIN:ID]] — it is a silent machine code only, never part of the conversation. " +
-            "Only append it when Frank explicitly asks to join or book an activity."
+            "Always append it whenever Frank wants to be signed up, even if you are the one picking the activity."
           );
           neighborhoodRef.current = lines.join("\n");
         }
@@ -726,7 +695,6 @@ const ElderView = () => {
         const fridge = extractFridge(fridgeJson);
         const { note: hydrationNote, colorLevel: hydrationColorLevel } = extractHydration(toiletJson);
         const gait = extractGait(gaitJson);
-        const { minutes: phoneCallMinutes, trend: phoneCallTrend } = extractPhoneCalls(phoneCallJson);
         const dehydrated = hydrationNote.includes("dehydrated");
         const gaitConcern = gait !== null && gait.riskLevel !== "low";
         const loaded: Vitals = {
@@ -740,8 +708,6 @@ const ElderView = () => {
           expiringItems: fridge.expiringItems,
           currentItems: fridge.currentItems,
           mealsCount: fridge.mealsCount,
-          phoneCallMinutes,
-          phoneCallTrend,
           gaitNote: gait?.note ?? "",
           fallRiskAlert: dehydrated && gaitConcern,
         };
@@ -985,7 +951,6 @@ const ElderView = () => {
             const joinMatch = fullAnswer.match(/\[\[JOIN:(\d+)\]\]/i);
             const displayAnswer = fullAnswer.replace(/\n?\s*\[\[JOIN:\d+\]\]/gi, "").trim();
             const buf = await fetchTTSBuffer(ttsReady(displayAnswer), ttsCtrl.signal);
-            setIsThinking(false);
             setMessages((prev) => {
               const msgs = [...prev];
               if (msgs.length > 0 && msgs[msgs.length - 1].role === "assistant") {
@@ -996,8 +961,8 @@ const ElderView = () => {
             if (buf && !ttsCtrl.signal.aborted) await decodeAndPlay(buf, ttsCtrl.signal);
             if (joinMatch) {
               const activityId = parseInt(joinMatch[1], 10);
-              window.dispatchEvent(new CustomEvent("NHH-join-activity", { detail: { id: activityId } }));
               setOpenPanel("activity");
+              setPendingJoinId(activityId);
             }
           }
         } catch {
@@ -1020,6 +985,14 @@ const ElderView = () => {
     const r = recorderRef.current;
     if (r && r.state !== "inactive") r.stop();
   };
+
+  // Dispatch join event only after CommunityPanel has mounted and registered its listener
+  useEffect(() => {
+    if (pendingJoinId !== null && openPanel === "activity") {
+      window.dispatchEvent(new CustomEvent("NHH-join-activity", { detail: { id: pendingJoinId } }));
+      setPendingJoinId(null);
+    }
+  }, [pendingJoinId, openPanel]);
 
   const toggle = (panel: Panel) =>
     setOpenPanel((prev) => (prev === panel ? null : panel));
