@@ -1170,6 +1170,8 @@ def build_health_context(data: dict) -> str:
     Keep answers brief (2-3 sentences). 
     DO NOT diagnose medical conditions. 
     Address them as {first_name}.
+
+    CALL INSTRUCTION: If {first_name} asks to call their family, reach their family, or wants to talk to their family, confirm warmly in your normal response. Then, on a brand new line at the very end, append exactly: [[CALL_FAMILY]] — this is a silent machine code, never speak or mention it.
     """
     return context
 
@@ -1209,11 +1211,9 @@ def build_neighbourhood_context(patient_id: str, first_name: str):
         lines.append("")
         
         instructions = f"""
-        BOOKING INSTRUCTION: If {first_name} asks to join, book, sign up for, or register for a specific activity, 
-        confirm enthusiastically in your normal response that you have successfully registered them. Then, on a brand new line at the very end, 
-        append exactly: [[JOIN:ID]] where ID is that activity's booking ID number from the list above. 
+        BOOKING INSTRUCTION: If {first_name} asks to join, book, sign up for, register for, or asks you to pick and sign them up for an activity, choose one if they haven't specified, then confirm enthusiastically in your normal response that you have successfully registered them. Then, on a brand new line at the very end, append exactly: [[JOIN:ID]] where ID is that activity's booking ID number from the list above. 
         Do NOT speak or mention [[JOIN:ID]] — it is a silent machine code only, never part of the conversation. 
-        Only append it when {first_name} explicitly asks to join or book an activity.
+        Always append it whenever {first_name} wants to be signed up, even if you are the one picking the activity."
         """
         lines.append(instructions)
     return "\n".join(lines)
