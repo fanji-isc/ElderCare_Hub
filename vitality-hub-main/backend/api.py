@@ -1522,9 +1522,8 @@ async def speak(payload: dict = Body(...)):
 
     try:
         audio = client.audio.speech.create(
-            model="gpt-4o-mini-tts",
-            # voice="alloy",
-            voice="marin",
+            model="tts-1-hd",
+            voice="nova",
             input=text,
         )
         return Response(

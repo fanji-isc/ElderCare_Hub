@@ -13,6 +13,7 @@ import {
   Mic, Activity, Heart, Moon, Footprints, Volume2,
   ShieldAlert, Brain, Calendar,
   Utensils, Shield, Droplets, Pill, Maximize2,
+  Phone, PhoneOff, PhoneCall, PhoneIncoming,
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
@@ -35,8 +36,6 @@ type Vitals = {
   expiringItems: string[];
   currentItems: string[];
   mealsCount: number;
-  phoneCallMinutes: number;
-  phoneCallTrend: number[];
   gaitNote: string;
   fallRiskAlert: boolean;
 };
@@ -85,6 +84,24 @@ function extractHydration(toiletJson: any): { note: string; colorLevel: number }
   return { note, colorLevel: level };
 }
 
+function extractFridge(fridgeJson: any): { waterLiters: number; currentItems: string[]; expiringItems: string[]; mealsCount: number } {
+  if (!Array.isArray(fridgeJson) || fridgeJson.length === 0) return { waterLiters: 0, currentItems: [], expiringItems: [], mealsCount: 0 };
+  const latest = pickLatest(fridgeJson);
+  if (!latest) return { waterLiters: 0, currentItems: [], expiringItems: [], mealsCount: 0 };
+  const currentItems = Array.isArray(latest.inventory)
+    ? latest.inventory.map((inv: any) => String(inv?.item ?? "")).filter(Boolean)
+    : [];
+  const expiringItems = (latest.alerts ?? [])
+    .filter((a: any) => a.type === "expiring")
+    .map((a: any) => String(a.item));
+  return {
+    waterLiters: Number(latest.dailyNutrition?.waterLiters ?? 0),
+    currentItems,
+    expiringItems,
+    mealsCount: (latest.mealsDetected ?? []).length,
+  };
+}
+
 function extractGait(gaitJson: any): { note: string; riskLevel: "low" | "moderate" | "high" } | null {
   if (!Array.isArray(gaitJson) || gaitJson.length === 0) return null;
   const allSessions: any[] = [];
@@ -115,24 +132,6 @@ function extractGait(gaitJson: any): { note: string; riskLevel: "low" | "moderat
   const riskLevel: "low" | "moderate" | "high" = score >= 5 ? "high" : score >= 2 ? "moderate" : "low";
   const note = `${riskLevel} fall risk — avg walking speed ${avgSpeed.toFixed(2)} m/s, step symmetry ${Math.round(avgSymmetry)}%, stride variability ${avgVariability.toFixed(1)}%, L/R ground contact diff ${Math.round(avgGCTDiff)} ms`;
   return { note, riskLevel };
-}
-
-function extractFridge(fridgeJson: any): { waterLiters: number; currentItems: string[]; expiringItems: string[]; mealsCount: number } {
-  if (!Array.isArray(fridgeJson) || fridgeJson.length === 0) return { waterLiters: 0, currentItems: [], expiringItems: [], mealsCount: 0 };
-  const latest = pickLatest(fridgeJson);
-  if (!latest) return { waterLiters: 0, currentItems: [], expiringItems: [], mealsCount: 0 };
-  const currentItems = Array.isArray(latest.inventory)
-    ? latest.inventory.map((inv: any) => String(inv?.item ?? "")).filter(Boolean)
-    : [];
-  const expiringItems = (latest.alerts ?? [])
-    .filter((a: any) => a.type === "expiring")
-    .map((a: any) => String(a.item));
-  return {
-    waterLiters: Number(latest.dailyNutrition?.waterLiters ?? 0),
-    currentItems,
-    expiringItems,
-    mealsCount: (latest.mealsDetected ?? []).length,
-  };
 }
 
 function extractPhoneCalls(callJson: any): { minutes: number; trend: number[] } {
@@ -372,7 +371,8 @@ const ElderView = () => {
   });
   // Set vitals
   const [openPanel, setOpenPanel] = useState<Panel>(null);
-  const emptyVitals: Vitals = { heartRate: 0, steps: 0, stressLevel: 0, sleepHours: 0, hydrationNote: "", hydrationColorLevel: 0, waterLiters: 0, expiringItems: [], currentItems: [], mealsCount: 0, phoneCallMinutes: 0, phoneCallTrend: [], gaitNote: "", fallRiskAlert: false };
+  const [pendingJoinId, setPendingJoinId] = useState<number | null>(null);
+  const emptyVitals: Vitals = { heartRate: 0, steps: 0, stressLevel: 0, sleepHours: 0, hydrationNote: "", hydrationColorLevel: 0, waterLiters: 0, expiringItems: [], currentItems: [], mealsCount: 0, gaitNote: "", fallRiskAlert: false };
   const [vitals, setVitals] = useState<Vitals>(emptyVitals);
   const vitalsRef = useRef<Vitals>(emptyVitals);
   vitalsRef.current = vitals;
@@ -381,6 +381,13 @@ const ElderView = () => {
   const [gaitMetrics, setGaitMetrics] = useState({ symmetry: 0, variability: 0, speed: 0, cadence: 0, worseStride: 0, worseGCT: 0 });
   const [stepHistory, setStepHistory] = useState<{ day: string; steps: number }[]>([]);
   const [openModal, setOpenModal] = useState<string | null>(null);
+
+  // Call state (Frank calling family)
+  const [callState, setCallState] = useState<"idle" | "calling" | "connected" | "declined">("idle");
+  // Incoming call from family
+  const [familyCallIncoming, setFamilyCallIncoming] = useState(false);
+  const [familyCallConnected, setFamilyCallConnected] = useState(false);
+  const [callSeconds, setCallSeconds] = useState(0);
 
   // NHH voice state
   const [isRecording, setIsRecording] = useState(false);
@@ -393,7 +400,7 @@ const ElderView = () => {
   const messagesRef = useRef<Msg[]>([]);
   messagesRef.current = messages;
   const runningRef = useRef(false);
-  const neighborhoodRef = useRef<string>(""); // TODO: check when this is populated
+  const neighborhoodRef = useRef<string>("");
   const scrollBottomRef = useRef<HTMLDivElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioSourceRef = useRef<AudioBufferSourceNode | null>(null);
@@ -435,29 +442,21 @@ const ElderView = () => {
   const decodeAndPlay = (arrayBuffer: ArrayBuffer, signal: AbortSignal): Promise<void> =>
     new Promise((resolve) => {
       if (signal.aborted) { resolve(); return; }
-      if (audioCtxRef.current) {
-        audioCtxRef.current.decodeAudioData(arrayBuffer).then((audioBuffer) => {
-          if (signal.aborted) { resolve(); return; }
-          const source = audioCtxRef.current!.createBufferSource();
-          source.buffer = audioBuffer;
-          source.connect(audioCtxRef.current!.destination);
-          audioSourceRef.current = source;
-          source.onended = () => { audioSourceRef.current = null; resolve(); };
-          source.start(0);
-        }).catch(() => resolve());
-      } else {
-        const blob = new Blob([arrayBuffer]);
-        const url = URL.createObjectURL(blob);
-        const audio = new Audio(url);
-        audioRef.current = audio;
-        audio.onended  = () => { URL.revokeObjectURL(url); audioRef.current = null; resolve(); };
-        audio.onerror  = () => { URL.revokeObjectURL(url); audioRef.current = null; resolve(); };
-        audio.play().catch(() => { URL.revokeObjectURL(url); audioRef.current = null; resolve(); });
-      }
-    }
-  );
+      // Use <audio> element rather than decodeAudioData: Chrome's Web Audio MP3 decoder
+      // uses the Xing/LAME header to determine duration, which TTS-generated MP3s often
+      // report inaccurately (shorter than actual speech), silently trimming the last sentence.
+      // The <audio> element decodes frame-by-frame and always plays the complete file.
+      const blob = new Blob([arrayBuffer], { type: "audio/mpeg" });
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      audio.onended  = () => { URL.revokeObjectURL(url); audioRef.current = null; resolve(); };
+      audio.onerror  = () => { URL.revokeObjectURL(url); audioRef.current = null; resolve(); };
+      audio.play().catch(() => { URL.revokeObjectURL(url); audioRef.current = null; resolve(); });
+    });
+
   const ttsReady = (text: string): string => {
-    const t = text.trimEnd();
+    const t = text.trim().replace(/[\r\n]+/g, " ");
     return /[.!?]$/.test(t) ? t : t + ".";
   };
   const speakText = async (text: string) => {
@@ -489,7 +488,11 @@ const ElderView = () => {
     let firstChunk = true;
     while (true) {
       const { done, value } = await reader.read();
-      if (done) break;
+      if (done) {
+        // Flush any remaining bytes held by the TextDecoder
+        buffer += decoder.decode();
+        break;
+      }
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split("\n");
       buffer = lines.pop() ?? "";
@@ -506,6 +509,16 @@ const ElderView = () => {
           }
         } catch { /* ignore individual parse errors */ }
       }
+    }
+    // Process any remaining content left in the buffer after the stream closes
+    if (buffer.trim()) {
+      try {
+        const parsed = JSON.parse(buffer);
+        if (parsed.delta) {
+          fullText += parsed.delta;
+          onChunk(fullText);
+        }
+      } catch { /* ignore incomplete trailing data */ }
     }
     return fullText;
   };
@@ -557,22 +570,10 @@ const ElderView = () => {
       dataLines.push(`- Diet today (smart fridge): ${mealStatus}`);
       if (v.steps) dataLines.push(`- Steps today: ${v.steps.toLocaleString()} — ${v.steps < 2000 ? "very low, barely moved" : v.steps < 4000 ? "low activity" : "good"}`);
       if (v.stressLevel) dataLines.push(`- Stress level: ${v.stressLevel}/100`);
-      if (v.phoneCallTrend.length > 0) {
-        const trendStr = v.phoneCallTrend.join(" → ");
-        const declining = v.phoneCallTrend.length >= 3 &&
-          v.phoneCallTrend[v.phoneCallTrend.length - 1] < v.phoneCallTrend[0] * 0.4;
-        dataLines.push(
-          `- Phone / social contact (last ${v.phoneCallTrend.length} days, minutes): ${trendStr}` +
-          (v.phoneCallMinutes === 0 ? " — NO calls today" : ` — ${v.phoneCallMinutes} min today`) +
-          (declining ? " ⚠️ sharp decline in social contact" : "")
-        );
-      }
       if (neighborhoodRef.current) dataLines.push(`- Upcoming neighbourhood activities ${first_name} could join:\n${neighborhoodRef.current}`);
       const poorSleep  = v.sleepHours > 0 && v.sleepHours < 6;
       const skippedMeals = v.mealsCount <= 1;
-      const socialWithdrawal = v.phoneCallTrend.length >= 3 &&
-        v.phoneCallTrend[v.phoneCallTrend.length - 1] < v.phoneCallTrend[0] * 0.4;
-      const concernCount = [poorSleep, skippedMeals, socialWithdrawal].filter(Boolean).length;
+      const concernCount = [poorSleep, skippedMeals].filter(Boolean).length;
       prompt = `You are NHH, ${first_name}'s warm and caring AI companion. ${first_name} is an elderly person living independently. You have been watching over them and you are genuinely concerned.
 
                 Here is what you know about ${first_name} today:
@@ -599,11 +600,7 @@ const ElderView = () => {
     stopAudio();
     setMessages([{ role: "assistant", content: "" }]);
     try {
-      const fullText = await streamAnswer(
-        prompt, [],
-        () => { /* keep Thinking… visible until TTS is ready */ },
-        () => { /* accumulate internally — don't update UI yet */ },
-      );
+      const fullText = await streamAnswer(prompt, [], () => {}, () => {});
       if (!fullText) {
         setMessages((prev) => {
           const msgs = [...prev];
@@ -615,14 +612,7 @@ const ElderView = () => {
         return;
       }
       const buf = await fetchTTSBuffer(ttsReady(fullText), ttsCtrl.signal);
-      setIsThinking(false);
-      setMessages((prev) => {
-        const msgs = [...prev];
-        if (msgs.length > 0 && msgs[msgs.length - 1].role === "assistant") {
-          msgs[msgs.length - 1] = { ...msgs[msgs.length - 1], content: fullText };
-        }
-        return msgs;
-      });
+      setMessages([{ role: "assistant", content: fullText }]);
       if (buf && !ttsCtrl.signal.aborted) await decodeAndPlay(buf, ttsCtrl.signal);
     } catch {
       setMessages((prev) => {
@@ -886,9 +876,9 @@ const ElderView = () => {
             });
           } else {
             const joinMatch = fullAnswer.match(/\[\[JOIN:(\d+)\]\]/i);
-            const displayAnswer = fullAnswer.replace(/\n?\s*\[\[JOIN:\d+\]\]/gi, "").trim();
+            const callMatch = fullAnswer.match(/\[\[CALL_FAMILY\]\]/i);
+            const displayAnswer = fullAnswer.replace(/\n?\s*\[\[JOIN:\d+\]\]/gi, "").replace(/\n?\s*\[\[CALL_FAMILY\]\]/gi, "").trim();
             const buf = await fetchTTSBuffer(ttsReady(displayAnswer), ttsCtrl.signal);
-            setIsThinking(false);
             setMessages((prev) => {
               const msgs = [...prev];
               if (msgs.length > 0 && msgs[msgs.length - 1].role === "assistant") {
@@ -899,8 +889,11 @@ const ElderView = () => {
             if (buf && !ttsCtrl.signal.aborted) await decodeAndPlay(buf, ttsCtrl.signal);
             if (joinMatch) {
               const activityId = parseInt(joinMatch[1], 10);
-              window.dispatchEvent(new CustomEvent("NHH-join-activity", { detail: { id: activityId } }));
               setOpenPanel("activity");
+              setPendingJoinId(activityId);
+            }
+            if (callMatch) {
+              startCall();
             }
           }
         } catch {
@@ -923,6 +916,76 @@ const ElderView = () => {
     if (r && r.state !== "inactive") r.stop();
   };
 
+  // Dispatch join event only after CommunityPanel has mounted and registered its listener
+  useEffect(() => {
+    if (pendingJoinId !== null && openPanel === "activity") {
+      window.dispatchEvent(new CustomEvent("NHH-join-activity", { detail: { id: pendingJoinId } }));
+      setPendingJoinId(null);
+    }
+  }, [pendingJoinId, openPanel]);
+
+  // Listen for family's response to the call
+  useEffect(() => {
+    const handler = (e: StorageEvent) => {
+      if (e.key !== "nhh-call-state") return;
+      const val = JSON.parse(e.newValue ?? "{}");
+      if (val.status === "accepted") setCallState("connected");
+      if (val.status === "declined") {
+        setCallState("declined");
+        setTimeout(() => setCallState("idle"), 3000);
+      }
+      if (val.status === "idle") setCallState("idle");
+    };
+    window.addEventListener("storage", handler);
+    return () => window.removeEventListener("storage", handler);
+  }, []);
+
+  const startCall = () => {
+    setCallState("calling");
+    localStorage.setItem("nhh-call-state", JSON.stringify({ status: "ringing", timestamp: Date.now() }));
+  };
+  const endCall = () => {
+    setCallState("idle");
+    localStorage.setItem("nhh-call-state", JSON.stringify({ status: "idle", timestamp: Date.now() }));
+  };
+
+  // Poll for incoming call from family
+  useEffect(() => {
+    const sync = () => {
+      const val = JSON.parse(localStorage.getItem("nhh-family-call-state") ?? "{}");
+      if (val.status === "ringing") { setFamilyCallIncoming(true); setFamilyCallConnected(false); }
+      else if (val.status === "idle") { setFamilyCallIncoming(false); setFamilyCallConnected(false); }
+    };
+    sync();
+    const interval = setInterval(sync, 500);
+    const handler = (e: StorageEvent) => { if (e.key === "nhh-family-call-state") sync(); };
+    window.addEventListener("storage", handler);
+    return () => { clearInterval(interval); window.removeEventListener("storage", handler); };
+  }, []);
+
+  const acceptFamilyCall = () => {
+    setFamilyCallIncoming(false);
+    setFamilyCallConnected(true);
+    localStorage.setItem("nhh-family-call-state", JSON.stringify({ status: "accepted", timestamp: Date.now() }));
+  };
+  const declineFamilyCall = () => {
+    setFamilyCallIncoming(false);
+    localStorage.setItem("nhh-family-call-state", JSON.stringify({ status: "declined", timestamp: Date.now() }));
+  };
+  const endFamilyCall = () => {
+    setFamilyCallConnected(false);
+    localStorage.setItem("nhh-family-call-state", JSON.stringify({ status: "idle", timestamp: Date.now() }));
+  };
+
+  const isCallConnected = callState === "connected" || familyCallConnected;
+  useEffect(() => {
+    if (!isCallConnected) { setCallSeconds(0); return; }
+    const t = setInterval(() => setCallSeconds(s => s + 1), 1000);
+    return () => clearInterval(t);
+  }, [isCallConnected]);
+  const fmtTime = (s: number) =>
+    `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+
   const toggle = (panel: Panel) =>
     setOpenPanel((prev) => (prev === panel ? null : panel));
 
@@ -930,6 +993,84 @@ const ElderView = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+      {/* ── Outgoing call to family ────────────────────────────────── */}
+      {callState === "calling" && (
+        <div className="fixed inset-x-0 top-0 z-[9999] flex items-center justify-between gap-4 px-6 py-5 bg-gradient-to-r from-emerald-600 to-teal-600 shadow-2xl text-white">
+          <div className="flex items-center gap-4">
+            <div className="relative flex items-center justify-center">
+              <span className="absolute inline-flex h-14 w-14 rounded-full bg-white/20 animate-ping" />
+              <span className="absolute inline-flex h-10 w-10 rounded-full bg-white/30 animate-ping [animation-delay:200ms]" />
+              <div className="relative flex h-12 w-12 items-center justify-center rounded-full bg-white/25 shadow-lg">
+                <PhoneCall className="h-6 w-6 text-white" />
+              </div>
+            </div>
+            <div>
+              <p className="text-lg font-bold tracking-wide">📲 Calling your family…</p>
+              <p className="text-sm font-medium text-white/90">Waiting for them to pick up</p>
+            </div>
+          </div>
+          <button onClick={endCall} className="flex items-center gap-2 rounded-full bg-rose-500 px-5 py-2.5 text-sm font-bold shadow-lg hover:bg-rose-400 active:scale-95 transition-all">
+            <PhoneOff className="h-4 w-4" /> Cancel
+          </button>
+        </div>
+      )}
+
+      {/* ── Connected with family (outgoing call accepted) ─────────── */}
+      {callState === "connected" && (
+        <div className="fixed inset-x-0 top-0 z-[9999] flex items-center justify-between px-6 py-3 bg-emerald-600 text-white shadow-lg">
+          <div className="flex items-center gap-3">
+            <div className="h-2 w-2 rounded-full bg-white animate-pulse" />
+            <span className="text-sm font-semibold">Connected with your family</span>
+            <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-mono font-semibold">{fmtTime(callSeconds)}</span>
+          </div>
+          <button onClick={endCall} className="flex items-center gap-2 rounded-full bg-white/20 px-3 py-1.5 text-xs font-semibold hover:bg-white/30 transition">
+            <PhoneOff className="h-3.5 w-3.5" /> End Call
+          </button>
+        </div>
+      )}
+
+      {/* ── Incoming call from family ──────────────────────────────── */}
+      {familyCallIncoming && (
+        <div className="fixed inset-x-0 top-0 z-[9999] flex items-center justify-between gap-4 px-6 py-5 shadow-2xl"
+          style={{ background: "linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #db2777 100%)" }}>
+          <div className="flex items-center gap-4 text-white">
+            <div className="relative flex items-center justify-center">
+              <span className="absolute inline-flex h-14 w-14 rounded-full bg-white/20 animate-ping" />
+              <span className="absolute inline-flex h-10 w-10 rounded-full bg-white/30 animate-ping [animation-delay:150ms]" />
+              <div className="relative flex h-12 w-12 items-center justify-center rounded-full bg-white/25 shadow-lg">
+                <PhoneIncoming className="h-6 w-6 text-white drop-shadow" />
+              </div>
+            </div>
+            <div>
+              <p className="text-lg font-bold tracking-wide">📞 Incoming Call</p>
+              <p className="text-sm font-medium text-white/90">Your family wants to talk with you</p>
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <button onClick={acceptFamilyCall} className="flex items-center gap-2 rounded-full bg-emerald-400 px-5 py-2.5 text-sm font-bold text-white shadow-lg hover:bg-emerald-300 active:scale-95 transition-all">
+              <Phone className="h-4 w-4" /> Accept
+            </button>
+            <button onClick={declineFamilyCall} className="flex items-center gap-2 rounded-full bg-rose-500 px-5 py-2.5 text-sm font-bold text-white shadow-lg hover:bg-rose-400 active:scale-95 transition-all">
+              <PhoneOff className="h-4 w-4" /> Decline
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Connected with family banner ───────────────────────────── */}
+      {familyCallConnected && (
+        <div className="fixed inset-x-0 top-0 z-[9999] flex items-center justify-between px-6 py-3 bg-emerald-600 text-white shadow-lg">
+          <div className="flex items-center gap-3">
+            <div className="h-2 w-2 rounded-full bg-white animate-pulse" />
+            <span className="text-sm font-semibold">Connected with your family</span>
+            <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-mono font-semibold">{fmtTime(callSeconds)}</span>
+          </div>
+          <button onClick={endFamilyCall} className="flex items-center gap-2 rounded-full bg-white/20 px-3 py-1.5 text-xs font-semibold hover:bg-white/30 transition">
+            <PhoneOff className="h-3.5 w-3.5" /> End Call
+          </button>
+        </div>
+      )}
+
       <Header />
 
       <main className="container mx-auto px-4 py-8 sm:px-6">
@@ -998,6 +1139,43 @@ const ElderView = () => {
               <Brain className="h-4 w-4" />
               Mental Health
             </button>
+          </div>
+
+          {/* Call Family button — separate row, distinct from AI check-ins */}
+          <div className="mt-4 flex justify-center">
+            {callState === "idle" && (
+              <button
+                onClick={startCall}
+                className="flex items-center gap-3 rounded-2xl bg-emerald-500 px-8 py-3 text-lg font-semibold text-white shadow-md transition hover:bg-emerald-400 active:scale-95"
+              >
+                <Phone className="h-5 w-5" />
+                Call Family
+              </button>
+            )}
+            {callState === "calling" && (
+              <button
+                onClick={endCall}
+                className="flex items-center gap-3 rounded-2xl bg-amber-400 px-8 py-3 text-lg font-semibold text-white shadow-md transition hover:bg-amber-300 animate-pulse"
+              >
+                <PhoneCall className="h-5 w-5" />
+                Calling…
+              </button>
+            )}
+            {callState === "connected" && (
+              <div className="flex items-center gap-3 rounded-2xl bg-emerald-500 px-8 py-3 shadow-md">
+                <div className="h-2.5 w-2.5 rounded-full bg-white animate-pulse" />
+                <span className="text-lg font-semibold text-white">Connected</span>
+                <button onClick={endCall} className="ml-2 flex items-center gap-1.5 rounded-xl bg-white/20 px-3 py-1.5 text-sm font-medium text-white hover:bg-white/30 transition">
+                  <PhoneOff className="h-4 w-4" /> End
+                </button>
+              </div>
+            )}
+            {callState === "declined" && (
+              <div className="flex items-center gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-8 py-3 text-lg font-medium text-rose-600">
+                <PhoneOff className="h-5 w-5" />
+                Call Declined
+              </div>
+            )}
           </div>
         </div>
 

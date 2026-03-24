@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import {
   Heart, Moon, Utensils, Brain, Footprints, Shield, Droplets, Pill,
   ShieldCheck, AlertCircle, AlertTriangle,
-  Phone, Share2, Clock, Maximize2,
+  Phone, PhoneOff, PhoneIncoming, PhoneCall, Share2, Clock, Maximize2,
   Calendar, CheckSquare, Square,
 } from "lucide-react";
 import { Header } from "@/components/Header";
@@ -336,6 +336,79 @@ const FamilyView = () => {
   const [gaitMetrics, setGaitMetrics] = useState({ symmetry: 0, variability: 0, speed: 0, cadence: 0, worseStride: 0, worseGCT: 0 });
   const [loaded, setLoaded] = useState(false);
   const [openModal, setOpenModal] = useState<string | null>(null);
+  const [incomingCall, setIncomingCall] = useState(false);
+  const [callConnected, setCallConnected] = useState(false);
+  const [frankCallState, setFrankCallState] = useState<"idle" | "calling" | "connected" | "declined">("idle");
+  const [callSeconds, setCallSeconds] = useState(0);
+
+  useEffect(() => {
+    const sync = () => {
+      const val = JSON.parse(localStorage.getItem("nhh-call-state") ?? "{}");
+      if (val.status === "ringing") { setIncomingCall(true); setCallConnected(false); }
+      else if (val.status === "idle") { setIncomingCall(false); setCallConnected(false); }
+    };
+    sync(); // check on mount
+    const interval = setInterval(sync, 500); // poll every 500ms (same-tab navigation)
+    const handler = (e: StorageEvent) => { // cross-tab events
+      if (e.key === "nhh-call-state") sync();
+    };
+    window.addEventListener("storage", handler);
+    return () => { clearInterval(interval); window.removeEventListener("storage", handler); };
+  }, []);
+
+  // Listen for Frank's response to family's call
+  useEffect(() => {
+    const handler = (e: StorageEvent) => {
+      if (e.key !== "nhh-family-call-state") return;
+      const val = JSON.parse(e.newValue ?? "{}");
+      if (val.status === "accepted") setFrankCallState("connected");
+      if (val.status === "declined") {
+        setFrankCallState("declined");
+        setTimeout(() => setFrankCallState("idle"), 3000);
+      }
+      if (val.status === "idle") setFrankCallState("idle");
+    };
+    window.addEventListener("storage", handler);
+    // Also poll for same-tab navigation
+    const interval = setInterval(() => {
+      const val = JSON.parse(localStorage.getItem("nhh-family-call-state") ?? "{}");
+      if (val.status === "accepted" && frankCallState !== "connected") setFrankCallState("connected");
+      if (val.status === "idle" && frankCallState !== "idle") setFrankCallState("idle");
+    }, 500);
+    return () => { window.removeEventListener("storage", handler); clearInterval(interval); };
+  }, [frankCallState]);
+
+  const isFamilyConnected = callConnected || frankCallState === "connected";
+  useEffect(() => {
+    if (!isFamilyConnected) { setCallSeconds(0); return; }
+    const t = setInterval(() => setCallSeconds(s => s + 1), 1000);
+    return () => clearInterval(t);
+  }, [isFamilyConnected]);
+  const fmtTime = (s: number) =>
+    `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+
+  const startFrankCall = () => {
+    setFrankCallState("calling");
+    localStorage.setItem("nhh-family-call-state", JSON.stringify({ status: "ringing", timestamp: Date.now() }));
+  };
+  const endFrankCall = () => {
+    setFrankCallState("idle");
+    localStorage.setItem("nhh-family-call-state", JSON.stringify({ status: "idle", timestamp: Date.now() }));
+  };
+
+  const acceptCall = () => {
+    setIncomingCall(false);
+    setCallConnected(true);
+    localStorage.setItem("nhh-call-state", JSON.stringify({ status: "accepted", timestamp: Date.now() }));
+  };
+  const declineCall = () => {
+    setIncomingCall(false);
+    localStorage.setItem("nhh-call-state", JSON.stringify({ status: "declined", timestamp: Date.now() }));
+  };
+  const endCall = () => {
+    setCallConnected(false);
+    localStorage.setItem("nhh-call-state", JSON.stringify({ status: "idle", timestamp: Date.now() }));
+  };
 
   useEffect(() => {
     (async () => {
@@ -609,6 +682,74 @@ const FamilyView = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* ── Outgoing call to Frank ───────────────────────────────── */}
+      {frankCallState === "calling" && (
+        <div className="fixed inset-x-0 top-0 z-[9999] flex items-center justify-between gap-4 px-6 py-5 bg-gradient-to-r from-emerald-600 to-teal-600 shadow-2xl text-white">
+          <div className="flex items-center gap-4">
+            <div className="relative flex items-center justify-center">
+              <span className="absolute inline-flex h-14 w-14 rounded-full bg-white/20 animate-ping" />
+              <span className="absolute inline-flex h-10 w-10 rounded-full bg-white/30 animate-ping [animation-delay:200ms]" />
+              <div className="relative flex h-12 w-12 items-center justify-center rounded-full bg-white/25 shadow-lg">
+                <PhoneCall className="h-6 w-6 text-white" />
+              </div>
+            </div>
+            <div>
+              <p className="text-lg font-bold tracking-wide">📲 Calling {first_name}...</p>
+              <p className="text-sm font-medium text-white/90">Waiting for {first_name} to pick up</p>
+            </div>
+          </div>
+          <button onClick={endFrankCall} className="flex items-center gap-2 rounded-full bg-rose-500 px-5 py-2.5 text-sm font-bold shadow-lg hover:bg-rose-400 active:scale-95 transition-all">
+            <PhoneOff className="h-4 w-4" /> Cancel
+          </button>
+        </div>
+      )}
+
+      {/* ── Incoming call overlay ─────────────────────────────────── */}
+      {incomingCall && (
+        <div className="fixed inset-x-0 top-0 z-[9999] flex items-center justify-between gap-4 px-6 py-5 shadow-2xl"
+          style={{ background: "linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #db2777 100%)" }}>
+          {/* Animated ring rings behind icon */}
+          <div className="flex items-center gap-4 text-white">
+            <div className="relative flex items-center justify-center">
+              <span className="absolute inline-flex h-14 w-14 rounded-full bg-white/20 animate-ping" />
+              <span className="absolute inline-flex h-10 w-10 rounded-full bg-white/30 animate-ping [animation-delay:150ms]" />
+              <div className="relative flex h-12 w-12 items-center justify-center rounded-full bg-white/25 shadow-lg">
+                <PhoneIncoming className="h-6 w-6 text-white drop-shadow" />
+              </div>
+            </div>
+            <div>
+              <p className="text-lg font-bold tracking-wide">📞 Incoming Call</p>
+              <p className="text-sm font-medium text-white/90">{first_name} {last_name} is calling you</p>
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <button onClick={acceptCall} className="flex items-center gap-2 rounded-full bg-emerald-400 px-5 py-2.5 text-sm font-bold text-white shadow-lg hover:bg-emerald-300 active:scale-95 transition-all">
+              <Phone className="h-4 w-4" /> Accept
+            </button>
+            <button onClick={declineCall} className="flex items-center gap-2 rounded-full bg-rose-500 px-5 py-2.5 text-sm font-bold text-white shadow-lg hover:bg-rose-400 active:scale-95 transition-all">
+              <PhoneOff className="h-4 w-4" /> Decline
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Connected banner (Frank called us / we called Frank) ─── */}
+      {(callConnected || frankCallState === "connected") && (
+        <div className="fixed inset-x-0 top-0 z-[9999] flex items-center justify-between px-6 py-3 bg-emerald-600 text-white shadow-lg">
+          <div className="flex items-center gap-3">
+            <div className="h-2 w-2 rounded-full bg-white animate-pulse" />
+            <span className="text-sm font-semibold">Connected with {first_name}</span>
+            <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-mono font-semibold">{fmtTime(callSeconds)}</span>
+          </div>
+          <button
+            onClick={callConnected ? endCall : endFrankCall}
+            className="flex items-center gap-2 rounded-full bg-white/20 px-3 py-1.5 text-xs font-semibold hover:bg-white/30 transition"
+          >
+            <PhoneOff className="h-3.5 w-3.5" /> End Call
+          </button>
+        </div>
+      )}
+
       <Header />
 
       <main className="container mx-auto px-4 py-6 sm:px-6 max-w-7xl">
@@ -628,10 +769,31 @@ const FamilyView = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => toast.info(`Calling ${first_name}`)}>
-              <Phone className="mr-1.5 h-3.5 w-3.5" />
-              Call {first_name}
-            </Button>
+            {frankCallState === "idle" && (
+              <Button variant="outline" size="sm" onClick={startFrankCall}>
+                <Phone className="mr-1.5 h-3.5 w-3.5" />
+                Call {first_name}
+              </Button>
+            )}
+            {frankCallState === "calling" && (
+              <Button size="sm" onClick={endFrankCall} className="animate-pulse bg-amber-500 hover:bg-amber-600 border-0">
+                <PhoneCall className="mr-1.5 h-3.5 w-3.5" />
+                Calling…
+              </Button>
+            )}
+            {frankCallState === "connected" && (
+              <Button size="sm" onClick={endFrankCall} className="bg-emerald-600 hover:bg-emerald-700 border-0 gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
+                Connected · End
+                <PhoneOff className="h-3.5 w-3.5" />
+              </Button>
+            )}
+            {frankCallState === "declined" && (
+              <Button size="sm" disabled className="bg-rose-100 text-rose-600 border-0">
+                <PhoneOff className="mr-1.5 h-3.5 w-3.5" />
+                Declined
+              </Button>
+            )}
             <Button size="sm" onClick={() => toast.info("Opening share options…")}>
               <Share2 className="mr-1.5 h-3.5 w-3.5" />
               Share Report
