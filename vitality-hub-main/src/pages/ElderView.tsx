@@ -492,7 +492,10 @@ const ElderView = () => {
       "Speak clearly and reassuringly, Frank should feel like you are a close companion not a doctor. " +
       "Keep answers brief (2-3 sentences). " +
       "DO NOT diagnose medical conditions. " +
-      "Address him as Frank."
+      "Address him as Frank.\n\n" +
+      "CALL INSTRUCTION: If Frank asks to call his family, reach his family, or wants to talk to his family, " +
+      "confirm warmly in your normal response. Then, on a brand new line at the very end, " +
+      "append exactly: [[CALL_FAMILY]] — this is a silent machine code, never speak or mention it."
     );
     return lines.join("\n");
   };
@@ -957,7 +960,8 @@ const ElderView = () => {
             });
           } else {
             const joinMatch = fullAnswer.match(/\[\[JOIN:(\d+)\]\]/i);
-            const displayAnswer = fullAnswer.replace(/\n?\s*\[\[JOIN:\d+\]\]/gi, "").trim();
+            const callMatch = fullAnswer.match(/\[\[CALL_FAMILY\]\]/i);
+            const displayAnswer = fullAnswer.replace(/\n?\s*\[\[JOIN:\d+\]\]/gi, "").replace(/\n?\s*\[\[CALL_FAMILY\]\]/gi, "").trim();
             const buf = await fetchTTSBuffer(ttsReady(displayAnswer), ttsCtrl.signal);
             setMessages((prev) => {
               const msgs = [...prev];
@@ -971,6 +975,9 @@ const ElderView = () => {
               const activityId = parseInt(joinMatch[1], 10);
               setOpenPanel("activity");
               setPendingJoinId(activityId);
+            }
+            if (callMatch) {
+              startCall();
             }
           }
         } catch {
@@ -1217,37 +1224,40 @@ const ElderView = () => {
               <Brain className="h-4 w-4" />
               Mental Health
             </button>
-            {/* Call Family button */}
+          </div>
+
+          {/* Call Family button — separate row, distinct from AI check-ins */}
+          <div className="mt-4 flex justify-center">
             {callState === "idle" && (
               <button
                 onClick={startCall}
-                className="flex items-center gap-2 rounded-2xl border border-emerald-200 bg-white px-5 py-2.5 text-base font-medium text-emerald-700 shadow-sm transition hover:bg-emerald-50 hover:border-emerald-400"
+                className="flex items-center gap-3 rounded-2xl bg-emerald-500 px-8 py-3 text-lg font-semibold text-white shadow-md transition hover:bg-emerald-400 active:scale-95"
               >
-                <Phone className="h-4 w-4" />
+                <Phone className="h-5 w-5" />
                 Call Family
               </button>
             )}
             {callState === "calling" && (
               <button
                 onClick={endCall}
-                className="flex items-center gap-2 rounded-2xl border border-amber-300 bg-amber-50 px-5 py-2.5 text-base font-medium text-amber-700 shadow-sm transition hover:bg-amber-100 animate-pulse"
+                className="flex items-center gap-3 rounded-2xl bg-amber-400 px-8 py-3 text-lg font-semibold text-white shadow-md transition hover:bg-amber-300 animate-pulse"
               >
-                <PhoneCall className="h-4 w-4" />
+                <PhoneCall className="h-5 w-5" />
                 Calling…
               </button>
             )}
             {callState === "connected" && (
-              <div className="flex items-center gap-3 rounded-2xl border border-emerald-400 bg-emerald-500 px-5 py-2.5 shadow-md">
-                <div className="h-2 w-2 rounded-full bg-white animate-pulse" />
-                <span className="text-base font-semibold text-white">Connected</span>
-                <button onClick={endCall} className="ml-1 flex items-center gap-1 rounded-xl bg-white/20 px-3 py-1 text-sm font-medium text-white hover:bg-white/30 transition">
-                  <PhoneOff className="h-3.5 w-3.5" /> End
+              <div className="flex items-center gap-3 rounded-2xl bg-emerald-500 px-8 py-3 shadow-md">
+                <div className="h-2.5 w-2.5 rounded-full bg-white animate-pulse" />
+                <span className="text-lg font-semibold text-white">Connected</span>
+                <button onClick={endCall} className="ml-2 flex items-center gap-1.5 rounded-xl bg-white/20 px-3 py-1.5 text-sm font-medium text-white hover:bg-white/30 transition">
+                  <PhoneOff className="h-4 w-4" /> End
                 </button>
               </div>
             )}
             {callState === "declined" && (
-              <div className="flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-5 py-2.5 text-base font-medium text-rose-600">
-                <PhoneOff className="h-4 w-4" />
+              <div className="flex items-center gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-8 py-3 text-lg font-medium text-rose-600">
+                <PhoneOff className="h-5 w-5" />
                 Call Declined
               </div>
             )}
