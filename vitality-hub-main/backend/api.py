@@ -1021,6 +1021,58 @@ def get_patient_context(patient_id: str = ""):
     """
     return context
 
+@app.get("/api/patient-medications")
+def get_patient_medications(first_name: str, last_name: str):
+    try:
+        all_patients = get_fhir_patients()
+        
+        first_name_lower = first_name.lower()
+        last_name_lower = last_name.lower()
+        
+        target_patient = next(
+            (p for p in all_patients if 
+            first_name_lower in p['name'].lower() and 
+            last_name_lower in p['name'].lower()), 
+            None
+        )
+
+        if not target_patient:
+            raise HTTPException(
+                status_code=404, 
+                detail=f"Patient {first_name} {last_name} not found in FHIR records"
+            )
+
+        medications = get_fhir_medications(target_patient['id'])    
+        return medications
+    except Exception as e:
+        raise e
+
+@app.get("/api/patient-appointments")
+def get_patient_appointments(first_name: str, last_name: str):
+    try:
+        all_patients = get_fhir_patients()
+        
+        first_name_lower = first_name.lower()
+        last_name_lower = last_name.lower()
+        
+        target_patient = next(
+            (p for p in all_patients if 
+            first_name_lower in p['name'].lower() and 
+            last_name_lower in p['name'].lower()), 
+            None
+        )
+
+        if not target_patient:
+            raise HTTPException(
+                status_code=404, 
+                detail=f"Patient {first_name} {last_name} not found in FHIR records"
+            )
+        
+        appointments = get_fhir_appointments(target_patient['id'])
+        return appointments
+    except Exception as e:
+        raise e
+
 # ── AI response endpoints ─────────────────────────────────────────────────────
 
 # Patient summary could be generated via the UI during account creation in order to provide more details?
@@ -1085,6 +1137,262 @@ def get_patient_desc(patient_id: str = ""):
     )
     
     return response.output_text
+
+@app.post("/api/build-health-context")
+def build_health_context(data: dict) -> str:
+    v = data.get("v", {})
+    nRef = data.get("nRef", {})
+    first_name = data.get("name", "Resident")
+
+    home_data = ""
+    if v.get("sleepHours"):         home_data += f"- Sleep last night: {round(v.get("sleepHours"), 1)} hours \n"
+    if v.get("heartRate"):          home_data += f"- Resting heart rate: {v.get("heartRate")} BPM \n"
+    if v.get("steps"):              home_data += f"- Steps today: {v.get("steps")} \n"
+    if v.get("stressLevel"):        home_data += f"- Stress level: {v.get("stressLevel")}/100 (0 = very calm, 100 = very stressed) \n"
+    if (v.get("hydrationNote") and v.get("hydrationColorLevel", 0) > 0): 
+        home_data += f"- Hydration (smart toilet urine color sensor): level {v.get("hydrationColorLevel")}/8 — {v.get("hydrationNote")} \n"
+    if v.get("gaitNote"):           home_data += f"- Gait / walking analysis: {v.get("gaitNote")} \n"
+    if v.get("fallRiskAlert"):      home_data += f"- Combined fall risk alert: YES — gait irregularities combined with dehydration create elevated fall risk today \n"
+    if v.get("mealsCount"):         home_data += f"- Meals detected today (smart fridge): {v.get("mealsCount")} \n"
+    if len(v.get("currentItems")):  home_data += f"- Current fridge inventory: {', '.join(v.get("currentItems"))}"
+    if len(v.get("expiringItems")): home_data += f"- Fridge items expiring soon: {', '.join(v.get("expiringItems"))}"
+
+    context = f"""
+    You are NHH, a warm and caring AI health companion for {first_name}, an elderly person living independently.
+    {first_name}'s current health data (from their wearable sensors and smart home devices):
+    {home_data}
+
+    {first_name}'s neighborhood community (Oakwood Pines): 
+    {nRef.get("current", "")}
+
+    Use {first_name}'s personal health data and neighborhood information to answer their questions accurately. 
+    Speak clearly and reassuringly, {first_name} should feel like you are a close companion not a doctor. 
+    Keep answers brief (2-3 sentences). 
+    DO NOT diagnose medical conditions. 
+    Address them as {first_name}.
+    """
+    return context
+
+@app.get("/api/build-neighbourhood-context")
+def build_neighbourhood_context(patient_id: str, first_name: str):
+    neighborhoodJson = get_neighborhood(patient_id)
+    # Build Neighborhood RAG Text
+    latest_dict = neighborhoodJson[0] if neighborhoodJson else None
+    lines = []
+    if latest_dict:
+        lines.append("Neighborhood activities this week (each has a booking ID):")
+        for a in latest_dict.get("activities", []):
+            attendeeNames = ", ".join([x.get("name", "") for x in a.get("attendees", [])])
+            suffix = ""
+            if attendeeNames:
+                extra = f" +{a.get('extraCount')} more" if a.get('extraCount', 0) > 0 else ""
+                suffix = f" — attending: {attendeeNames}{extra}"
+            lines.append(f" • [ID: {a.get('id', 0)}] {a.get('title', "")}: {a.get('date', "")} at {a.get('time', "")}, {a.get('location', "")} ({a.get('duration', "")}) {suffix}")
+        
+        lines.append("Recent neighbor activity: ")
+        for f in latest_dict.get("feedItems", []):
+            lines.append(f" • {f.get('name', "")} {f.get('activity', [])} ({f.get('time', "")})")
+
+        help_posts = latest_dict.get("helpPosts", [])
+        requests = [p for p in help_posts if p.get("type", "") == "request"]
+        offers   = [p for p in help_posts if p.get("type", "") == "offer"]
+
+        if requests:
+            lines.append("Neighbors who need help: ")
+            for p in requests:
+                lines.append(f" • {p.get('name', "")} ({p.get('category', "")}): {p.get('message', "")}")
+        if offers:
+            lines.append("Neighbors offering help: ")
+            for p in offers:
+                lines.append(f" • {p.get('name', "")} ({p.get('category', "")}): {p.get('message', "")}")
+
+        lines.append("")
+        
+        instructions = f"""
+        BOOKING INSTRUCTION: If {first_name} asks to join, book, sign up for, or register for a specific activity, 
+        confirm enthusiastically in your normal response that you have successfully registered them. Then, on a brand new line at the very end, 
+        append exactly: [[JOIN:ID]] where ID is that activity's booking ID number from the list above. 
+        Do NOT speak or mention [[JOIN:ID]] — it is a silent machine code only, never part of the conversation. 
+        Only append it when {first_name} explicitly asks to join or book an activity.
+        """
+        lines.append(instructions)
+    return "\n".join(lines)
+
+def build_step_history(dailySummaryJson: list):
+    all_days = sorted(
+        [d for d in dailySummaryJson if d.get("calendarDate")],
+        key=lambda x: x.get("calendarDate")
+    )
+    step_history_raw = [d for d in all_days if d.get("totalSteps")][-14:]
+    step_history = []
+    for d in step_history_raw:
+        date_obj = datetime.strptime(d.get("calendarDate"), "%Y-%m-%d")
+        formatted_date = date_obj.strftime("%-m/%-d") 
+        step_history.append({
+            "day": formatted_date,
+            "steps": d.get("totalSteps")
+        })
+    return step_history
+
+def extract_fridge(patient_id: str):
+    fridgeJson = get_fridge(patient_id)
+    
+    latest_dict = max(fridgeJson, key=lambda x: x.get("calendarDate"), default=None)
+    if latest_dict:
+        inventory_list = latest_dict.get("inventory")
+        current_items = [inv.get("item") for inv in inventory_list]
+        alerts = latest_dict.get("alerts")
+        expiring_items = [a.get("item") for a in alerts if a.get("type") == "expiring"]
+        nutrition = latest_dict.get("dailyNutrition")
+        meals_list = latest_dict.get("mealsDetected")
+
+        return {
+            "waterLiters": nutrition.get("waterLiters"),
+            "currentItems": current_items,
+            "expiringItems": expiring_items,
+            "mealsCount": len(meals_list),
+        }
+    return {"waterLiters": 50, "currentItems": [], "expiringItems": [], "mealsCount": 0}
+
+def extract_hydration(patient_id: str):
+    toiletJson = get_toilet(patient_id)
+    
+    hydrationNote = ""
+    hydrationColorLevel = 0
+    latest = max(toiletJson, key=lambda x: x.get("calendarDate"), default=None)
+    readings = latest.get("readings")
+    latest_reading = max(readings, key=lambda r: r.get("timestamp"), default={})
+    hydrationColorLevel = latest_reading.get("colorLevel")
+    if hydrationColorLevel > 0:
+        levels = [
+            (2, "well hydrated"),
+            (4, "adequately hydrated"),
+            (5, "mildly dehydrated — could drink more water"),
+            (6, "moderately dehydrated — needs more fluids"),
+            (7, "significantly dehydrated — drinking water is important right now")
+        ]        
+        hydrationNote = next((note for max_lvl, note in levels if hydrationColorLevel <= max_lvl), "severely dehydrated — needs attention soon")
+    dehydrated = "dehydrated" in hydrationNote.lower()
+    return hydrationNote, hydrationColorLevel, dehydrated
+
+def extract_gait(patient_id: str):
+    gaitJson = get_gait(patient_id)
+    
+    all_sessions = [s for day in gaitJson for s in day["sessions"]]
+    if all_sessions:
+        n = len(all_sessions)
+        avg_speed       = sum(x["gaitSpeedMs"] for x in all_sessions) / n
+        avg_symmetry    = sum(x["stepSymmetryPct"] for x in all_sessions) / n
+        avg_variability = sum(x["strideVariabilityPct"] for x in all_sessions) / n
+        avg_gct_diff = sum(abs(x["groundContactTimeMs"]["left"] - 
+                               x["groundContactTimeMs"]["right"]) 
+                           for x in all_sessions) / n
+        score = 0
+        if avg_speed < 0.6: score += 4
+        elif avg_speed < 0.8: score += 2
+        if avg_symmetry < 75: score += 3
+        elif avg_symmetry < 82: score += 2
+        if avg_variability > 12: score += 2
+        elif avg_variability > 8: score += 1
+        if avg_gct_diff > 100: score += 2
+        elif avg_gct_diff > 60: score += 1
+
+        risk_level = "high" if score >= 5 else "moderate" if score >= 2 else "low"
+        gaitNote = (f"{risk_level} fall risk — avg walking speed {avg_speed:.2f} m/s, "
+                    f"step symmetry {round(avg_symmetry)}%, "
+                    f"stride variability {avg_variability:.1f}%, "
+                    f"L/R ground contact diff {round(avg_gct_diff)} ms")
+    
+    gaitConcern = (risk_level != "low")
+    
+    latest_day = max(gaitJson, key=lambda x: x["calendarDate"])
+    s = latest_day["sessions"][-1] 
+
+    gct = s["groundContactTimeMs"]
+    stride = s["strideLength"]
+
+    gait_metrics = {
+        "symmetry": float(s["stepSymmetryPct"]),
+        "variability": float(s["strideVariabilityPct"]),
+        "speed": float(s["gaitSpeedMs"]),
+        "cadence": float(s["cadence"]),
+        "worseStride": min(stride["leftCm"], stride["rightCm"]),
+        "worseGCT": max(gct["left"], gct["right"])
+    }
+    return gaitNote, gaitConcern, gait_metrics
+
+def extract_phone_calls(patient_id: str):
+    phoneCallJson = get_phone_calls(patient_id)
+    phone_calls = {"phoneCallMinutes": 0, "phoneCallTrend": []}
+    
+    sorted_calls = sorted(
+        phoneCallJson, 
+        key=lambda x: str(x.get("calendarDate", ""))
+    )
+    if sorted_calls:
+        last7 = sorted_calls[-7:]
+        trend = [float(d.get("totalMinutes", 0)) for d in last7]
+        latest = sorted_calls[-1]
+        minutes = float(latest.get("totalMinutes", 0)) 
+        phone_calls = {"phoneCallMinutes": minutes, "phoneCallTrend": trend}
+    return phone_calls
+
+def extract_sleep(patient_id: str):
+    sleepJson = get_sleep(patient_id)
+    
+    hoursAsleep = 0
+    filtered_sleep = [
+        x for x in sleepJson 
+        if x.get("calendarDate") and (
+            x.get("deepSleepSeconds") is not None or 
+            x.get("lightSleepSeconds") is not None or 
+            x.get("remSleepSeconds") is not None
+        )
+    ]
+    if filtered_sleep:
+        latest = max(filtered_sleep, key=lambda x: str(x.get("calendarDate", "")), default=None)   
+        if latest:
+            total_seconds = latest.get("deepSleepSeconds") + latest.get("lightSleepSeconds") + latest.get("remSleepSeconds")
+            hoursAsleep = total_seconds / 3600
+    return hoursAsleep
+
+@app.get("/api/build-patient-dashboard")
+def get_patient_dashboard(patient_id: str):
+    # Latest date for the dashboard data
+    dailyJson = get_dailySummary(patient_id)
+    
+    latest_dailySummary = max(dailyJson, key=lambda x: x.get("calendarDate"), default=None)
+
+    # extractStress
+    aggregator_list = latest_dailySummary.get("allDayStress").get("aggregatorList")
+    awake = next((a for a in aggregator_list if a.get("type") == "AWAKE"), {})
+    stressLevel = round(awake.get("averageStressLevel"))
+
+    fridge = extract_fridge(patient_id)
+    hydrationNote, hydrationColorLevel, dehydrated = extract_hydration(patient_id)
+    gaitNote, gaitConcern, gaitMetrics = extract_gait(patient_id)    
+    phoneCalls = extract_phone_calls(patient_id)
+    hoursAsleep = extract_sleep(patient_id)
+    stepHistory = build_step_history(dailyJson)
+
+    return {
+        "heartRate": latest_dailySummary.get("currentDayRestingHeartRate") or latest_dailySummary.get("restingHeartRate") or 0,
+        "steps": latest_dailySummary.get("totalSteps") or 0,
+        "stressLevel": stressLevel,
+        "sleepHours": hoursAsleep,
+        "hydrationNote": hydrationNote,
+        "hydrationColorLevel": hydrationColorLevel,
+        "waterLiters": fridge.get("waterLiters"),
+        "expiringItems": fridge.get("expiringItems"),
+        "currentItems": fridge.get("currentItems"),
+        "mealsCount": fridge.get("mealsCount"),
+        "phoneCallMinutes": phoneCalls.get("phoneCallMinutes"),
+        "phoneCallTrend": phoneCalls.get("phoneCallTrend"),
+        "gaitNote": gaitNote,
+        "fallRiskAlert": dehydrated and gaitConcern,
+        "gaitMetrics": gaitMetrics,
+        "stepHistory": stepHistory
+    }
 
 @app.post("/api/answer")
 async def answer(payload: dict = Body(...)):
@@ -1416,22 +1724,34 @@ def generate_clinician_summary_fast(patient_id: str = Query(...)):
     # ROLE: FHIR R4 Expert
 
     # CONTEXT: 
-    You are an expert medical data analyst specializing in FHIR R4 speaking directly to a clinician. When given a FHIR bundle, you should analyse the patient's medical history to determine what are their clinical risks.
-    Cover the most clinically relevant domains from: fall risk, volume/hydration/electrolytes, renal function, cardiovascular risk, medication interactions, mental health/cognition.
+    You are an expert medical data analyst specializing in FHIR R4, speaking directly to a clinician. When given a FHIR bundle, your task is to synthesize a clinically coherent patient summary that explains the patient's current risk state, key contributing factors, and any gaps in care.
+    Prioritize clinical synthesis over enumeration. Combine related findings into a single narrative, highlighting cause-and-effect relationships (e.g., medications contributing to symptoms, unresolved post-operative issues increasing risk).
 
-	# RESPONSE STRUCTURE:
-    The format of the answer should be plain text — no markdown, no asterisks, no bold. Start with the highest-priority risk first.
-    Keep each explanation concise but data-rich. Do not invent data not present in the input.
-    Format your response exactly like this example — a titled header line, then dash-prefixed bullets:
-    
-    Clinical risk summary (Name, Age):
-    - Risk domain 1: concise explanation with supporting data values
-    - Risk domain 2: concise explanation with supporting data values
-    ...
+    Focus on:
+    - What is happening with the patient now
+    - Why it matters clinically
+    - What is driving the current risk
+    - What has not resolved as expected
+    - How medications, conditions, and recent events interact
+
+    Incorporate timing where relevant (e.g., “10 months post-op”, “3 weeks ago”) to highlight ongoing or unresolved issues. Explicitly evaluate how current medications may contribute to symptoms or risks.
+
+    Start with the most clinically important issue affecting near-term risk (e.g., fall risk, medication side effects, unresolved recovery), and avoid listing all conditions — include only what materially impacts current clinical decision-making.
+
+    DO NOT invent data that is not present in the input.
+
+    # RESPONSE STRUCTURE:
+    The format of the answer should be plain text — no markdown, no asterisks, no bold. Start with the highest-priority risk first. Keep each explanation concise but data-rich. DO NOT invent data not present in the input. 
+    Format your response exactly like this example — a titled header line, then dash-prefixed bullets (no more than 5 bullets in each section):
+
+    Summary (based on medical record):
+    [A concise but data-rich clinical narrative in 2-3 paragraphs. Synthesize the patient's history, current risks, medications, and contributing factors. Emphasize causality, time course, and interactions.]
+
+    Suggested actions:
+    [Provide a short list of clear, clinically appropriate next steps. Each action should be on its own bullet-point, concise, practical, and directly linked to the patient's risks and care gaps. Format in the style 'Physical therapy referral: urgent gait reassessment; right-leg compensation has persisted beyond expected post-op recovery window']
 
     # TONE:
-    Be clear and concise, only include conditions and problems that are high risk so that a clinician can interprete this quickly. 
-    DO NOT try and provide the clinician with any advise on further actions or perform any diagnoses yourself. 
+    Be clear, concise, and clinically grounded. Write as a clinician-to-clinician summary. Focus only on high-impact risks and actionable insights. Avoid unnecessary detail or exhaustive condition lists.
     """
 
     response = client.responses.create(

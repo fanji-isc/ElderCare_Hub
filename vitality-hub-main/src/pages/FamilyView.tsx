@@ -20,9 +20,13 @@ import {
 import { toast } from "sonner";
 
 type Vitals = { heartRate: number; steps: number; stressLevel: number; sleepHours: number };
+type Med = { drug: string; status: string; authored: string; dosage: string };
+type Appt = { status: string; start: string; end: string; type: string; practitioner: string; location: string };
 
 const API_BASE = "http://localhost:3001";
-const PATIENT_ID = "PATIENT_001";
+const HOME_ID = "PATIENT_001";
+const first_name = "Frank"
+const last_name = "Larson"
 
 function pickLatest(list: any[]): any | null {
   if (!Array.isArray(list) || list.length === 0) return null;
@@ -46,15 +50,7 @@ function extractSleep(sleepJson: any): number {
   return (Number(latest.deepSleepSeconds ?? 0) + Number(latest.lightSleepSeconds ?? 0) + Number(latest.remSleepSeconds ?? 0)) / 3600;
 }
 
-// ─── Status helpers ────────────────────────────────────────────────────────────
-
-function sleepStatus(h: number) {
-  if (h === 0)   return { label: "No data",       note: "Sleep data unavailable",                 color: "text-muted-foreground", status: "fair" as const };
-  if (h >= 7)    return { label: "Well rested",   note: `${h.toFixed(1)} hrs — great for his age`,     color: "text-emerald-600", status: "good" as const };
-  if (h >= 5.5)  return { label: "Light sleep",   note: `${h.toFixed(1)} hrs — a bit below ideal`,     color: "text-amber-600",   status: "fair" as const };
-  return          { label: "Poor sleep",   note: `Only ${h.toFixed(1)} hrs — worth checking in`, color: "text-rose-600",    status: "warn" as const };
-}
-
+// ── Health card status helpers ─────────────────────────────────────────────────
 function heartStatus(bpm: number) {
   if (bpm === 0)              return { label: "No data",           note: "Heart rate unavailable",                   color: "text-muted-foreground", status: "fair" as const };
   if (bpm >= 55 && bpm <= 85) return { label: "Normal range",      note: `${bpm} BPM — healthy resting rate`,        color: "text-emerald-600",       status: "good" as const };
@@ -78,14 +74,11 @@ function stressStatus(v: number) {
   return        { label: "High stress",  note: "Elevated stress — worth a call", color: "text-rose-600",    status: "warn" as const };
 }
 
-function gaitStatus(symmetryPct: number, variabilityPct: number, speedMs: number, cadence: number, worseStride: number, worseGCT: number) {
-  if (symmetryPct === 0) return { label: "No data",     note: "Gait data unavailable",                color: "text-muted-foreground", status: "fair" as const };
-  // Same thresholds as WalkingActivityChart
-  const isHigh =   cadence < 80  || speedMs < 0.7  || worseStride < 90  || worseGCT > 950 || symmetryPct < 78  || variabilityPct > 10;
-  const isMed  =   cadence < 100 || speedMs < 1.0  || worseStride < 140 || worseGCT > 650 || symmetryPct < 95  || variabilityPct > 5;
-  if (isHigh) return { label: "High Risk",     note: "Significant gait irregularities detected", color: "text-rose-600",    status: "warn" as const };
-  if (isMed)  return { label: "Moderate Risk", note: "Some asymmetry — worth monitoring",        color: "text-amber-600",   status: "fair" as const };
-  return       { label: "Low Risk",            note: "Gait looks steady and balanced",           color: "text-emerald-600", status: "good" as const };
+function sleepStatus(h: number) {
+  if (h === 0)   return { label: "No data",       note: "Sleep data unavailable",                 color: "text-muted-foreground", status: "fair" as const };
+  if (h >= 7)    return { label: "Well rested",   note: `${h.toFixed(1)} hrs — great for his age`,     color: "text-emerald-600", status: "good" as const };
+  if (h >= 5.5)  return { label: "Light sleep",   note: `${h.toFixed(1)} hrs — a bit below ideal`,     color: "text-amber-600",   status: "fair" as const };
+  return          { label: "Poor sleep",   note: `Only ${h.toFixed(1)} hrs — worth checking in`, color: "text-rose-600",    status: "warn" as const };
 }
 
 function hydrationStatus(level: number) {
@@ -96,6 +89,16 @@ function hydrationStatus(level: number) {
   if (level <= 5)  return { label: "Mild Dehydration", note: "Encourage more fluid intake",            color: "text-amber-600",        status: "fair" as const };
   if (level <= 6)  return { label: "Dehydrated",       note: "Dehydrated — needs water now",           color: "text-rose-600",         status: "warn" as const };
   return           { label: "Very Dehydrated",         note: "Severely dehydrated — consider calling", color: "text-rose-600",         status: "warn" as const };
+}
+
+function gaitStatus(symmetryPct: number, variabilityPct: number, speedMs: number, cadence: number, worseStride: number, worseGCT: number) {
+  if (symmetryPct === 0) return { label: "No data",     note: "Gait data unavailable",                color: "text-muted-foreground", status: "fair" as const };
+  // Same thresholds as WalkingActivityChart
+  const isHigh =   cadence < 80  || speedMs < 0.7  || worseStride < 90  || worseGCT > 950 || symmetryPct < 78  || variabilityPct > 10;
+  const isMed  =   cadence < 100 || speedMs < 1.0  || worseStride < 140 || worseGCT > 650 || symmetryPct < 95  || variabilityPct > 5;
+  if (isHigh) return { label: "High Risk",     note: "Significant gait irregularities detected", color: "text-rose-600",    status: "warn" as const };
+  if (isMed)  return { label: "Moderate Risk", note: "Some asymmetry — worth monitoring",        color: "text-amber-600",   status: "fair" as const };
+  return       { label: "Low Risk",            note: "Gait looks steady and balanced",           color: "text-emerald-600", status: "good" as const };
 }
 
 function overallStatus(vitals: Vitals) {
@@ -110,60 +113,33 @@ function overallStatus(vitals: Vitals) {
   return "good";
 }
 
-// ─── Medication detail (lazy-loaded in modal) ─────────────────────────────────
-// Backend returns [{ drug, status, authored, dosage }] — not raw FHIR bundles.
-// FHIR endpoints need the patient's FHIR UUID, not the Garmin key "PATIENT_001",
-// so we first resolve it via /api/fhir/patients by matching Frank Larson's name.
-
-type Med = { drug: string; status: string; authored: string; dosage: string };
-
+// ── MedicationDetail ──────────────────────────────────────────────────────────
 function MedicationDetail() {
   const [meds, setMeds] = useState<Med[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    (async () => {
+    const fetchMeds = async () => {
       try {
-        // Step 1 — resolve Frank Larson's FHIR UUID
-        const patientsRes = await fetch(`${API_BASE}/api/fhir/patients`);
-        if (!patientsRes.ok) throw new Error("Could not load patient list");
-        const patients: { id: string; name: string }[] = await patientsRes.json();
-        const frank = patients.find((p) =>
-          p.name.toLowerCase().includes("frank") && p.name.toLowerCase().includes("larson")
-        );
-        if (!frank) throw new Error("Frank Larson not found in FHIR patient list");
-
-        // Step 2 — fetch medications using the real FHIR UUID
-        const medRes = await fetch(`${API_BASE}/api/fhir/medications?patient_id=${encodeURIComponent(frank.id)}`);
-        if (!medRes.ok) throw new Error("Medication fetch failed");
-        const data: Med[] = await medRes.json();
-        setMeds(Array.isArray(data) ? data : []);
+        const res = await fetch(`${API_BASE}/api/patient-medications?first_name=${first_name}&last_name=${last_name}`);
+        if (!res.ok) throw new Error("Patient not found or server error");
+        
+        const data = await res.json();
+        setMeds(data);
       } catch (e: any) {
-        setError(e?.message ?? "Failed to load medications");
+        setError(e.message);
       } finally {
         setLoading(false);
       }
-    })();
-  }, []);
+    };
 
-  if (loading) return (
-    <div className="flex items-center justify-center py-12">
-      <p className="text-sm text-muted-foreground">Loading medications…</p>
-    </div>
-  );
+    if (first_name && last_name) fetchMeds();
+  }, [first_name, last_name]);
 
-  if (error) return (
-    <div className="flex items-center justify-center py-12">
-      <p className="text-sm text-rose-600">{error}</p>
-    </div>
-  );
-
-  if (!meds.length) return (
-    <div className="flex items-center justify-center py-12">
-      <p className="text-sm text-muted-foreground">No medication records found.</p>
-    </div>
-  );
+  if (loading) return <div className="flex items-center justify-center py-12"><p className="text-sm text-muted-foreground">Loading medications…</p></div>;
+  if (error)   return <div className="flex items-center justify-center py-12"><p className="text-sm text-rose-600">{error}</p></div>;
+  if (!meds.length) return <div className="flex items-center justify-center py-12"><p className="text-sm text-muted-foreground">No medication records found.</p></div>;
 
   return (
     <div className="space-y-2">
@@ -192,69 +168,46 @@ function MedicationDetail() {
   );
 }
 
-// ─── Appointments card ────────────────────────────────────────────────────────
-
-type Appt = { status: string; start: string; end: string; type: string; practitioner: string; location: string };
-
+// ── AppointmentsDetail ────────────────────────────────────────────────────────
 function getApptActions(type: string): string[] {
   const t = type.toLowerCase();
   if (t.includes("cardio") || t.includes("cardiac"))
-    return ["Arrange transport", "Bring current medication list", "Remind Frank 1 day before"];
+    return ["Arrange transport", "Bring current medication list", `Remind ${first_name} 1 day before`];
   if (t.includes("lab") || t.includes("blood") || t.includes("panel"))
-    return ["Remind Frank to fast (no food after midnight)", "Arrange early morning transport"];
+    return [`Remind ${first_name} to fast (no food after midnight)`, "Arrange early morning transport"];
   if (t.includes("primary") || t.includes("general") || t.includes("check"))
-    return ["Arrange transport", "Prepare questions for the doctor", "Remind Frank 1 day before"];
-  return ["Arrange transport", "Remind Frank 1 day before"];
+    return ["Arrange transport", "Prepare questions for the doctor", `Remind ${first_name} 1 day before`];
+  return ["Arrange transport", `Remind ${first_name} 1 day before`];
 }
-
-function AppointmentDetail() {
+function AppointmentsDetail() {
   const [appts, setAppts] = useState<Appt[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [checked, setChecked] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    (async () => {
+    const fetchAppts = async () => {
       try {
-        const patientsRes = await fetch(`${API_BASE}/api/fhir/patients`);
-        if (!patientsRes.ok) throw new Error("Could not load patient list");
-        const patients: { id: string; name: string }[] = await patientsRes.json();
-        const frank = patients.find((p) =>
-          p.name.toLowerCase().includes("frank") && p.name.toLowerCase().includes("larson")
-        );
-        if (!frank) throw new Error("Frank Larson not found in FHIR patient list");
-
-        const res = await fetch(`${API_BASE}/api/fhir/appointments?patient_id=${encodeURIComponent(frank.id)}`);
-        if (!res.ok) throw new Error("Appointment fetch failed");
+        const res = await fetch(`${API_BASE}/api/patient-appointments?first_name=${first_name}&last_name=${last_name}`);
+        if (!res.ok) throw new Error("Patient not found or server error");
+        
         const data: Appt[] = await res.json();
         setAppts(Array.isArray(data) ? data : []);
-      } catch (e: unknown) {
-        setError(e instanceof Error ? e.message : "Failed to load appointments");
+      } catch (e: any) {
+        setError(e.message);
       } finally {
         setLoading(false);
       }
-    })();
-  }, []);
+    };
+
+    if (first_name && last_name) fetchAppts();
+  }, [first_name, last_name]);
 
   const toggle = (key: string) => setChecked(prev => ({ ...prev, [key]: !prev[key] }));
 
-  if (loading) return (
-    <div className="flex items-center justify-center py-12">
-      <p className="text-sm text-muted-foreground">Loading appointments…</p>
-    </div>
-  );
-
-  if (error) return (
-    <div className="flex items-center justify-center py-12">
-      <p className="text-sm text-rose-600">{error}</p>
-    </div>
-  );
-
-  if (!appts.length) return (
-    <div className="flex items-center justify-center py-12">
-      <p className="text-sm text-muted-foreground">No upcoming appointments scheduled.</p>
-    </div>
-  );
+  if (loading) return <div className="flex items-center justify-center py-12"><p className="text-sm text-muted-foreground">Loading appointments…</p></div>;
+  if (error)   return <div className="flex items-center justify-center py-12"><p className="text-sm text-rose-600">{error}</p></div>;
+  if (!appts.length) return <div className="flex items-center justify-center py-12"><p className="text-sm text-muted-foreground">No upcoming appointments scheduled.</p></div>;
 
   return (
     <div className="space-y-4">
@@ -320,8 +273,7 @@ function AppointmentDetail() {
   );
 }
 
-// ─── Modal card shell (for custom-content modals without their own card) ──────
-
+// ── ModalCard ─────────────────────────────────────────────────────────────────
 function ModalCard({
   icon: Icon, iconBg, gradient, title, subtitle, children,
 }: {
@@ -344,8 +296,7 @@ function ModalCard({
   );
 }
 
-// ─── Health card ──────────────────────────────────────────────────────────────
-
+// ── HealthCard ────────────────────────────────────────────────────────────────
 function HealthCard({
   icon: Icon, iconBg, title, label, labelColor, note, onClick,
 }: {
@@ -378,7 +329,6 @@ function HealthCard({
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
-
 const FamilyView = () => {
   const [vitals, setVitals] = useState<Vitals>({ heartRate: 0, steps: 0, stressLevel: 0, sleepHours: 0 });
   const [stepHistory, setStepHistory] = useState<{ day: string; steps: number }[]>([]);
@@ -391,10 +341,10 @@ const FamilyView = () => {
     (async () => {
       try {
         const [dailyRes, sleepRes, toiletRes, gaitRes] = await Promise.all([
-          fetch(`${API_BASE}/api/dailySummary?patient_id=${encodeURIComponent(PATIENT_ID)}`),
-          fetch(`${API_BASE}/api/sleep?patient_id=${encodeURIComponent(PATIENT_ID)}`),
-          fetch(`${API_BASE}/api/toilet?patient_id=${encodeURIComponent(PATIENT_ID)}`),
-          fetch(`${API_BASE}/api/gait?patient_id=${encodeURIComponent(PATIENT_ID)}`),
+          fetch(`${API_BASE}/api/dailySummary?patient_id=${HOME_ID}`),
+          fetch(`${API_BASE}/api/sleep?patient_id=${HOME_ID}`),
+          fetch(`${API_BASE}/api/toilet?patient_id=${HOME_ID}`),
+          fetch(`${API_BASE}/api/gait?patient_id=${HOME_ID}`),
         ]);
         const dailyJson = dailyRes.ok ? await dailyRes.json() : [];
         const sleepJson = sleepRes.ok ? await sleepRes.json() : [];
@@ -466,19 +416,19 @@ const FamilyView = () => {
       icon: ShieldCheck, gradient: "from-emerald-50 to-teal-50", border: "border-emerald-200",
       iconBg: "bg-emerald-500", text: "text-emerald-900", sub: "text-emerald-700",
       badge: "bg-emerald-100 text-emerald-700 border border-emerald-200",
-      message: "Frank is doing well today", sub2: "All vitals look healthy — no concerns to report.",
+      message: `${first_name} is doing well today`, sub2: "All vitals look healthy — no concerns to report.",
     },
     fair: {
       icon: AlertCircle, gradient: "from-amber-50 to-yellow-50", border: "border-amber-200",
       iconBg: "bg-amber-500", text: "text-amber-900", sub: "text-amber-700",
       badge: "bg-amber-100 text-amber-700 border border-amber-200",
-      message: "Frank is generally okay", sub2: "A few things are slightly off — worth keeping an eye on.",
+      message: `${first_name} is generally okay`, sub2: "A few things are slightly off — worth keeping an eye on.",
     },
     warn: {
       icon: AlertTriangle, gradient: "from-rose-50 to-red-50", border: "border-rose-200",
       iconBg: "bg-rose-500", text: "text-rose-900", sub: "text-rose-700",
       badge: "bg-rose-100 text-rose-700 border border-rose-200",
-      message: "Frank may need your attention", sub2: "Some vitals are outside the normal range — consider checking in.",
+      message: `${first_name} may need your attention`, sub2: "Some vitals are outside the normal range — consider checking in.",
     },
   }[overall];
 
@@ -503,8 +453,6 @@ const FamilyView = () => {
         );
       case "sleep":
         return <SleepChart />;
-      case "nutrition":
-        return <SmartFridgeCard />;
       case "stress":
         return (
           <ModalCard icon={Brain} iconBg="bg-stress" gradient="from-purple-50 to-violet-50"
@@ -630,6 +578,8 @@ const FamilyView = () => {
       }
       case "gait":
         return <WalkingActivityChart />;
+      case "nutrition":
+        return <SmartFridgeCard />;
       case "hydration":
         return <HydrationIndicator />;
       case "medication":
@@ -643,7 +593,7 @@ const FamilyView = () => {
         return (
           <ModalCard icon={Calendar} iconBg="bg-violet-500" gradient="from-violet-50 to-purple-50"
             title="Upcoming Appointments" subtitle="Scheduled visits & family action items">
-            <AppointmentDetail />
+            <AppointmentsDetail />
           </ModalCard>
         );
       default:
@@ -652,15 +602,9 @@ const FamilyView = () => {
   };
 
   const modalTitle: Record<string, string> = {
-    heart: "Heart Health",
-    sleep: "Sleep Analysis",
-    nutrition: "Nutrition & Diet",
-    stress: "Stress",
-    steps: "Steps Today",
-    gait: "Gait Analysis",
-    hydration: "Hydration",
-    medication: "Medications",
-    appointments: "Upcoming Appointments",
+    heart: "Heart Health", sleep: "Sleep Analysis", stress: "Stress",
+    steps: "Steps Today", gait: "Gait Analysis", nutrition: "Nutrition & Diet",
+    hydration: "Hydration", medication: "Medications", appointments: "My Appointments",
   };
 
   return (
@@ -676,7 +620,7 @@ const FamilyView = () => {
               FL
             </div>
             <div>
-              <h2 className="text-xl font-bold text-foreground leading-tight">Frank Larson</h2>
+              <h2 className="text-xl font-bold text-foreground leading-tight">{first_name} {last_name}</h2>
               <div className="flex items-center gap-1.5 mt-0.5">
                 <Clock className="h-3 w-3 text-muted-foreground" />
                 <span className="text-xs text-muted-foreground">Updated today</span>
@@ -684,9 +628,9 @@ const FamilyView = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => toast.info("Calling Frank…")}>
+            <Button variant="outline" size="sm" onClick={() => toast.info(`Calling ${first_name}`)}>
               <Phone className="mr-1.5 h-3.5 w-3.5" />
-              Call Frank
+              Call {first_name}
             </Button>
             <Button size="sm" onClick={() => toast.info("Opening share options…")}>
               <Share2 className="mr-1.5 h-3.5 w-3.5" />
@@ -725,60 +669,15 @@ const FamilyView = () => {
 
         {/* ── 9-card grid (3 × 3) ───────────────────────────────────── */}
         <div className="grid grid-cols-3 gap-3">
-          <HealthCard
-            icon={Heart} iconBg="bg-heart/15 text-heart"
-            title="Heart Health"
-            label={heart.label} labelColor={heart.color} note={heart.note}
-            onClick={() => setOpenModal("heart")}
-          />
-          <HealthCard
-            icon={Moon} iconBg="bg-sleep/15 text-sleep"
-            title="Sleep Analysis"
-            label={sleep.label} labelColor={sleep.color} note={sleep.note}
-            onClick={() => setOpenModal("sleep")}
-          />
-          <HealthCard
-            icon={Utensils} iconBg="bg-teal-500/15 text-teal-600"
-            title="Nutrition & Diet"
-            label="Meals tracked" labelColor="text-teal-600" note="Smart fridge monitoring"
-            onClick={() => setOpenModal("nutrition")}
-          />
-          <HealthCard
-            icon={Brain} iconBg="bg-stress/15 text-stress"
-            title="Stress"
-            label={stress.label} labelColor={stress.color} note={stress.note}
-            onClick={() => setOpenModal("stress")}
-          />
-          <HealthCard
-            icon={Footprints} iconBg="bg-ecg/15 text-ecg"
-            title="Steps Today"
-            label={steps.label} labelColor={steps.color} note={steps.note}
-            onClick={() => setOpenModal("steps")}
-          />
-          <HealthCard
-            icon={Shield} iconBg="bg-amber-500/15 text-amber-600"
-            title="Gait Analysis"
-            label={gait.label} labelColor={gait.color} note={gait.note}
-            onClick={() => setOpenModal("gait")}
-          />
-          <HealthCard
-            icon={Droplets} iconBg="bg-teal-500/15 text-teal-600"
-            title="Hydration"
-            label={hydration.label} labelColor={hydration.color} note={hydration.note}
-            onClick={() => setOpenModal("hydration")}
-          />
-          <HealthCard
-            icon={Pill} iconBg="bg-blue-500/15 text-blue-600"
-            title="Medication"
-            label="Active Rx" labelColor="text-blue-600" note="Prescriptions & dosage"
-            onClick={() => setOpenModal("medication")}
-          />
-          <HealthCard
-            icon={Calendar} iconBg="bg-violet-500/15 text-violet-600"
-            title="Appointments"
-            label="Upcoming" labelColor="text-violet-600" note="Scheduled visits"
-            onClick={() => setOpenModal("appointments")}
-          />
+          <HealthCard icon={Heart} iconBg="bg-heart/15 text-heart" title="Heart Health" label={heart.label} labelColor={heart.color} note={heart.note} onClick={() => setOpenModal("heart")} />
+          <HealthCard icon={Moon} iconBg="bg-sleep/15 text-sleep" title="Sleep Analysis" label={sleep.label} labelColor={sleep.color} note={sleep.note} onClick={() => setOpenModal("sleep")} />
+          <HealthCard icon={Brain} iconBg="bg-stress/15 text-stress" title="Stress" label={stress.label} labelColor={stress.color} note={stress.note} onClick={() => setOpenModal("stress")} />
+          <HealthCard icon={Footprints} iconBg="bg-ecg/15 text-ecg" title="Steps Today" label={steps.label} labelColor={steps.color} note={steps.note} onClick={() => setOpenModal("steps")} />
+          <HealthCard icon={Shield} iconBg="bg-amber-500/15 text-amber-600" title="Gait Analysis" label={gait.label} labelColor={gait.color} note={gait.note} onClick={() => setOpenModal("gait")} />
+          <HealthCard icon={Utensils} iconBg="bg-teal-500/15 text-teal-600" title="Nutrition & Diet" label="Meals tracked" labelColor="text-teal-600" note="Smart fridge monitoring" onClick={() => setOpenModal("nutrition")} />
+          <HealthCard icon={Droplets} iconBg="bg-teal-500/15 text-teal-600" title="Hydration" label={hydration.label} labelColor={hydration.color} note={hydration.note} onClick={() => setOpenModal("hydration")} />
+          <HealthCard icon={Pill} iconBg="bg-blue-500/15 text-blue-600" title="Medication" label="Active Rx" labelColor="text-blue-600" note="Prescriptions & dosage" onClick={() => setOpenModal("medication")} />
+          <HealthCard icon={Calendar} iconBg="bg-violet-500/15 text-violet-600" title="Appointments" label="Upcoming" labelColor="text-violet-600" note="Scheduled visits" onClick={() => setOpenModal("appointments")} />
         </div>
 
       </main>
