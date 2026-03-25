@@ -43,138 +43,35 @@ type Msg = { role: "user" | "assistant"; content: string };
 type Med = { drug: string; status: string; authored: string; dosage: string };
 type Appt = { status: string; start: string; end: string; type: string; practitioner: string; location: string };
 
-function pickLatest(list: any[]): any | null {
-  if (!Array.isArray(list) || list.length === 0) return null;
-  return [...list].sort((a, b) =>
-    String(b?.calendarDate || "").localeCompare(String(a?.calendarDate || ""))
-  )[0];
-}
-
-function extractStress(day: any): number {
-  const awake = (day?.allDayStress?.aggregatorList ?? []).find((a: any) => a.type === "AWAKE");
-  return Math.round(Number(awake?.averageStressLevel ?? 0));
-}
-
-function extractSleep(sleepJson: any): number {
-  if (!Array.isArray(sleepJson)) return 0;
-  const latest = pickLatest(sleepJson.filter((x: any) =>
-    typeof x?.calendarDate === "string" &&
-    (x?.deepSleepSeconds != null || x?.lightSleepSeconds != null || x?.remSleepSeconds != null)
-  ));
-  if (!latest) return 0;
-  return (Number(latest.deepSleepSeconds ?? 0) + Number(latest.lightSleepSeconds ?? 0) + Number(latest.remSleepSeconds ?? 0)) / 3600;
-}
-
-function extractHydration(toiletJson: any): { note: string; colorLevel: number } {
-  if (!Array.isArray(toiletJson) || toiletJson.length === 0) return { note: "", colorLevel: 0 };
-  const latest = pickLatest(toiletJson);
-  if (!Array.isArray(latest?.readings) || latest.readings.length === 0) return { note: "", colorLevel: 0 };
-  const sorted = [...latest.readings].sort((a: any, b: any) =>
-    String(b.timestamp).localeCompare(String(a.timestamp))
-  );
-  const level = Number(sorted[0]?.colorLevel ?? 0);
-  if (level === 0) return { note: "", colorLevel: 0 };
-  let note = "";
-  if      (level <= 2) note = "well hydrated";
-  else if (level <= 4) note = "adequately hydrated";
-  else if (level === 5) note = "mildly dehydrated — could drink more water";
-  else if (level === 6) note = "moderately dehydrated — needs more fluids";
-  else if (level === 7) note = "significantly dehydrated — drinking water is important right now";
-  else                  note = "severely dehydrated — needs attention soon";
-  return { note, colorLevel: level };
-}
-
-function extractFridge(fridgeJson: any): { waterLiters: number; currentItems: string[]; expiringItems: string[]; mealsCount: number } {
-  if (!Array.isArray(fridgeJson) || fridgeJson.length === 0) return { waterLiters: 0, currentItems: [], expiringItems: [], mealsCount: 0 };
-  const latest = pickLatest(fridgeJson);
-  if (!latest) return { waterLiters: 0, currentItems: [], expiringItems: [], mealsCount: 0 };
-  const currentItems = Array.isArray(latest.inventory)
-    ? latest.inventory.map((inv: any) => String(inv?.item ?? "")).filter(Boolean)
-    : [];
-  const expiringItems = (latest.alerts ?? [])
-    .filter((a: any) => a.type === "expiring")
-    .map((a: any) => String(a.item));
-  return {
-    waterLiters: Number(latest.dailyNutrition?.waterLiters ?? 0),
-    currentItems,
-    expiringItems,
-    mealsCount: (latest.mealsDetected ?? []).length,
-  };
-}
-
-function extractGait(gaitJson: any): { note: string; riskLevel: "low" | "moderate" | "high" } | null {
-  if (!Array.isArray(gaitJson) || gaitJson.length === 0) return null;
-  const allSessions: any[] = [];
-  for (const day of gaitJson) {
-    if (Array.isArray(day?.sessions)) allSessions.push(...day.sessions);
-  }
-  if (allSessions.length === 0) return null;
-  const n = allSessions.length;
-  const avgSpeed       = allSessions.reduce((s: number, x: any) => s + Number(x.gaitSpeedMs         ?? 0), 0) / n;
-  const avgSymmetry    = allSessions.reduce((s: number, x: any) => s + Number(x.stepSymmetryPct      ?? 0), 0) / n;
-  const avgVariability = allSessions.reduce((s: number, x: any) => s + Number(x.strideVariabilityPct ?? 0), 0) / n;
-  const avgGCTDiff     = allSessions.reduce((s: number, x: any) => {
-    const l = Number(x.groundContactTimeMs?.left  ?? 0);
-    const r = Number(x.groundContactTimeMs?.right ?? 0);
-    return s + Math.abs(l - r);
-  }, 0) / n;
-  let score = 0;
-  if (avgSpeed < 0.6)        score += 4;
-  else if (avgSpeed < 0.8)   score += 2;
-  else if (avgSpeed < 1.0)   score += 1;
-  if (avgSymmetry < 75)      score += 3;
-  else if (avgSymmetry < 82) score += 2;
-  else if (avgSymmetry < 90) score += 1;
-  if (avgVariability > 12)   score += 2;
-  else if (avgVariability > 8) score += 1;
-  if (avgGCTDiff > 100)      score += 2;
-  else if (avgGCTDiff > 60)  score += 1;
-  const riskLevel: "low" | "moderate" | "high" = score >= 5 ? "high" : score >= 2 ? "moderate" : "low";
-  const note = `${riskLevel} fall risk — avg walking speed ${avgSpeed.toFixed(2)} m/s, step symmetry ${Math.round(avgSymmetry)}%, stride variability ${avgVariability.toFixed(1)}%, L/R ground contact diff ${Math.round(avgGCTDiff)} ms`;
-  return { note, riskLevel };
-}
-
-function extractPhoneCalls(callJson: any): { minutes: number; trend: number[] } {
-  if (!Array.isArray(callJson) || callJson.length === 0) return { minutes: 0, trend: [] };
-  const sorted = [...callJson].sort((a, b) =>
-    String(a?.calendarDate || "").localeCompare(String(b?.calendarDate || ""))
-  );
-  const last7 = sorted.slice(-7);
-  const trend = last7.map((d: any) => Number(d?.totalMinutes ?? 0));
-  const todayEntry = pickLatest(callJson);
-  const minutes = Number(todayEntry?.totalMinutes ?? 0);
-  return { minutes, trend };
-}
-
 // ── Health card status helpers ─────────────────────────────────────────────────
 function heartStatus(bpm: number) {
-  if (bpm === 0)              return { label: "No data",           note: "Heart rate unavailable",                   color: "text-muted-foreground", status: "fair" as const };
+  if (bpm === 0)              return { label: "No data",           note: "Heart rate unavailable",                   color: "text-muted-foreground",  status: "fair" as const };
   if (bpm >= 55 && bpm <= 85) return { label: "Normal range",      note: `${bpm} BPM — healthy resting rate`,        color: "text-emerald-600",       status: "good" as const };
   if (bpm > 85 && bpm <= 100) return { label: "Slightly elevated", note: `${bpm} BPM — monitor if it persists`,      color: "text-amber-600",         status: "fair" as const };
   if (bpm < 55 && bpm > 0)    return { label: "Slightly low",      note: `${bpm} BPM — could be normal if athletic`, color: "text-amber-600",         status: "fair" as const };
-  return                       { label: "Check with doctor",  note: `${bpm} BPM — outside normal range`,       color: "text-rose-600",          status: "warn" as const };
+  return                             { label: "Check with doctor",  note: `${bpm} BPM — outside normal range`,       color: "text-rose-600",          status: "warn" as const };
 }
 
 function stepsStatus(steps: number) {
-  if (steps === 0)   return { label: "No data",            note: "Activity data unavailable",                          color: "text-muted-foreground", status: "fair" as const };
+  if (steps === 0)   return { label: "No data",            note: "Activity data unavailable",                          color: "text-muted-foreground",  status: "fair" as const };
   if (steps >= 5000) return { label: "Very active",        note: `${steps.toLocaleString()} steps — excellent!`,       color: "text-emerald-600",       status: "good" as const };
   if (steps >= 2500) return { label: "Moderately active",  note: `${steps.toLocaleString()} steps — good movement`,    color: "text-emerald-600",       status: "good" as const };
   if (steps >= 1000) return { label: "Light activity",     note: `${steps.toLocaleString()} steps — quieter day`,      color: "text-amber-600",         status: "fair" as const };
-  return             { label: "Very little movement", note: `${steps.toLocaleString()} steps — try a short walk`, color: "text-rose-600",          status: "warn" as const };
+  return                  { label: "Very little movement", note: `${steps.toLocaleString()} steps — try a short walk`, color: "text-rose-600",          status: "warn" as const };
 }
 
 function stressStatus(v: number) {
-  if (v === 0)  return { label: "Calm",        note: "Stress levels look great",    color: "text-emerald-600", status: "good" as const };
-  if (v <= 35)  return { label: "Calm",        note: "Very relaxed today",          color: "text-emerald-600", status: "good" as const };
-  if (v <= 60)  return { label: "Mild stress", note: "Some stress — likely normal", color: "text-amber-600",   status: "fair" as const };
-  return        { label: "High stress",  note: "Elevated — try to relax",     color: "text-rose-600",    status: "warn" as const };
+  if (v === 0)  return { label: "Calm",        note: "Stress levels look great",    color: "text-emerald-600", status: "good" as const, barColor: "bg-emerald-500" };
+  if (v <= 35)  return { label: "Calm",        note: "Very relaxed today",          color: "text-emerald-600", status: "good" as const, barColor: "bg-emerald-500" };
+  if (v <= 60)  return { label: "Mild stress", note: "Some stress — likely normal", color: "text-amber-600",   status: "fair" as const, barColor: "bg-amber-500" };
+  return              { label: "High stress",  note: "Elevated — try to relax",     color: "text-rose-600",    status: "warn" as const, barColor: "bg-rose-500" };
 }
 
 function sleepStatus(h: number) {
-  if (h === 0)  return { label: "No data",     note: "Sleep data unavailable",                   color: "text-muted-foreground", status: "fair" as const };
+  if (h === 0)  return { label: "No data",     note: "Sleep data unavailable",                   color: "text-muted-foreground",  status: "fair" as const };
   if (h >= 7)   return { label: "Well rested", note: `${h.toFixed(1)} hrs — great for his age`,  color: "text-emerald-600",       status: "good" as const };
   if (h >= 5.5) return { label: "Light sleep", note: `${h.toFixed(1)} hrs — a bit below ideal`,  color: "text-amber-600",         status: "fair" as const };
-  return         { label: "Poor sleep",   note: `Only ${h.toFixed(1)} hrs — worth monitoring`, color: "text-rose-600",          status: "warn" as const };
+  return               { label: "Poor sleep",  note: `Only ${h.toFixed(1)} hrs — worth monitoring`, color: "text-rose-600",       status: "warn" as const };
 }
 
 function hydrationStatus(level: number) {
@@ -184,16 +81,16 @@ function hydrationStatus(level: number) {
   if (level <= 4)  return { label: "Drink More Water", note: "Could use a bit more water",       color: "text-amber-600",        status: "fair" as const };
   if (level <= 5)  return { label: "Mild Dehydration", note: "Drink a glass of water now",       color: "text-amber-600",        status: "fair" as const };
   if (level <= 6)  return { label: "Dehydrated",       note: "Needs more fluids soon",           color: "text-rose-600",         status: "warn" as const };
-  return           { label: "Very Dehydrated",         note: "Drink water — this is important",  color: "text-rose-600",         status: "warn" as const };
+  return                  { label: "Very Dehydrated",  note: "Drink water — this is important",  color: "text-rose-600",         status: "warn" as const };
 }
 
 function gaitStatus(symmetryPct: number, variabilityPct: number, speedMs: number, cadence: number, worseStride: number, worseGCT: number) {
-  if (symmetryPct === 0) return { label: "No data",     note: "Gait data unavailable",                color: "text-muted-foreground", status: "fair" as const };
+  if (symmetryPct === 0) return { label: "No data", note: "Gait data unavailable",          color: "text-muted-foreground", status: "fair" as const };
   const isHigh = cadence < 80  || speedMs < 0.7  || worseStride < 90  || worseGCT > 950 || symmetryPct < 78  || variabilityPct > 10;
-  const isMed  = cadence < 100 || speedMs < 1.0  || worseStride < 140 || worseGCT > 650 || symmetryPct < 95  || variabilityPct > 5;
   if (isHigh) return { label: "High Risk",     note: "Significant gait irregularities detected", color: "text-rose-600",    status: "warn" as const };
+  const isMed  = cadence < 100 || speedMs < 1.0  || worseStride < 140 || worseGCT > 650 || symmetryPct < 95  || variabilityPct > 5;
   if (isMed)  return { label: "Moderate Risk", note: "Some asymmetry — worth monitoring",        color: "text-amber-600",   status: "fair" as const };
-  return       { label: "Low Risk",            note: "Gait looks steady and balanced",           color: "text-emerald-600", status: "good" as const };
+  return             { label: "Low Risk",      note: "Gait looks steady and balanced",           color: "text-emerald-600", status: "good" as const };
 }
 
 // ── ModalCard ─────────────────────────────────────────────────────────────────
@@ -382,9 +279,8 @@ const ElderView = () => {
   const [stepHistory, setStepHistory] = useState<{ day: string; steps: number }[]>([]);
   const [openModal, setOpenModal] = useState<string | null>(null);
 
-  // Call state (Frank calling family)
+  // Phone call state
   const [callState, setCallState] = useState<"idle" | "calling" | "connected" | "declined">("idle");
-  // Incoming call from family
   const [familyCallIncoming, setFamilyCallIncoming] = useState(false);
   const [familyCallConnected, setFamilyCallConnected] = useState(false);
   const [callSeconds, setCallSeconds] = useState(0);
@@ -523,77 +419,23 @@ const ElderView = () => {
     return fullText;
   };
 
-  // TODO: migrate to backend
   const runCheckIn = async (v: Vitals, mode: "fall" | "mental") => {
     if (runningRef.current || isRecording) return;
     runningRef.current = true;
     setIsThinking(true);
-    const dataLines: string[] = [];
-    let prompt = "";
+    let requestBody = "";
     if (mode === "fall") {
-      if (v.gaitNote) dataLines.push(`- Gait analysis: ${v.gaitNote}`);
-      if (v.hydrationNote && v.hydrationColorLevel > 0) {
-        const colorDesc = v.hydrationColorLevel <= 2 ? "colorless / pale straw (very well hydrated)"
-          : v.hydrationColorLevel <= 4 ? "pale to normal yellow (adequately hydrated)"
-          : v.hydrationColorLevel === 5 ? "dark yellow (mildly dehydrated)"
-          : v.hydrationColorLevel === 6 ? "amber / honey (moderately dehydrated)"
-          : v.hydrationColorLevel === 7 ? "dark amber / orange (significantly dehydrated)"
-          : "brown / dark brown (severely dehydrated)";
-        dataLines.push(`- Smart toilet urine color: level ${v.hydrationColorLevel}/8 — ${colorDesc} → ${v.hydrationNote}`);
-      }
-      if (v.fallRiskAlert) dataLines.push(`- COMBINED FALL RISK ALERT: gait irregularities together with dehydration significantly increase fall risk today`);
-      prompt = dataLines.length
-        ? `You are NHH, a warm and caring safety companion for ${first_name}, an elderly person living independently.
-
-      Here is ${first_name}'s fall-risk evidence right now:
-      ${dataLines.join("\n")}
-
-      Talk to ${first_name} simply and warmly — like a caring friend, not a doctor. Use short, easy sentences.
-      Briefly mention the specific evidence: what their walking sensor found (speed, symmetry) and what the toilet urine color sensor showed.
-      Then tell them clearly whether they needs to be extra careful today.
-      If there is a COMBINED FALL RISK ALERT, say it first, explain whether their gait or hydration are concerning, and give them 2 simple practical tips (e.g. drink a glass of water once they gets up, move slowly, hold handrails).
-      Keep it to 4-5 sentences. Address them as ${first_name}.`
-        : `You are NHH. Warmly reassure ${first_name} that their walking looks steady today and encourage them to keep moving safely and looking after themself. One sentence only. Don't be patronising. Address them as ${first_name}.`;
-
+      requestBody = JSON.stringify({ v: vitalsRef.current, name: first_name }) 
     } else {
-      if (v.sleepHours) {
-        const sleepQuality = v.sleepHours < 5 ? "very poor — only " + v.sleepHours.toFixed(1) + " hours, significantly below healthy range"
-          : v.sleepHours < 6.5 ? "below recommended — " + v.sleepHours.toFixed(1) + " hours"
-          : "good — " + v.sleepHours.toFixed(1) + " hours";
-        dataLines.push(`- Sleep last night: ${sleepQuality}`);
-      }
-      const mealStatus = v.mealsCount === 0
-        ? `0 meals detected — ${first_name} skipped all meals today (⚠️ appetite loss, possible depression signal)"`
-        : v.mealsCount === 1
-        ? "only 1 meal detected (breakfast) — skipped lunch and dinner"
-        : `${v.mealsCount} meals detected (normal)`;
-      dataLines.push(`- Diet today (smart fridge): ${mealStatus}`);
-      if (v.steps) dataLines.push(`- Steps today: ${v.steps.toLocaleString()} — ${v.steps < 2000 ? "very low, barely moved" : v.steps < 4000 ? "low activity" : "good"}`);
-      if (v.stressLevel) dataLines.push(`- Stress level: ${v.stressLevel}/100`);
-      if (neighborhoodRef.current) dataLines.push(`- Upcoming neighbourhood activities ${first_name} could join:\n${neighborhoodRef.current}`);
-      const poorSleep  = v.sleepHours > 0 && v.sleepHours < 6;
-      const skippedMeals = v.mealsCount <= 1;
-      const concernCount = [poorSleep, skippedMeals].filter(Boolean).length;
-      prompt = `You are NHH, ${first_name}'s warm and caring AI companion. ${first_name} is an elderly person living independently. You have been watching over them and you are genuinely concerned.
-
-                Here is what you know about ${first_name} today:
-                ${dataLines.join("\n")}
-
-                ${concernCount >= 2
-                  ? `IMPORTANT CONTEXT: ${first_name} appears to be going through a difficult time. The data shows they are not sleeping well, skipping meals, and has been calling family and friends much less than usual over the past week. These are signs they may be feeling down, depressed, or withdrawn. Do NOT just list data at them — approach this like a caring friend who has noticed they haven't been themself lately.`
-                  : poorSleep || skippedMeals
-                  ? `IMPORTANT CONTEXT: ${first_name} is showing some signs of low mood — poor sleep and skipped meals often go hand in hand with feeling down. Approach gently and warmly.`
-                  : `${first_name} seems to be doing reasonably well today. Be warm and encouraging.`}
-
-                Your response should:
-                1. Open with a heartfelt greeting — like a friend who truly cares, not a check-box assistant.
-                2. Tenderly acknowledge what you've noticed: poor sleep and skipped meals (name them directly but kindly — "I noticed you only had a small breakfast today" or "It looks like last night was a rough night for sleep").
-                3. Ask ${first_name} how they are feeling — invite them to share, keep it open and safe.
-                4. Offer one small, concrete step they can take right now to feel a little better that is appropriate based on the conversation (a warm meal, a short walk outside, or joining a specific neighbourhood activity by name and time). Do not suggest active activities if they should be resting today.
-                5. If needed, close with a sincere reminder that they are not alone — you are here, and the people around them care about them.
-
-                Tone: warm, gentle, direct, human — like a trusted friend, not a patronising or cold medical alert. Keep it to 4-5 sentences. Address them as ${first_name}.`;
+      requestBody = JSON.stringify({ v: vitalsRef.current, nRef: neighborhoodRef.current, name: first_name }) 
     }
+    const prompt = await fetch(`${API_BASE}/api/run-${mode}-checkin`, 
+      { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: requestBody
+      }
+    ).then(res => res.ok ? res.text() : "Error: Could not retrieve checkin prompt.");
     speakAbortRef.current?.abort();
     const ttsCtrl = new AbortController();
     speakAbortRef.current = ttsCtrl;
@@ -671,8 +513,6 @@ const ElderView = () => {
   const hydrationS = hydrationStatus(vitals.hydrationColorLevel);
   const gaitS      = gaitStatus(gaitMetrics.symmetry, gaitMetrics.variability, gaitMetrics.speed, gaitMetrics.cadence, gaitMetrics.worseStride, gaitMetrics.worseGCT);
 
-  const stressBarColor = stressS.status === "good" ? "bg-emerald-500" : stressS.status === "fair" ? "bg-amber-500" : "bg-rose-500";
-
   const renderModalContent = () => {
     switch (openModal) {
       case "heart":
@@ -697,11 +537,11 @@ const ElderView = () => {
                 </span>
               </div>
               <div className="h-3 rounded-full bg-muted overflow-hidden">
-                <div className={`h-full rounded-full transition-all ${stressBarColor}`} style={{ width: `${Math.min(100, vitals.stressLevel)}%` }} />
+                <div className={`h-full rounded-full transition-all ${stressS.barColor}`} style={{ width: `${Math.min(100, vitals.stressLevel)}%` }} />
               </div>
               <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                <span className="rounded-lg bg-emerald-50 px-2 py-2 text-emerald-700 font-medium">0–35 · Calm</span>
-                <span className="rounded-lg bg-amber-50 px-2 py-2 text-amber-700 font-medium">36–60 · Mild</span>
+                <span className="rounded-lg bg-emerald-50 px-2 py-2 text-emerald-700 font-medium">0-35 · Calm</span>
+                <span className="rounded-lg bg-amber-50 px-2 py-2 text-amber-700 font-medium">36-60 · Mild</span>
                 <span className="rounded-lg bg-rose-50 px-2 py-2 text-rose-700 font-medium">61+ · Elevated</span>
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
@@ -710,6 +550,7 @@ const ElderView = () => {
             </div>
           </ModalCard>
         );
+      // TODO: migrate to backend (is stepHistory used elsewhere or can it be changed to have these consts?)
       case "steps": {
         const avgSteps = stepHistory.length ? Math.round(stepHistory.reduce((s, d) => s + d.steps, 0) / stepHistory.length) : 0;
         const maxSteps = stepHistory.length ? Math.max(...stepHistory.map(d => d.steps)) : 0;
@@ -791,7 +632,7 @@ const ElderView = () => {
       case "appointments":
         return (
           <ModalCard icon={Calendar} iconBg="bg-violet-500" gradient="from-violet-50 to-purple-50"
-            title="My Appointments" subtitle="Upcoming scheduled visits">
+            title="Appointments" subtitle="Upcoming scheduled visits">
             <AppointmentsDetail />
           </ModalCard>
         );
@@ -803,7 +644,7 @@ const ElderView = () => {
   const modalTitle: Record<string, string> = {
     heart: "Heart Health", sleep: "Sleep Analysis", stress: "Stress",
     steps: "Steps Today", gait: "Gait Analysis", nutrition: "Nutrition & Diet",
-    hydration: "Hydration", medication: "Medications", appointments: "My Appointments",
+    hydration: "Hydration", medication: "Medications", appointments: "Appointments",
   };
 
   const startRecording = async () => {
@@ -1276,8 +1117,6 @@ const ElderView = () => {
               </div>
               {openPanel === "helping" ? <ChevronUp className="h-6 w-6 text-white/80" /> : <ChevronDown className="h-6 w-6 text-rose-400" />}
             </button>
-
-            {/* My Appointments moved into Health Overview grid */}
           </div>
         </div>
 

@@ -1138,6 +1138,87 @@ def get_patient_desc(patient_id: str = ""):
     
     return response.output_text
 
+@app.post("/api/run-fall-checkin")
+def run_fall_checkin(data: dict) -> str:
+    v = data.get("v", {})
+    first_name = data.get("name", "Resident")
+
+    data_lines = []
+    if v.get("gaitNote"):
+        data_lines.append(f"- Gait analysis: {v.get("gaitNote")}")
+    if v.get("hydrationNote") and v.get("hydrationColorLevel") > 0:
+        colors = {
+            2: "colorless / pale straw (very well hydrated)",
+            4: "pale to normal yellow (adequately hydrated)",
+            5: "dark yellow (mildly dehydrated)",
+            6: "amber / honey (moderately dehydrated)",
+            7: "dark amber / orange (significantly dehydrated)",
+        }
+        description = next((desc for high, desc in colors.items() if v.get("hydrationColorLevel") <= high), "brown / dark brown (severely dehydrated)")
+        data_lines.append(f"- Smart toilet urine color: level {v.get("hydrationColorLevel")}/8 — {description} → {v.get("hydrationNote")}")
+    if v.get("fallRiskAlert"):
+        data_lines.append("- COMBINED FALL RISK ALERT: gait irregularities together with dehydration significantly increase fall risk today")
+
+    if data_lines:
+        return f"""
+        You are NHH, a warm and caring safety companion for {first_name}, an elderly person living independently.
+
+        Here is {first_name}'s fall-risk evidence right now:
+        {"\n".join(data_lines)}
+
+        Talk to {first_name} simply and warmly — like a caring friend, not a doctor. Use short, easy sentences.
+        Briefly mention the specific evidence: what their walking sensor found (speed, symmetry) and what the toilet urine color sensor showed.
+        Then tell them clearly whether they needs to be extra careful today.
+        If there is a COMBINED FALL RISK ALERT, say it first, explain whether their gait or hydration are concerning, and give them 2 simple practical tips (e.g. drink a glass of water once they gets up, move slowly, hold handrails).
+        Keep it to 4-5 sentences. Address them as {first_name}."""
+    else:
+        return f"You are NHH. Warmly reassure {first_name} that their walking looks steady today and encourage them to keep moving safely and looking after themself. One sentence only. Don't be patronising. Address them as {first_name}."
+
+@app.post("/api/run-mental-checkin")
+def run_mental_checkin(data: dict) -> str:
+    v = data.get("v", {})
+    nRef = data.get("nRef", {})
+    first_name = data.get("name", "Resident")
+
+    data_lines = []
+    sleep_hours = v.get("sleepHours")
+    if sleep_hours:
+        sleep_quality = "very poor, significantly below healthy range" if sleep_hours < 5 else "below recommended" if sleep_hours < 6.5 else "good"
+        data_lines.append(f"- Sleep last night: {sleep_quality} — {sleep_hours:.1f} hours")
+    meals_count = v.get("mealsCount")  
+    if meals_count:
+        meal_status = f"{meals_count} meals detected — {first_name} skipped meals today (⚠️ appetite loss, possible depression signal)" if meals_count <= 1 else f"{meals_count} meals detected (normal)"
+        data_lines.append(f"- Diet today (smart fridge): {meal_status}")
+    if v.get("steps"): 
+        activity = f"very low, barely moved" if v.get("steps") < 2000 else "low activity" if v.get("steps") < 4000 else "good"
+        data_lines.append(f"- Steps today: {v.get("steps")} — {activity}")
+    if v.get("stressLevel"): 
+        data_lines.append(f"- Stress level: {v.get("stressLevel")}/100")
+    if nRef.get("current"):
+        data_lines.append(f"- Upcoming neighbourhood activities {first_name} could join:\n {nRef.get("current")}")
+    poor_sleep = 1 if (sleep_hours > 0 and sleep_hours < 6) else 0
+    skipped_meals = 1 if (meals_count <= 1) else 0
+
+    context = f"IMPORTANT CONTEXT: {first_name} appears to be going through a difficult time. The data shows they are not sleeping well, skipping meals, and have been calling family and friends much less than usual over the past week. These are signs they may be feeling down, depressed, or withdrawn. Do NOT just list data at them — approach this like a caring friend who has noticed they haven't been themself lately." if skipped_meals and poor_sleep else f"IMPORTANT CONTEXT: {first_name} is showing some signs of low mood — poor sleep and skipped meals often go hand in hand with feeling down. Approach gently and warmly." if skipped_meals or poor_sleep else f"{first_name} seems to be doing reasonably well today. Be warm and encouraging."
+
+    return f"""
+    You are NHH, {first_name}'s warm and caring AI companion. {first_name} is an elderly person living independently. You have been watching over them and you are genuinely concerned.
+
+    Here is what you know about {first_name} today:
+    {"\n".join(data_lines)}
+
+    {context}
+
+    Your response should:
+    1. Open with a heartfelt greeting — like a friend who truly cares, not a check-box assistant.
+    2. Tenderly acknowledge what you've noticed: poor sleep and skipped meals (name them directly but kindly — "I noticed you only had a small breakfast today" or "It looks like last night was a rough night for sleep").
+    3. Ask {first_name} how they are feeling — invite them to share, keep it open and safe.
+    4. Offer one small, concrete step they can take right now to feel a little better that is appropriate based on the conversation (a warm meal, a short walk outside, or joining a specific neighbourhood activity by name and time). Do not suggest active activities if they should be resting today.
+    5. If needed, close with a sincere reminder that they are not alone — you are here, and the people around them care about them.
+
+    Tone: warm, gentle, direct, human — like a trusted friend, not a patronising or cold medical alert. Keep it to 4-5 sentences. Address them as {first_name}."""
+
+
 @app.post("/api/build-health-context")
 def build_health_context(data: dict) -> str:
     v = data.get("v", {})
