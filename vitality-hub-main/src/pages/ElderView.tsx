@@ -423,19 +423,7 @@ const ElderView = () => {
     if (runningRef.current || isRecording) return;
     runningRef.current = true;
     setIsThinking(true);
-    let requestBody = "";
-    if (mode === "fall") {
-      requestBody = JSON.stringify({ v: vitalsRef.current, name: first_name }) 
-    } else {
-      requestBody = JSON.stringify({ v: vitalsRef.current, nRef: neighborhoodRef.current, name: first_name }) 
-    }
-    const prompt = await fetch(`${API_BASE}/api/run-${mode}-checkin`, 
-      { 
-        method: 'POST', 
-        headers: { 'Content-Type': 'application/json' }, 
-        body: requestBody
-      }
-    ).then(res => res.ok ? res.text() : "Error: Could not retrieve checkin prompt.");
+    const prompt = await fetch(`${API_BASE}/api/run-${mode}-checkin?patient_id=${HOME_ID}`).then(res => res.ok ? res.text() : "Error: Could not retrieve checkin prompt.");
     speakAbortRef.current?.abort();
     const ttsCtrl = new AbortController();
     speakAbortRef.current = ttsCtrl;
