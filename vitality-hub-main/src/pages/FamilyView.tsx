@@ -3,7 +3,7 @@ import {
   Heart, Moon, Utensils, Brain, Footprints, Shield, Droplets, Pill,
   ShieldCheck, AlertCircle, AlertTriangle,
   Phone, PhoneOff, PhoneIncoming, PhoneCall, Share2,
-  Calendar, CheckSquare, Square, Clock,
+  Calendar, CheckSquare, Square,
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { HeartRateChart } from "@/components/HeartRateChart";
@@ -747,17 +747,8 @@ const FamilyView = () => {
 
         {/* ── Page header ──────────────────────────────────────────── */}
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-slate-600 to-slate-800 text-white text-sm font-bold flex-shrink-0">
-              FL
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-foreground leading-tight">{first_name} {last_name}</h2>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <Clock className="h-3 w-3 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">Updated today</span>
-              </div>
-            </div>
+          <div>
+            <h2 className="text-xl font-bold text-foreground leading-tight">Welcome, Frank's Family</h2>
           </div>
           <div className="flex items-center gap-2">
             {frankCallState === "idle" && (

@@ -977,24 +977,18 @@ const ElderView = () => {
             </div>
           </button>
 
-
-
-          {/* Call Family button — separate row, distinct from AI check-ins */}
+          {/* Call Family — grouped with voice */}
           <div className="mt-4 flex justify-center">
             {callState === "idle" && (
-              <button
-                onClick={startCall}
-                className="flex items-center gap-3 rounded-2xl bg-emerald-500 px-8 py-3 text-lg font-semibold text-white shadow-md transition hover:bg-emerald-400 active:scale-95"
-              >
+              <button onClick={startCall}
+                className="flex items-center gap-3 rounded-2xl bg-emerald-500 px-8 py-3 text-lg font-semibold text-white shadow-md transition hover:bg-emerald-400 active:scale-95">
                 <Phone className="h-5 w-5" />
                 Call Family
               </button>
             )}
             {callState === "calling" && (
-              <button
-                onClick={endCall}
-                className="flex items-center gap-3 rounded-2xl bg-amber-400 px-8 py-3 text-lg font-semibold text-white shadow-md transition hover:bg-amber-300 animate-pulse"
-              >
+              <button onClick={endCall}
+                className="flex items-center gap-3 rounded-2xl bg-amber-400 px-8 py-3 text-lg font-semibold text-white shadow-md transition hover:bg-amber-300 animate-pulse">
                 <PhoneCall className="h-5 w-5" />
                 Calling…
               </button>
@@ -1015,6 +1009,7 @@ const ElderView = () => {
               </div>
             )}
           </div>
+
         </div>
 
         {/* ── Conversation history ────────────────────────────────────── */}
@@ -1150,6 +1145,7 @@ const ElderView = () => {
 
         <div className="h-12" />
       </main>
+
 
       {/* ── Detail modal ── */}
       <Dialog open={openModal !== null} onOpenChange={() => setOpenModal(null)}>
