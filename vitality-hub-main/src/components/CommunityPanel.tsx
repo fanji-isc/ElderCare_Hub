@@ -127,6 +127,28 @@ const FEED_STYLE: Record<string, { icon: React.ElementType; iconColor: string; b
   helping: { icon: HeartHandshake, iconColor: "text-emerald-500", bgColor: "bg-emerald-50" },
 };
 
+// Compute end time from start time + duration string (e.g. "9:00 AM" + "45 min" → "9:45 AM")
+function computeEndTime(time: string, duration: string): string {
+  const [timePart, period] = time.split(" ");
+  const [hourStr, minStr] = timePart.split(":");
+  let hour = parseInt(hourStr);
+  const min = parseInt(minStr);
+  if (period === "PM" && hour !== 12) hour += 12;
+  if (period === "AM" && hour === 12) hour = 0;
+  let durationMins = 0;
+  const hrMatch = duration.match(/(\d+)\s*hr/);
+  const minMatch = duration.match(/(\d+)\s*min/);
+  if (hrMatch) durationMins += parseInt(hrMatch[1]) * 60;
+  if (minMatch) durationMins += parseInt(minMatch[1]);
+  const totalMins = hour * 60 + min + durationMins;
+  let endHour = Math.floor(totalMins / 60) % 24;
+  const endMin = totalMins % 60;
+  const endPeriod = endHour >= 12 ? "PM" : "AM";
+  if (endHour > 12) endHour -= 12;
+  if (endHour === 0) endHour = 12;
+  return `${endHour}:${endMin.toString().padStart(2, "0")} ${endPeriod}`;
+}
+
 // Resolve a color key to a full Tailwind class (falls back if already a full class)
 const resolveColor = (key: string) => COLOR_CLASSES[key] ?? key;
 const resolveBadgeColor = (key: string | null) =>
@@ -249,18 +271,6 @@ export function CommunityPanel({ section = "all" }: { section?: CommunitySection
       {/* ── Community Activities ─────────────────────────────────────────────── */}
       {(section === "all" || section === "activity") && (
         <div>
-          <div className="mb-4 flex items-center justify-between">
-            <div>
-              <h3 className="font-display text-heading text-foreground">Community Activities This Week</h3>
-              <p className="mt-0.5 text-body-sm text-muted-foreground">
-                Neighbors you know are already signed up
-              </p>
-            </div>
-            <span className="flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-caption text-muted-foreground">
-              <Users className="h-3.5 w-3.5" />
-              142 neighbors
-            </span>
-          </div>
 
           {loading ? (
             <div className="py-10 text-center text-muted-foreground text-body-sm">Loading activities…</div>
@@ -277,67 +287,47 @@ export function CommunityPanel({ section = "all" }: { section?: CommunitySection
                       act.highlighted ? "ring-2 ring-primary/30" : ""
                     }`}
                   >
-                    {/* Gradient Header */}
-                    <div className={`flex items-center gap-3 bg-gradient-to-r ${style.gradient} px-5 py-4`}>
-                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20">
-                        <Icon className="h-5 w-5 text-white" />
+                    {/* Header */}
+                    <div className="flex items-center gap-3 bg-gradient-to-r from-emerald-50 to-teal-50 px-5 py-4">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-200/50">
+                        <Icon className="h-5 w-5 text-teal-700" />
                       </div>
-                      <div>
-                        <p className="text-body font-semibold leading-tight text-white">{act.title}</p>
-                        <p className="text-caption text-white/80">{act.subtitle}</p>
-                      </div>
+                      <p className="text-body font-semibold leading-tight text-teal-900">{act.title}</p>
                     </div>
 
-                    {/* Card Body */}
+                    {/* Body */}
                     <div className="bg-card p-5">
                       <div className="mb-4 space-y-1.5">
                         <div className="flex items-center gap-2 text-body-sm text-foreground">
                           <Calendar className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
-                          <span>{act.date} · {act.time}</span>
+                          <span>{act.date} · {act.time} – {computeEndTime(act.time, act.duration)}</span>
                         </div>
                         <div className="flex items-center gap-2 text-body-sm text-muted-foreground">
                           <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
                           <span>{act.location}</span>
                         </div>
-                        <div className="flex items-center gap-2 text-body-sm text-muted-foreground">
-                          <Clock className="h-3.5 w-3.5 flex-shrink-0" />
-                          <span>{act.duration}</span>
-                        </div>
                       </div>
 
-                      {/* Attendee Avatars */}
-                      <div className="mb-4 flex items-center gap-2">
-                        <div className="flex -space-x-2">
-                          {act.attendees.slice(0, 3).map((a) => (
-                            <div
-                              key={a.name}
-                              title={a.name}
-                              className={`flex h-7 w-7 items-center justify-center rounded-full border-2 border-card text-caption font-semibold ${resolveColor(a.color)}`}
-                            >
-                              {a.initials}
-                            </div>
-                          ))}
-                          {act.extraCount > 0 && (
-                            <div className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-card bg-muted text-caption font-medium text-muted-foreground">
-                              +{act.extraCount}
-                            </div>
-                          )}
-                        </div>
-                        <span className="text-caption text-muted-foreground">
-                          {act.attendees[0]?.name}
-                          {act.attendees.length > 1 ? ` & ${act.attendees.length - 1} more` : ""} going
-                        </span>
-                      </div>
-
-                      {/* Footer */}
+                      {/* Attendees + Join */}
                       <div className="flex items-center justify-between">
-                        {act.badge ? (
-                          <span className={`rounded-full px-2.5 py-1 text-caption font-medium ${resolveBadgeColor(act.badgeColor)}`}>
-                            {act.badge}
+                        <div className="flex items-center gap-2">
+                          <div className="flex -space-x-2">
+                            {act.attendees.slice(0, 3).map((a) => (
+                              <div key={a.name} title={a.name}
+                                className={`flex h-7 w-7 items-center justify-center rounded-full border-2 border-card text-caption font-semibold ${resolveColor(a.color)}`}>
+                                {a.initials}
+                              </div>
+                            ))}
+                            {act.extraCount > 0 && (
+                              <div className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-card bg-muted text-caption font-medium text-muted-foreground">
+                                +{act.extraCount}
+                              </div>
+                            )}
+                          </div>
+                          <span className="text-caption text-muted-foreground">
+                            {act.attendees[0]?.name}{act.attendees.length > 1 ? ` & ${act.attendees.length - 1} more` : ""} going
                           </span>
-                        ) : (
-                          <span />
-                        )}
+                        </div>
                         <Button
                           size="sm"
                           variant={isJoined ? "outline" : "default"}
@@ -363,16 +353,7 @@ export function CommunityPanel({ section = "all" }: { section?: CommunitySection
       {/* ── Helping Hand Board ───────────────────────────────────────────────── */}
       {(section === "all" || section === "helping") && (
         <div className="rounded-2xl bg-card p-6 shadow-card">
-          <div className="mb-5 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-100">
-                <HeartHandshake className="h-5 w-5 text-rose-500" />
-              </div>
-              <div>
-                <h3 className="font-display text-heading text-foreground">Helping Hand Board</h3>
-                <p className="text-caption text-muted-foreground">Neighbors supporting neighbors</p>
-              </div>
-            </div>
+          <div className="mb-5 flex items-center justify-end">
             <Button size="sm" variant="outline" onClick={() => setPostOpen(true)} className="text-body-sm">
               <Plus className="mr-1.5 h-3.5 w-3.5" />
               Post

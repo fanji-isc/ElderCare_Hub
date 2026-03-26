@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import {
   Heart, Moon, Utensils, Brain, Footprints, Shield, Droplets, Pill,
   ShieldCheck, AlertCircle, AlertTriangle,
-  Phone, PhoneOff, PhoneIncoming, PhoneCall, Share2, Clock, Maximize2,
+  Phone, PhoneOff, PhoneIncoming, PhoneCall, Share2,
   Calendar, CheckSquare, Square,
 } from "lucide-react";
 import { Header } from "@/components/Header";
@@ -290,18 +290,13 @@ function AppointmentDetail() {
                 </span>
               </div>
             </div>
-            {/* Action checklist */}
+            {/* Action checklist — no label */}
             <div className="px-4 py-3 space-y-2">
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Family action items</p>
               {actions.map((action, j) => {
                 const key = `${i}-${j}`;
                 const done = !!checked[key];
                 return (
-                  <button
-                    key={key}
-                    onClick={() => toggle(key)}
-                    className="flex items-center gap-2.5 w-full text-left group"
-                  >
+                  <button key={key} onClick={() => toggle(key)} className="flex items-center gap-2.5 w-full text-left group">
                     {done
                       ? <CheckSquare className="h-4 w-4 flex-shrink-0 text-emerald-500" />
                       : <Square className="h-4 w-4 flex-shrink-0 text-muted-foreground/50 group-hover:text-violet-400 transition-colors" />
@@ -347,32 +342,28 @@ function ModalCard({
 // ─── Health card ──────────────────────────────────────────────────────────────
 
 function HealthCard({
-  icon: Icon, iconBg, title, label, labelColor, note, onClick,
+  icon: Icon, iconBg, cardBg, title, label, labelColor, onClick,
 }: {
   icon: React.ElementType;
   iconBg: string;
+  cardBg: string;
   title: string;
   label: string;
   labelColor: string;
-  note: string;
   onClick: () => void;
 }) {
   return (
     <div
       onClick={onClick}
-      className="rounded-2xl bg-card shadow-card overflow-hidden cursor-pointer group hover:shadow-lg transition-shadow"
+      className={`rounded-2xl shadow-card overflow-hidden cursor-pointer group hover:shadow-lg transition-shadow px-5 py-6 flex flex-col justify-center ${cardBg}`}
     >
-      <div className="flex items-center gap-2.5 border-b border-border px-4 py-3 bg-muted/30 group-hover:bg-muted/50 transition-colors">
-        <div className={`flex h-7 w-7 items-center justify-center rounded-lg ${iconBg}`}>
-          <Icon className="h-3.5 w-3.5" />
+      <div className="flex items-center gap-3 mb-4">
+        <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${iconBg}`}>
+          <Icon className="h-5 w-5" />
         </div>
-        <span className="text-xs font-medium text-muted-foreground flex-1">{title}</span>
-        <Maximize2 className="h-3 w-3 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors" />
+        <span className="text-base font-semibold text-foreground">{title}</span>
       </div>
-      <div className="px-4 py-3.5">
-        <p className={`text-lg font-bold leading-tight ${labelColor}`}>{label}</p>
-        <p className="mt-0.5 text-xs text-muted-foreground leading-snug">{note}</p>
-      </div>
+      <p className={`text-sm font-medium leading-tight ${labelColor}`}>{label}</p>
     </div>
   );
 }
@@ -808,21 +799,12 @@ const FamilyView = () => {
 
       <Header />
 
-      <main className="container mx-auto px-4 py-6 sm:px-6 max-w-7xl">
+      <main className="container mx-auto px-4 py-6 sm:px-6 max-w-7xl flex flex-col" style={{ minHeight: 'calc(100vh - 64px)' }}>
 
         {/* ── Page header ──────────────────────────────────────────── */}
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-slate-600 to-slate-800 text-white text-sm font-bold flex-shrink-0">
-              FL
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-foreground leading-tight">Frank Larson</h2>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <Clock className="h-3 w-3 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">Updated today</span>
-              </div>
-            </div>
+            <h2 className="text-xl font-bold text-foreground leading-tight">Welcome, Frank's Family</h2>
           </div>
           <div className="flex items-center gap-2">
             {frankCallState === "idle" && (
@@ -866,9 +848,6 @@ const FamilyView = () => {
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-2 mb-1">
                 <h3 className={`text-base font-bold ${statusConfig.text}`}>{statusConfig.message}</h3>
-                <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${statusConfig.badge}`}>
-                  {overall === "good" ? "All good" : overall === "fair" ? "Monitor" : "Attention needed"}
-                </span>
               </div>
               <p className={`text-sm ${statusConfig.sub}`}>{statusConfig.sub2}</p>
               {highlights.length > 0 && (
@@ -878,67 +857,60 @@ const FamilyView = () => {
           </div>
         </div>
 
-        {/* ── Section label ─────────────────────────────────────────── */}
-        <div className="mb-4 flex items-center gap-3">
-          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Health Overview</span>
-          <div className="flex-1 h-px bg-border" />
-          <span className="text-xs text-muted-foreground">Click any card for details</span>
-        </div>
-
         {/* ── 9-card grid (3 × 3) ───────────────────────────────────── */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 gap-3 flex-1" style={{ gridTemplateRows: 'repeat(3, 1fr)' }}>
           <HealthCard
-            icon={Heart} iconBg="bg-heart/15 text-heart"
+            icon={Heart} iconBg="bg-heart/15 text-heart" cardBg="bg-sky-50"
             title="Heart Health"
-            label={heart.label} labelColor={heart.color} note={heart.note}
+            label={heart.label} labelColor={heart.color}
             onClick={() => setOpenModal("heart")}
           />
           <HealthCard
-            icon={Moon} iconBg="bg-sleep/15 text-sleep"
+            icon={Moon} iconBg="bg-sleep/15 text-sleep" cardBg="bg-sky-50"
             title="Sleep Analysis"
-            label={sleep.label} labelColor={sleep.color} note={sleep.note}
+            label={sleep.label} labelColor={sleep.color}
             onClick={() => setOpenModal("sleep")}
           />
           <HealthCard
-            icon={Utensils} iconBg="bg-teal-500/15 text-teal-600"
+            icon={Utensils} iconBg="bg-teal-500/15 text-teal-600" cardBg="bg-sky-50"
             title="Nutrition & Diet"
-            label="Meals tracked" labelColor="text-teal-600" note="Smart fridge monitoring"
+            label="Meals tracked" labelColor="text-teal-600"
             onClick={() => setOpenModal("nutrition")}
           />
           <HealthCard
-            icon={Brain} iconBg="bg-stress/15 text-stress"
+            icon={Brain} iconBg="bg-stress/15 text-stress" cardBg="bg-sky-50"
             title="Stress"
-            label={stress.label} labelColor={stress.color} note={stress.note}
+            label={stress.label} labelColor={stress.color}
             onClick={() => setOpenModal("stress")}
           />
           <HealthCard
-            icon={Footprints} iconBg="bg-ecg/15 text-ecg"
+            icon={Footprints} iconBg="bg-ecg/15 text-ecg" cardBg="bg-sky-50"
             title="Steps Today"
-            label={steps.label} labelColor={steps.color} note={steps.note}
+            label={steps.label} labelColor={steps.color}
             onClick={() => setOpenModal("steps")}
           />
           <HealthCard
-            icon={Shield} iconBg="bg-amber-500/15 text-amber-600"
+            icon={Shield} iconBg="bg-amber-500/15 text-amber-600" cardBg="bg-sky-50"
             title="Gait Analysis"
-            label={gait.label} labelColor={gait.color} note={gait.note}
+            label={gait.label} labelColor={gait.color}
             onClick={() => setOpenModal("gait")}
           />
           <HealthCard
-            icon={Droplets} iconBg="bg-teal-500/15 text-teal-600"
+            icon={Droplets} iconBg="bg-teal-500/15 text-teal-600" cardBg="bg-sky-50"
             title="Hydration"
-            label={hydration.label} labelColor={hydration.color} note={hydration.note}
+            label={hydration.label} labelColor={hydration.color}
             onClick={() => setOpenModal("hydration")}
           />
           <HealthCard
-            icon={Pill} iconBg="bg-blue-500/15 text-blue-600"
+            icon={Pill} iconBg="bg-blue-500/15 text-blue-600" cardBg="bg-sky-50"
             title="Medication"
-            label="Active Rx" labelColor="text-blue-600" note="Prescriptions & dosage"
+            label="Active Rx" labelColor="text-blue-600"
             onClick={() => setOpenModal("medication")}
           />
           <HealthCard
-            icon={Calendar} iconBg="bg-violet-500/15 text-violet-600"
+            icon={Calendar} iconBg="bg-violet-500/15 text-violet-600" cardBg="bg-sky-50"
             title="Appointments"
-            label="Upcoming" labelColor="text-violet-600" note="Scheduled visits"
+            label="Upcoming" labelColor="text-violet-600"
             onClick={() => setOpenModal("appointments")}
           />
         </div>
