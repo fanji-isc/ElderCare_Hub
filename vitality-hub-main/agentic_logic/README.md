@@ -2,7 +2,7 @@
 This README is for when this folder was a project in itself, file paths and other specific information may not be accurate now! Use this for overarching logic understanding.
 
 ## Overview
-This repository illustrates how InterSystems IRIS for Health can support NHH's needs using a Multi Agentic Workflow. Specifically, this is by providing a network of agents access to data stored within IRIS consumed by APIs, enabling them to detect events.
+This repository illustrates how InterSystems IRIS for Health can support a NHH using a Multi Agentic Workflow. Specifically, this is by providing a network of agents access to data stored within IRIS consumed by APIs, enabling them to detect events.
 
 Within the fall detection demo, there exists an **Appliance Agent** monitoring device data to determine daily activities. This is held within the schemas defined within the .env file of this repository. If it receives an alert from the wearable device of the resident, it should then hand off to the **Wellbeing Agent**. 
 This agent has access to the Chatbot, via the schema defined within the .env file of this repository which is where the chat history is saved. By monitoring response times, it then decides whether to handoff to the **Messaging Agent** to send an email to the resident's circle of care.

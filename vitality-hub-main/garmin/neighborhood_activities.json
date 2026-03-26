@@ -18,7 +18,7 @@
           { "name": "Ruth",     "initials": "R", "color": "amber" }
         ],
         "extraCount": 3,
-        "badge": "NHH Recommends",
+        "badge": "New session",
         "badgeColor": "teal",
         "highlighted": true
       },
@@ -29,7 +29,7 @@
         "date": "Wed, Apr 9",
         "time": "7:30 AM",
         "location": "Riverside Park — main entrance",
-        "duration": "45 min",
+        "duration": "1.5 hrs",
         "category": "walk",
         "attendees": [
           { "name": "George",   "initials": "G", "color": "blue" },
@@ -37,9 +37,9 @@
           { "name": "Harold",   "initials": "H", "color": "amber" }
         ],
         "extraCount": 2,
-        "badge": null,
-        "badgeColor": null,
-        "highlighted": false
+        "badge": "Today!",
+        "badgeColor": "violet",
+        "highlighted": true
       },
       {
         "id": 3,
@@ -56,8 +56,8 @@
           { "name": "Margaret", "initials": "M", "color": "emerald" }
         ],
         "extraCount": 5,
-        "badge": null,
-        "badgeColor": null,
+        "badge": "Online spots only",
+        "badgeColor": "blue",
         "highlighted": false
       },
       {
@@ -70,10 +70,10 @@
         "duration": "2 hrs",
         "category": "hiking",
         "attendees": [
-          { "name": "Robert",   "initials": "R", "color": "teal" }
+          { "name": "Robert", "initials": "R", "color": "teal" }
         ],
         "extraCount": 10,
-        "badge": "Spots available",
+        "badge": null,
         "badgeColor": "emerald",
         "highlighted": false
       },
@@ -92,7 +92,7 @@
           { "name": "Frances",  "initials": "F", "color": "purple" }
         ],
         "extraCount": 3,
-        "badge": "Weekly favourite",
+        "badge": "Weekly favorite",
         "badgeColor": "amber",
         "highlighted": false
       },
@@ -128,7 +128,7 @@
           { "name": "George",   "initials": "G", "color": "blue" }
         ],
         "extraCount": 6,
-        "badge": "Spots available",
+        "badge": null,
         "badgeColor": "emerald",
         "highlighted": false
       },
@@ -142,7 +142,7 @@
         "duration": "1 hr",
         "category": "cooking",
         "attendees": [
-          { "name": "Barbara",  "initials": "B", "color": "rose" },
+          { "name": "Bob",      "initials": "B", "color": "rose" },
           { "name": "Frances",  "initials": "F", "color": "purple" },
           { "name": "Margaret", "initials": "M", "color": "emerald" }
         ],
