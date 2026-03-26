@@ -1810,41 +1810,43 @@ async def answer_stream(payload: dict = Body(...)):
     if not user_text:
         raise HTTPException(status_code=400, detail="Empty input")
 
-    history = (payload.get("messages") or [])[-5:]
+    history = (payload.get("messages") or [])[-5:] + [{"role": "user", "content": user_text}]
 
     # Allow callers to inject a custom system prompt (e.g. RAG context with personal health data).
     # Fall back to the generic elder-care prompt if none is provided.
     custom_system = (payload.get("system") or "").strip()
     
-    frank_desc = get_patient_desc()
-    system_msg = {
-        "role": "system",
-        "content": custom_system if custom_system else (
-            "You are a calm, friendly elder-care assistant. "
-            "Speak clearly, briefly, and reassuringly. "
-            "DO NOT give medical diagnoses. "
-            "If unsure, suggest contacting a healthcare professional."
-            f"You are replying to the following patient: {frank_desc}"
-        )
-    }
-
-    chat = [system_msg] + history + [{"role": "user", "content": user_text}]
+    # frank_desc = get_patient_desc()
+    # system_msg = {
+    #     "role": "system",
+    #     "content": custom_system if custom_system else (
+    #         "You are a calm, friendly elder-care assistant. "
+    #         "Speak clearly, briefly, and reassuringly. "
+    #         "DO NOT give medical diagnoses. "
+    #         "If unsure, suggest contacting a healthcare professional."
+    #         f"You are replying to the following patient: {frank_desc}"
+    #     )
+    # }
 
     def generate():
         try:
-            stream = client.chat.completions.create(
+            stream = client.responses.create(
                 model="gpt-5.4-nano",
-                messages=chat,
+                instructions = custom_system,
+                input = history,
                 stream=True,
                 temperature=0.2
             )
-            for chunk in stream:
-                delta = chunk.choices[0].delta.content or ""
-                if delta:
-                    yield json.dumps({"delta": delta}) + "\n"
+            for event in stream:
+                if event.type == "response.output_text.delta":
+                    delta = event.delta or ""
+                    if delta:
+                        yield json.dumps({"delta": delta}) + "\n"
+                elif event.type == "response.completed":
+                    break
+            yield json.dumps({"done": True}) + "\n"
         except Exception as e:
             yield json.dumps({"error": str(e)}) + "\n"
-        yield json.dumps({"done": True}) + "\n"
 
     return StreamingResponse(generate(), media_type="application/x-ndjson")
 
