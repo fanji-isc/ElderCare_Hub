@@ -9,7 +9,7 @@ import tempfile
 import requests as _requests
 import numpy as np
 from scipy.signal import find_peaks
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from openai import OpenAI
 from backend.config import IRIS_HOST, IRIS_PORT, IRIS_NAMESPACE, IRIS_USERNAME, IRIS_PASSWORD
 FHIR_BASE = "http://localhost:52773/csp/healthshare/demo/fhir/r4"
@@ -347,6 +347,66 @@ def interprete_garmin(patient_id: str = "") -> dict:
             "daily_breakdown": processed_entries
         }    
 
+    def get_gaitdata(gait_list):
+        # Flatten all sessions across all days for historical context
+        all_sessions = [s for day in gait_list for s in day.get("sessions", [])]
+
+        n = len(all_sessions)
+        
+        avg_speed = sum(x["gaitSpeedMs"] for x in all_sessions) / n
+        avg_symmetry = sum(x["stepSymmetryPct"] for x in all_sessions) / n
+        avg_variability = sum(x["strideVariabilityPct"] for x in all_sessions) / n
+        avg_gct_diff = sum(abs(x["groundContactTimeMs"]["left"] - 
+                            x["groundContactTimeMs"]["right"]) for x in all_sessions) / n
+
+        score = 0
+        if avg_speed < 0.6: score += 4
+        elif avg_speed < 0.8: score += 2
+        if avg_symmetry < 75: score += 3
+        elif avg_symmetry < 82: score += 2
+        if avg_variability > 12: score += 2
+        elif avg_variability > 8: score += 1
+        if avg_gct_diff > 100: score += 2
+        elif avg_gct_diff > 60: score += 1
+
+        risk_level = "high" if score >= 5 else "moderate" if score >= 2 else "low"
+
+        latest_day = max(gait_list, key=lambda x: x["calendarDate"])
+        latest_s = latest_day["sessions"][-1]
+        
+        latest_gct_diff = abs(latest_s["groundContactTimeMs"]["left"] - latest_s["groundContactTimeMs"]["right"])
+        latest_stride_diff = abs(latest_s["strideLength"]["leftCm"] - latest_s["strideLength"]["rightCm"])
+
+        return {
+            "fall_risk_assessment": {
+                "level": risk_level,
+                "weighted_score": score,
+                "is_concerning": risk_level != "low"
+            },
+            "latest_snapshot": {
+                "date": latest_day["calendarDate"],
+                "speed_ms": round(latest_s["gaitSpeedMs"], 2),
+                "symmetry_pct": round(latest_s["stepSymmetryPct"], 1),
+                "variability_pct": round(latest_s["strideVariabilityPct"], 1),
+                "asymmetry": {
+                    "gct_delta_ms": latest_gct_diff,
+                    "stride_delta_cm": latest_stride_diff,
+                    "shorter_stride_side": "left" if latest_s["strideLength"]["leftCm"] < latest_s["strideLength"]["rightCm"] else "right"
+                }
+            },
+            "historical_averages": {
+                "avg_walking_speed": round(avg_speed, 2),
+                "avg_symmetry": round(avg_symmetry, 1),
+                "avg_variability": round(avg_variability, 1),
+                "avg_gct_imbalance": round(avg_gct_diff, 0)
+            },
+            "clinical_flags": {
+                "frailty_speed_alert": latest_s["gaitSpeedMs"] < 0.8,
+                "high_instability_alert": latest_s["strideVariabilityPct"] > 10.0,
+                "significant_limp_detected": latest_gct_diff > 60
+            }
+        }
+    
     ecg_analyst = """
     # ROLE: ECG Precision Analyst
 
@@ -449,11 +509,42 @@ def interprete_garmin(patient_id: str = "") -> dict:
     # INPUT: 
 
     """
+    gait_strategist = f"""
+    # ROLE: Garmin Mobility and Fall Risk Coach
+
+    # CONTEXT:
+    You are a Physical Therapist specializing in geriatric biomechanics. You analyze gait dictionaries to detect physical frailty, injury-related guarding (limping), and overall fall risk.
+
+    # DATA INTERPRETATION RULES:
+    1. **The Risk Score (0-11):** 
+    - You will receive a `weighted_score`.
+        - **Score 0-1:** Baseline stability. 
+        - **Score 2-4:** Moderate Risk. Likely transient fatigue or minor discomfort.
+        - **Score 5+:** High Fall Risk. Requires immediate environmental review (trip hazards) and potentially a mobility aid.
+    2. **Acute vs. Chronic (Trend Analysis):** 
+    - Compare `latest_snapshot` speed and variability against `historical_averages`. 
+        - If `speed_ms` is >10% lower than `avg_walking_speed`, flag as "Acute Mobility Decline."
+        - If `variability_pct` is higher than the historical average, the user is currently "unstable" and prone to tripping.
+    3. **Asymmetry & Unilateral Pain:** 
+    - Use the `asymmetry` object.
+        - A `gct_delta_ms` > 60ms indicates a significant "limp." 
+        - Identify the `shorter_stride_side`. If the user has a shorter right stride, they are likely "guarding" the right side due to pain or weakness.
+    4. **Clinical Thresholds:** 
+    - Speed < 0.8 m/s = "The Sixth Vital Sign" warning for frailty.
+    - Speed < 0.6 m/s = Critical threshold for loss of independence.
+
+    # RESPONSE STRUCTURE:
+    Focus on **Stability** and **Symmetry**. Translate the "GCT Delta" into plain English (e.g. "The user is favoring their left leg").
+
+    # TONE:
+    Professional and data-driven. These insights are being interpreted by an orchestrator agent as part of a wider health monitoring system. Therefore, avoid "fluff"; focus on biological impact. Refer to the patient in the third person.
+
+    # INPUT: 
+
+    """
 
     conn = get_iris()
     client = get_openai_client()
-    if client is None:
-        raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
 
     try:
         irispy = iris.createIRIS(conn)
@@ -461,9 +552,10 @@ def interprete_garmin(patient_id: str = "") -> dict:
         combined_record = irispy.classMethodValue("MyApp.Utils", "GetLatestJSONFile", patient_id)
         data = json.loads(combined_record) if combined_record else {}
         
-        raw_ecg_data = data.get("ecg", {})
+        raw_ecg_data = data.get("ecg", [])
         raw_hr_data = data.get("hr", {})
-        raw_sleep_data = data.get("sleep", {})
+        raw_sleep_data = data.get("sleep", [])
+        raw_gait_data = data.get("gait", [])
 
         ecg_data = get_ecgdata(raw_ecg_data)
         ecg_response = client.responses.create(
@@ -482,7 +574,13 @@ def interprete_garmin(patient_id: str = "") -> dict:
             model="gpt-5-nano",
             input= sleep_coach + json.dumps(sleep_data)
         )
-        return {"status": "success", "data": {"ECG Summary": ecg_response.output_text, "HR Summary": hr_response.output_text, "Sleep Summary": sleep_response.output_text}}
+
+        gait_data = get_gaitdata(raw_gait_data)
+        gait_response = client.responses.create(
+            model="gpt-5-nano",
+            input= gait_strategist + json.dumps(gait_data)
+        )
+        return {"status": "success", "data": {"ECG Summary": ecg_response.output_text, "HR Summary": hr_response.output_text, "Sleep Summary": sleep_response.output_text, "Geriatric Gait Summary": gait_response.output_text}}
     except Exception as e:
         return {"status": "error", "message": f"The following error was found: {e}."}
     finally:
@@ -675,9 +773,10 @@ def build_neighbourhood_context(patient_id: str, first_name: str):
         lines.append("")
         
         instructions = f"""
-        BOOKING INSTRUCTION: If {first_name} asks to join, book, sign up for, register for, or asks you to pick and sign them up for an activity, choose one if they haven't specified, then confirm enthusiastically in your normal response that you have successfully registered them. Then, on a brand new line at the very end, append exactly: [[JOIN:ID]] where ID is that activity's booking ID number from the list above. 
+        BOOKING INSTRUCTION: If {first_name} asks to join, book, sign up for, register for, or asks you to pick and sign them up for an activity, then confirm enthusiastically in your normal response that you have successfully registered them. 
+        Then, on a brand new line at the very end, append exactly: [[JOIN:ID]] where ID is that activity's booking ID number from the list above. 
         Do NOT speak or mention [[JOIN:ID]] — it is a silent machine code only, never part of the conversation. 
-        Always append it whenever {first_name} wants to be signed up, even if you are the one picking the activity."
+        Always append it whenever {first_name} wants to be signed up. DO NOT sign them up without them explicitly asking to be.
         """
         lines.append(instructions)
     return "\n".join(lines)
@@ -1378,7 +1477,7 @@ def generate_clinician_summary(patient_id: str = Query(...)):
     """
 
     response = client.responses.create(
-        model="gpt-5-mini",
+        model="gpt-5-nano",
         instructions = medical_analyst,
         input = f"Analyze this FHIR bundle and provide a short summary of their clinical risks:\n\n{patient_fhir}"
     )
@@ -1411,10 +1510,44 @@ def clinician_overview(patient_id: str = Query(...)):
     finally:
         conn.close()
 
-# ── Interprete FHIR + IRIS endpoints ──────────────────────────────────────────
+# ── AI System Prompts ─────────────────────────────────────────────────────────
 
-# TODO: run this once and store the respose
 def get_resident_context(patient_id: str = ""):
+    return """
+    ### ⚠️ OVERALL RISK LEVEL: ELEVATED
+    **Primary Driver:** Gait instability with frailty indicators (Fall risk weighted_score 6)
+
+    #### 1. THE "WHY" (Unified Insight)
+    The patient shows a high fall-risk profile driven primarily by gait abnormalities:
+    - Gait data: Fall risk level = High with weighted_score 6, gait speed 0.77 m/s (below 0.8 m/s threshold), stride variability 10.5% (slightly above baseline 10.2%), and significant right-leg guarding (GCT_delta_ms = 80 ms). Right-side guarding suggests pain/weakness with asymmetric loading.
+    - Symmetry: gait symmetry ~79% (vs baseline ~80%), indicating bilateral loading asymmetry.
+    - ECG/HRV: Sinus rhythm with average HR ~65 bpm; SDNN ~34.98 ms; RMSSD ~34 ms. Resting autonomic balance appears relatively preserved (no arrhythmia; HRV not profoundly reduced).
+    - Sleep: Recovery generally supports resilience (notable low sleep stress on peak recovery nights; one week profile shows Recovery up to 100 and avg_sleep_stress as low as ~4.86 on the best night). However, variability in sleep architecture exists across the week.
+    - Nutrition: Protein intake today ~58 g (below target ~60 g); appetite pattern includes skipped meals, which can worsen energy and muscle reserve.
+    - Hydration: Morning dehydration common; end-of-day colorLevel generally improves to 2-4, though day-to-day variability exists. No clear dark-urine/very low HRV combination observed yet; SDNN >30 ms overall reduces immediate orthostatic risk.
+    - Integration: The data align with the Fall Cascade (Gait + Nutrition + Hydration) at a high-risk level, but the Fridge flag for Appetite Loss or Dehydration is not explicitly documented as a separate clinical flag in the provided data. Given the gait risk and dehydration cues, the overall risk is Elevated rather than CRITICAL at this moment.
+
+    #### 2. CROSS-SYSTEM CORRELATIONS
+    * **[Link 1]: Fall Cascade (Gait + Nutrition + Hydration) **
+    - The patient exhibits high gait risk (weighted_score 6) together with dehydration cues (morning dehydration on most days) and fluctuating protein intake (58 g today) with skipped meals. This triad elevates the risk for falls and undermines recovery capacity.
+    * **[Link 2]: Hydration vs Cardiac Autonomic State**
+    - Morning dehydration can transiently influence autonomic balance, yet resting HRV (SDNN ~35 ms) and HR (~65 bpm) are not profoundly deranged. No evidence of orthostatic intolerance (SDNN not <30 ms; no reported dark urine). Hydration inconsistency should be monitored as it can modulate HRV and perceived stress, potentially affecting short-term resilience.
+
+    #### 3. GUARDIAN ACTION ITEMS
+    * **Immediate:**
+    - Implement fall-prevention safeguards at home: clear pathways, secure lighting, remove trip hazards, and consider a mobility aid (e.g., cane/walker) until gait improves.
+    - Arrange prompt clinical assessment for right-limb pain/guarding (possible musculoskeletal/neuromuscular evaluation; imaging if indicated).
+    - Optimize hydration in the near term: ensure morning hydration to support autonomic readings and energy; monitor for symptoms of dizziness or near-falls.
+    - Verify nutrition focus: address skipped meals and aim for a protein target >60 g/day; consider a simple protein-forward plan to support energy and muscle with minimal cognitive load.
+    * **Daily Goal:**
+    - Stabilize hydration around a daily target (approx. 2.0-2.5 L, with emphasis on consistent intake in the morning and around meals).
+    - Achieve protein intake ≥60 g/day; distribute protein across meals to support muscle maintenance.
+    - Maintain sleep hygiene to minimize night-time arousal and support gait stability the following day.
+    * **Watch For:**
+    - Emergence of dizziness or near-falls, worsening right-limb pain, new or increasing asymmetry in gait, or any chest discomfort.
+    - Deterioration in hydration status (sustained morning dehydration, end-of-day colorLevel rising to 5-6) and any orthostatic symptoms.
+    - Sudden changes in sleep architecture or recovery metrics, or magnified daytime fatigue.
+    """
     client = get_openai_client()
     if client is None:
         raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
@@ -1480,13 +1613,38 @@ def get_resident_context(patient_id: str = ""):
         input = "Generate a summary of the patient's Garmin and Home Appliance data for their clinician to interprete."
     )
     
-    triage_answer = response.output_text
-    patient_desc = get_patient_desc(patient_id)
-    return triage_answer, patient_desc
+    return response.output_text
 
 @app.get("/api/run-fall-checkin")
-def run_fall_checkin(patient_id: str = "") -> str:
-    triage_answer, patient_desc = get_resident_context(patient_id)
+def run_fall_check_in(patient_id: str = ""):
+    neighborhoodJson = get_neighborhood(patient_id)
+
+    latest_dict = neighborhoodJson[0] if neighborhoodJson else None
+    today = datetime.strptime(latest_dict.get('date'), '%Y-%m-%d')
+
+    lines = []
+    if latest_dict:
+        filtered_activities = []
+        for a in latest_dict.get("activities", []):
+            act_date = datetime.strptime(f"{a.get('date')} {today.year}", "%a, %b %d %Y")
+            if today <= act_date <= today + timedelta(days=3):
+                filtered_activities.append(a)
+            
+        sorted_activities = sorted(
+            filtered_activities, 
+            key=lambda x: datetime.strptime(x.get('date'), "%a, %b %d")
+        )
+        for a in sorted_activities:
+            attendeeNames = ", ".join([x.get("name", "") for x in a.get("attendees", [])])
+            suffix = ""
+            if attendeeNames:
+                extra = f" +{a.get('extraCount')} more" if a.get('extraCount', 0) > 0 else ""
+                suffix = f" — attending: {attendeeNames}{extra}"
+            lines.append(f" • [ID: {a.get('id', 0)}] {a.get('title', "")}: {a.get('date', "")} at {a.get('time', "")}, {a.get('location', "")} ({a.get('duration', "")}) {suffix}")
+    activities = "\n".join(lines)
+
+    triage_answer = get_resident_context(patient_id)
+    patient_desc = get_patient_desc(patient_id)
 
     wellbeing_desc = f"""
     ### ROLE: Elder-care assitant
@@ -1498,12 +1656,14 @@ def run_fall_checkin(patient_id: str = "") -> str:
 
     # TASK
     Provide a good morning message including a gentle summary of what the system has noticed regarding their current fall-risk based on their garmin and household data, and some advice for how best to behave today. 
-    Briefly mention the specific evidence: what their walking sensor found (speed, symmetry) and what the toilet urine color sensor showed etc.
-
     Avoid returning too long of a message, your response should not require bullet points. Keep to 4-5 sentences.
+    Avoid giving too much technical detail, this summary should act as a higher level overview of their health.
+
+    Based on your summary, suggest something within their neighborhood that they might enjoy that could help them achieve your advised behaviour. 
+    Consider all activities and suggest the most appropriate for their specific wellbeing. Prioritise any activities happening today ({today.strftime('%a, %b %d')}) or tomorrow ({(today + timedelta(days=1)).strftime('%a, %b %d')}).
 
     # TONE:
-    Speak clearly, briefly, and reassuringly. Don't patronise them.
+    Speak clearly and briefly. Don't patronise them. Prioritise conciseness, your reply should keep to 4-5 sentences.
 
     # RESTRICTIONS:
     DO NOT give medical diagnoses. 
@@ -1512,13 +1672,50 @@ def run_fall_checkin(patient_id: str = "") -> str:
     # DATA SUMMARY: 
 
     {triage_answer}
+
+    # NEIGHBORHOOD ACTIVITIES :
+    
+    {activities}
+
+    # BOOKING INSTRUCTION: 
+    If the patient confirms they would like to join a specific activity, then confirm enthusiastically in your response that you have successfully registered them. 
+
+    Then, on a brand new line at the very end, append exactly: [[JOIN:ID]] where ID is that activity's booking ID number from the list above. 
+    Do NOT speak or mention [[JOIN:ID]] — it is a silent machine code only, never part of the conversation with the patient. DO NOT sign them up without them explicitly asking to be.
     """
 
     return wellbeing_desc
 
 @app.get("/api/run-mental-checkin")
-def run_mental_checkin(patient_id: str = "") -> str:
-    triage_answer, patient_desc = get_resident_context(patient_id)
+def run_mental_check_in(patient_id: str = ""):
+    neighborhoodJson = get_neighborhood(patient_id)
+
+    latest_dict = neighborhoodJson[0] if neighborhoodJson else None
+    today = datetime.strptime(latest_dict.get('date'), '%Y-%m-%d')
+
+    lines = []
+    if latest_dict:
+        filtered_activities = []
+        for a in latest_dict.get("activities", []):
+            act_date = datetime.strptime(f"{a.get('date')} {today.year}", "%a, %b %d %Y")
+            if today <= act_date <= today + timedelta(days=3):
+                filtered_activities.append(a)
+            
+        sorted_activities = sorted(
+            filtered_activities, 
+            key=lambda x: datetime.strptime(x.get('date'), "%a, %b %d")
+        )
+        for a in sorted_activities:
+            attendeeNames = ", ".join([x.get("name", "") for x in a.get("attendees", [])])
+            suffix = ""
+            if attendeeNames:
+                extra = f" +{a.get('extraCount')} more" if a.get('extraCount', 0) > 0 else ""
+                suffix = f" — attending: {attendeeNames}{extra}"
+            lines.append(f" • [ID: {a.get('id', 0)}] {a.get('title', "")}: {a.get('date', "")} at {a.get('time', "")}, {a.get('location', "")} ({a.get('duration', "")}) {suffix}")
+    activities = "\n".join(lines)
+
+    triage_answer = get_resident_context(patient_id)
+    patient_desc = get_patient_desc(patient_id)
 
     wellbeing_desc = f"""
     ### ROLE: Elder-care assitant
@@ -1530,12 +1727,15 @@ def run_mental_checkin(patient_id: str = "") -> str:
 
     # TASK
     Provide a good morning message including a gentle summary of what the system has noticed based on their garmin and household data with a focus on their mental health, and some advice for how best to behave today. 
-    Briefly mention the specific evidence: how much are they are sleeping or eating.
+    Don't give too much technical detail, this summary should act as a higher level overview of their health.
 
     Avoid returning too long of a message, your response should not require bullet points. Keep to 4-5 sentences.
 
+    Based on your summary, suggest something within their neighborhood that they might enjoy that could help them achieve your advised behaviour. 
+    Consider all activities and suggest the most appropriate for their specific wellbeing. Prioritise any activities happening today ({today.strftime('%a, %b %d')}) or tomorrow ({(today + timedelta(days=1)).strftime('%a, %b %d')}).
+
     # TONE:
-    Speak clearly, briefly, and reassuringly. Don't patronise them.
+    Speak clearly, briefly, and reassuringly. Don't patronise them. Prioritise conciseness, your reply should keep to 4-5 sentences.
 
     # RESTRICTIONS:
     DO NOT give medical diagnoses. 
@@ -1544,89 +1744,19 @@ def run_mental_checkin(patient_id: str = "") -> str:
     # DATA SUMMARY: 
 
     {triage_answer}
+
+    # NEIGHBORHOOD ACTIVITIES :
+    
+    {activities}
+
+    # BOOKING INSTRUCTION: 
+    If the patient confirms they would like to join a specific activity, then confirm enthusiastically in your response that you have successfully registered them. 
+
+    Then, on a brand new line at the very end, append exactly: [[JOIN:ID]] where ID is that activity's booking ID number from the list above. 
+    Do NOT speak or mention [[JOIN:ID]] — it is a silent machine code only, never part of the conversation with the patient. DO NOT sign them up without them explicitly asking to be.
     """
 
     return wellbeing_desc
-
-# @app.post("/api/run-fall-checkin")
-def run_fall_checkin_filtered_data(data: dict) -> str:
-    v = data.get("v", {})
-    first_name = data.get("name", "Resident")
-
-    data_lines = []
-    if v.get("gaitNote"):
-        data_lines.append(f"- Gait analysis: {v.get("gaitNote")}")
-    if v.get("hydrationNote") and v.get("hydrationColorLevel") > 0:
-        colors = {
-            2: "colorless / pale straw (very well hydrated)",
-            4: "pale to normal yellow (adequately hydrated)",
-            5: "dark yellow (mildly dehydrated)",
-            6: "amber / honey (moderately dehydrated)",
-            7: "dark amber / orange (significantly dehydrated)",
-        }
-        description = next((desc for high, desc in colors.items() if v.get("hydrationColorLevel") <= high), "brown / dark brown (severely dehydrated)")
-        data_lines.append(f"- Smart toilet urine color: level {v.get("hydrationColorLevel")}/8 — {description} → {v.get("hydrationNote")}")
-    if v.get("fallRiskAlert"):
-        data_lines.append("- COMBINED FALL RISK ALERT: gait irregularities together with dehydration significantly increase fall risk today")
-
-    if data_lines:
-        return f"""
-        You are NHH, a warm and caring safety companion for {first_name}, an elderly person living independently.
-
-        Here is {first_name}'s fall-risk evidence right now:
-        {"\n".join(data_lines)}
-
-        Talk to {first_name} simply and warmly — like a caring friend, not a doctor. Use short, easy sentences.
-        Briefly mention the specific evidence: what their walking sensor found (speed, symmetry) and what the toilet urine color sensor showed.
-        Then tell them clearly whether they needs to be extra careful today.
-        If there is a COMBINED FALL RISK ALERT, say it first, explain whether their gait or hydration are concerning, and give them 2 simple practical tips (e.g. drink a glass of water once they gets up, move slowly, hold handrails).
-        Keep it to 4-5 sentences. Address them as {first_name}."""
-    else:
-        return f"You are NHH. Warmly reassure {first_name} that their walking looks steady today and encourage them to keep moving safely and looking after themself. One sentence only. Don't be patronising. Address them as {first_name}."
-
-# @app.post("/api/run-mental-checkin")
-def run_mental_checkin_filtered_data(data: dict) -> str:
-    v = data.get("v", {})
-    nRef = data.get("nRef", {})
-    first_name = data.get("name", "Resident")
-
-    data_lines = []
-    sleep_hours = v.get("sleepHours")
-    if sleep_hours:
-        sleep_quality = "very poor, significantly below healthy range" if sleep_hours < 5 else "below recommended" if sleep_hours < 6.5 else "good"
-        data_lines.append(f"- Sleep last night: {sleep_quality} — {sleep_hours:.1f} hours")
-    meals_count = v.get("mealsCount")  
-    if meals_count:
-        meal_status = f"{meals_count} meals detected — {first_name} skipped meals today (⚠️ appetite loss, possible depression signal)" if meals_count <= 1 else f"{meals_count} meals detected (normal)"
-        data_lines.append(f"- Diet today (smart fridge): {meal_status}")
-    if v.get("steps"): 
-        activity = f"very low, barely moved" if v.get("steps") < 2000 else "low activity" if v.get("steps") < 4000 else "good"
-        data_lines.append(f"- Steps today: {v.get("steps")} — {activity}")
-    if v.get("stressLevel"): 
-        data_lines.append(f"- Stress level: {v.get("stressLevel")}/100")
-    if nRef.get("current"):
-        data_lines.append(f"- Upcoming neighbourhood activities {first_name} could join:\n {nRef.get("current")}")
-    poor_sleep = 1 if (sleep_hours > 0 and sleep_hours < 6) else 0
-    skipped_meals = 1 if (meals_count <= 1) else 0
-
-    context = f"IMPORTANT CONTEXT: {first_name} appears to be going through a difficult time. The data shows they are not sleeping well, skipping meals, and have been calling family and friends much less than usual over the past week. These are signs they may be feeling down, depressed, or withdrawn. Do NOT just list data at them — approach this like a caring friend who has noticed they haven't been themself lately." if skipped_meals and poor_sleep else f"IMPORTANT CONTEXT: {first_name} is showing some signs of low mood — poor sleep and skipped meals often go hand in hand with feeling down. Approach gently and warmly." if skipped_meals or poor_sleep else f"{first_name} seems to be doing reasonably well today. Be warm and encouraging."
-
-    return f"""
-    You are NHH, {first_name}'s warm and caring AI companion. {first_name} is an elderly person living independently. You have been watching over them and you are genuinely concerned.
-
-    Here is what you know about {first_name} today:
-    {"\n".join(data_lines)}
-
-    {context}
-
-    Your response should:
-    1. Open with a heartfelt greeting — like a friend who truly cares, not a check-box assistant.
-    2. Tenderly acknowledge what you've noticed: poor sleep and skipped meals (name them directly but kindly — "I noticed you only had a small breakfast today" or "It looks like last night was a rough night for sleep").
-    3. Ask {first_name} how they are feeling — invite them to share, keep it open and safe.
-    4. Offer one small, concrete step they can take right now to feel a little better that is appropriate based on the conversation (a warm meal, a short walk outside, or joining a specific neighbourhood activity by name and time). Do not suggest active activities if they should be resting today.
-    5. If needed, close with a sincere reminder that they are not alone — you are here, and the people around them care about them.
-
-    Tone: warm, gentle, direct, human — like a trusted friend, not a patronising or cold medical alert. Keep it to 4-5 sentences. Address them as {first_name}."""
 
 # TODO: rewrite
 @app.post("/api/build-health-context")
@@ -1668,43 +1798,8 @@ def build_health_context(data: dict) -> str:
 
 # ── AI response endpoints ─────────────────────────────────────────────────────
 
-@app.post("/api/answer")
-async def answer(payload: dict = Body(...)):
-    client = get_openai_client()
-    if client is None:
-        raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
-
-    user_text = (payload.get("text") or "").strip()
-    if not user_text:
-        raise HTTPException(status_code=400, detail="Empty input")
-
-    history = payload.get("messages") or []
-    history = history[-5:]
-    # history is like: [{"role":"user","content":"..."}, {"role":"assistant","content":"..."}]
-    
-    frank_desc = get_patient_desc()
-    system_msg = {
-        "role": "system",
-        "content": (
-            "You are a calm, friendly elder-care assistant. "
-            "Speak clearly, briefly, and reassuringly. "
-            "DO NOT give medical diagnoses. "
-            "If unsure, suggest contacting a healthcare professional."
-            f"You are replying to the following patient: {frank_desc}"
-        )
-    }
-
-    chat = [system_msg] + history + [{"role": "user", "content": user_text}]
-
-    completion = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=chat,
-        temperature=0.3,
-    )
-
-    answer_text = completion.choices[0].message.content.strip()
-    return {"answer": answer_text}
-
+# TODO: write a seperate function to generate the system prompt so its persisted on the elderview, then pass it through here as the custom_system
+# TODO: minimise mental and fall checkin length as appropriate 
 @app.post("/api/answer/stream")
 async def answer_stream(payload: dict = Body(...)):
     client = get_openai_client()
@@ -1738,10 +1833,10 @@ async def answer_stream(payload: dict = Body(...)):
     def generate():
         try:
             stream = client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-5.4-nano",
                 messages=chat,
-                temperature=0.3,
                 stream=True,
+                temperature=0.2
             )
             for chunk in stream:
                 delta = chunk.choices[0].delta.content or ""

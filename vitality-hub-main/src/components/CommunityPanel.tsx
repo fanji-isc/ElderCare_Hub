@@ -325,7 +325,7 @@ export function CommunityPanel({ section = "all" }: { section?: CommunitySection
                         </div>
                         <span className="text-caption text-muted-foreground">
                           {act.attendees[0]?.name}
-                          {act.attendees.length > 1 ? ` & ${act.attendees.length - 1} more` : ""} going
+                          {act.attendees.length - 1 + act.extraCount > 0 ? ` & ${act.attendees.length - 1 + act.extraCount} more` : ""} going
                         </span>
                       </div>
 
