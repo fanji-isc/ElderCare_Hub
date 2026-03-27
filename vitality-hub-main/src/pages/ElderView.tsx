@@ -12,7 +12,7 @@ import {
   Users, HeartHandshake, ChevronDown, ChevronUp,
   Mic, Activity, Heart, Moon, Footprints, Volume2,
   ShieldAlert, Brain, Calendar,
-  Utensils, Shield, Droplets, Pill, Maximize2,
+  Utensils, Shield, Droplets, Pill,
   Phone, PhoneOff, PhoneCall, PhoneIncoming,
 } from "lucide-react";
 import {
@@ -118,27 +118,21 @@ function ModalCard({
 
 // ── HealthCard ────────────────────────────────────────────────────────────────
 function HealthCard({
-  icon: Icon, iconBg, title, label, labelColor, note, onClick,
+  icon: Icon, iconBg, cardBg, title, label, labelColor, onClick,
 }: {
-  icon: React.ElementType; iconBg: string; title: string;
-  label: string; labelColor: string; note: string; onClick: () => void;
+  icon: React.ElementType; iconBg: string; cardBg: string;
+  title: string; label: string; labelColor: string; onClick: () => void;
 }) {
   return (
-    <div
-      onClick={onClick}
-      className="rounded-2xl bg-card shadow-card overflow-hidden cursor-pointer group hover:shadow-lg transition-shadow"
-    >
-      <div className="flex items-center gap-2.5 border-b border-border px-4 py-3 bg-muted/30 group-hover:bg-muted/50 transition-colors">
-        <div className={`flex h-7 w-7 items-center justify-center rounded-lg ${iconBg}`}>
-          <Icon className="h-3.5 w-3.5" />
+    <div onClick={onClick}
+      className={`rounded-2xl shadow-card overflow-hidden cursor-pointer group hover:shadow-lg transition-shadow px-5 py-6 flex flex-col justify-center ${cardBg}`}>
+      <div className="flex items-center gap-3 mb-4">
+        <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${iconBg}`}>
+          <Icon className="h-5 w-5" />
         </div>
-        <span className="text-xs font-medium text-muted-foreground flex-1">{title}</span>
-        <Maximize2 className="h-3 w-3 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors" />
+        <span className="text-base font-semibold text-foreground">{title}</span>
       </div>
-      <div className="px-4 py-3.5">
-        <p className={`text-lg font-bold leading-tight ${labelColor}`}>{label}</p>
-        <p className="mt-0.5 text-xs text-muted-foreground leading-snug">{note}</p>
-      </div>
+      <p className={`text-sm font-medium leading-tight ${labelColor}`}>{label}</p>
     </div>
   );
 }
@@ -268,6 +262,7 @@ const ElderView = () => {
   });
   // Set vitals
   const [openPanel, setOpenPanel] = useState<Panel>(null);
+  const [demoOpen, setDemoOpen] = useState(false);
   const [pendingJoinId, setPendingJoinId] = useState<number | null>(null);
   const emptyVitals: Vitals = { heartRate: 0, steps: 0, stressLevel: 0, sleepHours: 0, hydrationNote: "", hydrationColorLevel: 0, waterLiters: 0, expiringItems: [], currentItems: [], mealsCount: 0, gaitNote: "", fallRiskAlert: false };
   const [vitals, setVitals] = useState<Vitals>(emptyVitals);
@@ -419,7 +414,7 @@ const ElderView = () => {
     return fullText;
   };
 
-  const runCheckIn = async (v: Vitals, mode: "fall" | "mental") => {
+  const runCheckIn = async (_v: Vitals, mode: "fall" | "mental") => {
     if (runningRef.current || isRecording) return;
     runningRef.current = true;
     setIsThinking(true);
@@ -902,6 +897,38 @@ const ElderView = () => {
 
       <Header />
 
+      {/* ── Demo dropdown ── */}
+      <div className="fixed top-4 left-72 z-[60]">
+        <div className="relative">
+          <button
+            onClick={() => setDemoOpen((v) => !v)}
+            className="flex items-center gap-1.5 rounded-full border border-muted-foreground/20 bg-muted/30 px-3 py-1.5 text-xs font-medium text-muted-foreground/50 hover:bg-muted/60 hover:text-muted-foreground transition focus:outline-none"
+          >
+            Demo Mode
+          </button>
+          {demoOpen && (
+            <div className="absolute right-0 top-9 w-44 rounded-xl border border-border bg-background shadow-lg py-1 z-[70]">
+              <button
+                onClick={() => { setDemoOpen(false); unlockAudio(); runCheckIn(vitalsRef.current, "fall"); }}
+                disabled={isThinking || isRecording}
+                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ShieldAlert className="h-4 w-4 text-orange-500" />
+                Fall Risk
+              </button>
+              <button
+                onClick={() => { setDemoOpen(false); unlockAudio(); runCheckIn(vitalsRef.current, "mental"); }}
+                disabled={isThinking || isRecording}
+                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Brain className="h-4 w-4 text-violet-500" />
+                Mental Health
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
       <main className="container mx-auto px-4 py-8 sm:px-6">
 
         {/* ── Greeting ───────────────────────────────────────────────── */}
@@ -938,7 +965,7 @@ const ElderView = () => {
             </div>
             <div>
               <p className={`text-4xl font-display font-bold leading-tight ${isRecording ? "text-white" : "text-indigo-900"}`}>
-                {isRecording ? "Listening…" : isThinking ? "NHH is thinking…" : "Talk to NHH"}
+                {isRecording ? "Listening…" : isThinking ? "Joy is thinking…" : "Talk to Joy"}
               </p>
               <p className={`mt-2 text-xl ${isRecording ? "text-white/80" : "text-indigo-500"}`}>
                 {isRecording
@@ -950,42 +977,18 @@ const ElderView = () => {
             </div>
           </button>
 
-          {/* Check-in buttons */}
-          <div className="mt-3 flex justify-center gap-3">
-            <button
-              onClick={() => { unlockAudio(); runCheckIn(vitalsRef.current, "fall"); }}
-              disabled={isThinking || isRecording}
-              className="flex items-center gap-2 rounded-2xl border border-orange-200 bg-white px-5 py-2.5 text-base font-medium text-orange-700 shadow-sm transition hover:bg-orange-50 hover:border-orange-400 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <ShieldAlert className="h-4 w-4" />
-              Fall Risk
-            </button>
-            <button
-              onClick={() => { unlockAudio(); runCheckIn(vitalsRef.current, "mental"); }}
-              disabled={isThinking || isRecording}
-              className="flex items-center gap-2 rounded-2xl border border-violet-200 bg-white px-5 py-2.5 text-base font-medium text-violet-700 shadow-sm transition hover:bg-violet-50 hover:border-violet-400 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Brain className="h-4 w-4" />
-              Mental Health
-            </button>
-          </div>
-
-          {/* Call Family button — separate row, distinct from AI check-ins */}
+          {/* Call Family — grouped with voice */}
           <div className="mt-4 flex justify-center">
             {callState === "idle" && (
-              <button
-                onClick={startCall}
-                className="flex items-center gap-3 rounded-2xl bg-emerald-500 px-8 py-3 text-lg font-semibold text-white shadow-md transition hover:bg-emerald-400 active:scale-95"
-              >
+              <button onClick={startCall}
+                className="flex items-center gap-3 rounded-2xl bg-emerald-500 px-8 py-3 text-lg font-semibold text-white shadow-md transition hover:bg-emerald-400 active:scale-95">
                 <Phone className="h-5 w-5" />
                 Call Family
               </button>
             )}
             {callState === "calling" && (
-              <button
-                onClick={endCall}
-                className="flex items-center gap-3 rounded-2xl bg-amber-400 px-8 py-3 text-lg font-semibold text-white shadow-md transition hover:bg-amber-300 animate-pulse"
-              >
+              <button onClick={endCall}
+                className="flex items-center gap-3 rounded-2xl bg-amber-400 px-8 py-3 text-lg font-semibold text-white shadow-md transition hover:bg-amber-300 animate-pulse">
                 <PhoneCall className="h-5 w-5" />
                 Calling…
               </button>
@@ -1006,6 +1009,7 @@ const ElderView = () => {
               </div>
             )}
           </div>
+
         </div>
 
         {/* ── Conversation history ────────────────────────────────────── */}
@@ -1016,7 +1020,7 @@ const ElderView = () => {
                 {messages.map((m, i) => (
                   <div key={i} className={`flex gap-3 ${m.role === "user" ? "flex-row-reverse" : ""}`}>
                     <span className={`shrink-0 text-base font-bold ${m.role === "user" ? "text-indigo-700" : "text-violet-700"}`}>
-                      {m.role === "user" ? "You" : "NHH"}
+                      {m.role === "user" ? "You" : "Joy"}
                     </span>
                     <div className="flex items-start gap-2">
                       <p className={`rounded-2xl px-4 py-2 text-base leading-relaxed ${
@@ -1063,7 +1067,6 @@ const ElderView = () => {
               </div>
               <div>
                 <p className={`text-xl font-bold leading-tight ${openPanel === "health" ? "text-white" : "text-foreground"}`}>My Health</p>
-                <p className={`mt-1 text-sm ${openPanel === "health" ? "text-white/80" : "text-muted-foreground"}`}>Vitals & monitoring data</p>
               </div>
               {openPanel === "health" ? <ChevronUp className="h-6 w-6 text-white/80" /> : <ChevronDown className="h-6 w-6 text-blue-400" />}
             </button>
@@ -1082,7 +1085,6 @@ const ElderView = () => {
               </div>
               <div>
                 <p className={`text-xl font-bold leading-tight ${openPanel === "activity" ? "text-white" : "text-foreground"}`}>Neighborhood Activities</p>
-                <p className={`mt-1 text-sm ${openPanel === "activity" ? "text-white/80" : "text-muted-foreground"}`}>Events & activities nearby</p>
               </div>
               {openPanel === "activity" ? <ChevronUp className="h-6 w-6 text-white/80" /> : <ChevronDown className="h-6 w-6 text-teal-400" />}
             </button>
@@ -1100,8 +1102,7 @@ const ElderView = () => {
                 <HeartHandshake className={`h-10 w-10 ${openPanel === "helping" ? "text-white" : "text-rose-500"}`} />
               </div>
               <div>
-                <p className={`text-xl font-bold leading-tight ${openPanel === "helping" ? "text-white" : "text-foreground"}`}>Helping Board</p>
-                <p className={`mt-1 text-sm ${openPanel === "helping" ? "text-white/80" : "text-muted-foreground"}`}>Give or get help from neighbors</p>
+                <p className={`text-xl font-bold leading-tight ${openPanel === "helping" ? "text-white" : "text-foreground"}`}>Neighbors Helping Neighbors</p>
               </div>
               {openPanel === "helping" ? <ChevronUp className="h-6 w-6 text-white/80" /> : <ChevronDown className="h-6 w-6 text-rose-400" />}
             </button>
@@ -1112,24 +1113,17 @@ const ElderView = () => {
         {openPanel === "health" && (
           <div className="mt-6 rounded-3xl border border-blue-100 bg-white p-6 shadow-lg sm:p-8">
 
-            {/* Section label */}
-            <div className="mb-4 flex items-center gap-3">
-              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Health Overview</span>
-              <div className="flex-1 h-px bg-border" />
-              <span className="text-xs text-muted-foreground">Tap any card for details</span>
-            </div>
-
             {/* 9-card grid */}
             <div className="grid grid-cols-3 gap-3">
-              <HealthCard icon={Heart} iconBg="bg-heart/15 text-heart" title="Heart Health" label={heartS.label} labelColor={heartS.color} note={heartS.note} onClick={() => setOpenModal("heart")} />
-              <HealthCard icon={Moon} iconBg="bg-sleep/15 text-sleep" title="Sleep Analysis" label={sleepS.label} labelColor={sleepS.color} note={sleepS.note} onClick={() => setOpenModal("sleep")} />
-              <HealthCard icon={Brain} iconBg="bg-stress/15 text-stress" title="Stress" label={stressS.label} labelColor={stressS.color} note={stressS.note} onClick={() => setOpenModal("stress")} />
-              <HealthCard icon={Footprints} iconBg="bg-ecg/15 text-ecg" title="Steps Today" label={stepsS.label} labelColor={stepsS.color} note={stepsS.note} onClick={() => setOpenModal("steps")} />
-              <HealthCard icon={Shield} iconBg="bg-amber-500/15 text-amber-600" title="Gait Analysis" label={gaitS.label} labelColor={gaitS.color} note={gaitS.note} onClick={() => setOpenModal("gait")} />
-              <HealthCard icon={Utensils} iconBg="bg-teal-500/15 text-teal-600" title="Nutrition & Diet" label="Meals tracked" labelColor="text-teal-600" note="Smart fridge monitoring" onClick={() => setOpenModal("nutrition")} />
-              <HealthCard icon={Droplets} iconBg="bg-teal-500/15 text-teal-600" title="Hydration" label={hydrationS.label} labelColor={hydrationS.color} note={hydrationS.note} onClick={() => setOpenModal("hydration")} />
-              <HealthCard icon={Pill} iconBg="bg-blue-500/15 text-blue-600" title="Medication" label="Active Rx" labelColor="text-blue-600" note="Prescriptions & dosage" onClick={() => setOpenModal("medication")} />
-              <HealthCard icon={Calendar} iconBg="bg-violet-500/15 text-violet-600" title="Appointments" label="Upcoming" labelColor="text-violet-600" note="Scheduled visits" onClick={() => setOpenModal("appointments")} />
+              <HealthCard icon={Heart} iconBg="bg-heart/15 text-heart" cardBg="bg-sky-50" title="Heart Health" label={heartS.label} labelColor={heartS.color} onClick={() => setOpenModal("heart")} />
+              <HealthCard icon={Moon} iconBg="bg-sleep/15 text-sleep" cardBg="bg-sky-50" title="Sleep Analysis" label={sleepS.label} labelColor={sleepS.color} onClick={() => setOpenModal("sleep")} />
+              <HealthCard icon={Utensils} iconBg="bg-teal-500/15 text-teal-600" cardBg="bg-sky-50" title="Nutrition & Diet" label="Meals tracked" labelColor="text-teal-600" onClick={() => setOpenModal("nutrition")} />
+              <HealthCard icon={Brain} iconBg="bg-stress/15 text-stress" cardBg="bg-sky-50" title="Stress" label={stressS.label} labelColor={stressS.color} onClick={() => setOpenModal("stress")} />
+              <HealthCard icon={Footprints} iconBg="bg-ecg/15 text-ecg" cardBg="bg-sky-50" title="Steps Today" label={stepsS.label} labelColor={stepsS.color} onClick={() => setOpenModal("steps")} />
+              <HealthCard icon={Shield} iconBg="bg-amber-500/15 text-amber-600" cardBg="bg-sky-50" title="Gait Analysis" label={gaitS.label} labelColor={gaitS.color} onClick={() => setOpenModal("gait")} />
+              <HealthCard icon={Droplets} iconBg="bg-teal-500/15 text-teal-600" cardBg="bg-sky-50" title="Hydration" label={hydrationS.label} labelColor={hydrationS.color} onClick={() => setOpenModal("hydration")} />
+              <HealthCard icon={Pill} iconBg="bg-blue-500/15 text-blue-600" cardBg="bg-sky-50" title="Medication" label="Active Rx" labelColor="text-blue-600" onClick={() => setOpenModal("medication")} />
+              <HealthCard icon={Calendar} iconBg="bg-violet-500/15 text-violet-600" cardBg="bg-sky-50" title="Appointments" label="Upcoming" labelColor="text-violet-600" onClick={() => setOpenModal("appointments")} />
             </div>
 
           </div>
@@ -1151,6 +1145,7 @@ const ElderView = () => {
 
         <div className="h-12" />
       </main>
+
 
       {/* ── Detail modal ── */}
       <Dialog open={openModal !== null} onOpenChange={() => setOpenModal(null)}>

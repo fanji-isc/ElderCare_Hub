@@ -1,4 +1,19 @@
-# Neighborhood Health Hub (NHH) 
+# Neighborhood Health Hub (NHH)
+
+---
+
+## What Makes NHH Agentic
+
+NHH is not a chatbot that waits for questions. It is an **autonomous AI agent** that:
+
+- **Plans** — breaks Frank's wellbeing into sub-goals (fall prevention, nutrition, social engagement, medication safety) and works toward them in parallel
+- **Uses tools** — calls external systems: FHIR records, Garmin API, smart home sensors, pharmacy databases, Lyft, DoorDash, Dr. Kim's EHR, community calendars
+- **Reasons in steps** — weighs each signal against clinical context before drawing a conclusion or taking an action
+- **Coordinates with other agents** — NHH, the clinical AI in Dr. Kim's dashboard, and David's family summary are separate agents that share a patient context and hand off tasks to each other
+- **Takes autonomous action** — places orders, books rides, sends care flags, submits referrals — then observes outcomes and adjusts
+- **Remembers across time** — Frank's patterns from last month inform what flags matter today; NHH updates its model as the situation evolves
+
+Every interaction in this demo is a trace of that agent loop in action.
 
 ---
 
@@ -24,7 +39,7 @@
 - **Smart fridge** — door open/close log, meal frequency tracking, inventory awareness
 
 
-This is two days NHH caught what everyone else missed.
+This is two days NHH caught what everyone else missed — not because it received an alert, but because it was running the whole time.
 
 ---
 
