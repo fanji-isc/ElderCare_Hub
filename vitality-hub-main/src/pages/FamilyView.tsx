@@ -25,8 +25,8 @@ type Appt = { status: string; start: string; end: string; type: string; practiti
 
 const API_BASE = "http://localhost:3001";
 const HOME_ID = "PATIENT_001";
-const first_name = "Frank"
-const last_name = "Larson"
+const first_name = "Frank";
+const last_name = "Larson";
 
 function pickLatest(list: any[]): any | null {
   if (!Array.isArray(list) || list.length === 0) return null;
@@ -401,6 +401,7 @@ const FamilyView = () => {
     localStorage.setItem("nhh-call-state", JSON.stringify({ status: "idle", timestamp: Date.now() }));
   };
 
+  // TODO: change how Vitals is set so the logic from ElderView can be reused
   useEffect(() => {
     (async () => {
       try {
