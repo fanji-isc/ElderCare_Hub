@@ -736,7 +736,7 @@ def interprete_home_data(patient_id: str = "") -> dict:
     finally:
         conn.close()
 
-# TODO: rewrite
+# TODO: rewrite to be a tool the agent can call if Frank asks about his neighbourhood
 @app.get("/api/build-neighbourhood-context")
 def build_neighbourhood_context(patient_id: str, first_name: str):
     neighborhoodJson = get_neighborhood(patient_id)
@@ -919,7 +919,7 @@ def extract_sleep(patient_id: str):
             hoursAsleep = total_seconds / 3600
     return hoursAsleep
 
-# TODO: check where this is called to see if more/different keys should be included
+# TODO: check where vitals is called to see if more/different keys should be included
 @app.get("/api/build-patient-dashboard")
 def get_patient_dashboard(patient_id: str):
     dailyJson = get_dailySummary(patient_id)
@@ -1615,8 +1615,8 @@ def get_resident_context(patient_id: str = ""):
     
     return response.output_text
 
-@app.get("api/system-prompt")
-def get_system_prompt(patient_id: str = ""):
+@app.get("/api/system-prompt")
+def get_system_prompt(patient_id: str = "") -> str:
     neighborhoodJson = get_neighborhood(patient_id)
 
     latest_dict = neighborhoodJson[0] if neighborhoodJson else None
@@ -1684,7 +1684,7 @@ def get_system_prompt(patient_id: str = ""):
 
     return nhh_desc
 
-@app.get("api/checkin-prompt")
+@app.get("/api/checkin-prompt")
 def get_check_in_prompt(mode: str = ""):
     if mode == "fall":
         return f"""
@@ -1725,12 +1725,12 @@ def get_shorter_system_prompt(data: dict) -> str:
     if len(v.get("expiringItems")): home_data += f"- Fridge items expiring soon: {', '.join(v.get("expiringItems"))}"
 
     context = f"""
-    You are NHH, a warm and caring AI health companion for {first_name}, an elderly person living independently.
+    You are Joy, a warm and caring AI health companion for {first_name}, an elderly person living independently.
     {first_name}'s current health data (from their wearable sensors and smart home devices):
     {home_data}
 
     {first_name}'s neighborhood community (Oakwood Pines): 
-    {nRef.get("current", "")}
+    {nRef}
 
     Use {first_name}'s personal health data and neighborhood information to answer their questions accurately. 
     Speak clearly and reassuringly, {first_name} should feel like you are a close companion not a doctor. 
@@ -1744,8 +1744,6 @@ def get_shorter_system_prompt(data: dict) -> str:
 
 # ── AI response endpoints ─────────────────────────────────────────────────────
 
-# TODO: write a seperate function to generate the system prompt so its persisted on the elderview, then pass it through here as the custom_system
-# TODO: minimise mental and fall checkin length as appropriate 
 @app.post("/api/answer/stream")
 async def answer_stream(payload: dict = Body(...)):
     client = get_openai_client()
@@ -1757,29 +1755,14 @@ async def answer_stream(payload: dict = Body(...)):
         raise HTTPException(status_code=400, detail="Empty input")
 
     history = (payload.get("messages") or [])[-5:] + [{"role": "user", "content": user_text}]
-
-    # Allow callers to inject a custom system prompt (e.g. RAG context with personal health data).
-    # Fall back to the generic elder-care prompt if none is provided.
     system_msg = (payload.get("system") or "").strip()
-    
-    # frank_desc = get_patient_desc()
-    # system_msg = {
-    #     "role": "system",
-    #     "content": custom_system if custom_system else (
-    #         "You are a calm, friendly elder-care assistant. "
-    #         "Speak clearly, briefly, and reassuringly. "
-    #         "DO NOT give medical diagnoses. "
-    #         "If unsure, suggest contacting a healthcare professional."
-    #         f"You are replying to the following patient: {frank_desc}"
-    #     )
-    # }
 
     def generate():
         try:
             stream = client.responses.create(
                 model="gpt-5.4-nano",
-                instructions = system_msg,
-                input = history,
+                instructions=system_msg,
+                input=history,
                 stream=True,
                 temperature=0.2
             )

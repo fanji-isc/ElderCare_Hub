@@ -298,6 +298,28 @@ const ElderView = () => {
   const speakAbortRef = useRef<AbortController | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
 
+  const [systemMsg, setSystemMsg] = useState<string>("");
+
+  useEffect(() => {
+    const fetchSystemPrompt = async () => {
+      try {
+        const response = await fetch(`${API_BASE}/api/system-prompt?patient_id=${HOME_ID}`);
+        
+        if (!response.ok) {
+          throw new Error("Network response was not ok");
+        }
+
+        const data = await response.text();
+        setSystemMsg(data);
+      } catch (error) {
+        console.error("Error fetching system prompt:", error);
+        setSystemMsg("Error loading system message.");
+      }
+    };
+
+    fetchSystemPrompt();
+  }, []);
+
   const unlockAudio = () => {
     if (audioCtxRef.current) return;
     try {
@@ -425,7 +447,12 @@ const ElderView = () => {
     stopAudio();
     setMessages([{ role: "assistant", content: "" }]);
     try {
-      const fullText = await streamAnswer(prompt, [], () => {}, () => {});
+      const fullText = await streamAnswer(
+        prompt, [],
+        () => { /* keep Thinking… visible until TTS is ready */ },
+        () => { /* accumulate internally — don't update UI yet */ },
+        systemMsg
+      );
       if (!fullText) {
         setMessages((prev) => {
           const msgs = [...prev];
@@ -456,7 +483,8 @@ const ElderView = () => {
   useEffect(() => {
     (async () => {
       try {
-        // Build neighborhood RAG text
+        // Build neighborhood RAG text 
+        // TODO: remove this
         neighborhoodRef.current = await fetch(`${API_BASE}/api/build-neighbourhood-context?patient_id=${HOME_ID}&first_name=${first_name}`).then(res => res.ok ? res.text() : "Error: Could not retrieve neighbourhood context.");
 
         const res = await fetch(`${API_BASE}/api/build-patient-dashboard?patient_id=${HOME_ID}`);
@@ -677,18 +705,18 @@ const ElderView = () => {
           const ttsCtrl = new AbortController();
           speakAbortRef.current = ttsCtrl;
           stopAudio();
-          const healthContext = await fetch(`${API_BASE}/api/build-health-context`, 
-            { 
-              method: 'POST', 
-              headers: { 'Content-Type': 'application/json' }, 
-              body: JSON.stringify({ v: vitalsRef.current, nRef: neighborhoodRef.current, name: first_name }) 
-            }
-          ).then(res => res.ok ? res.text() : "Error: Could not retrieve health context.");
+          // const healthContext = await fetch(`${API_BASE}/api/build-health-context`, 
+          //   { 
+          //     method: 'POST', 
+          //     headers: { 'Content-Type': 'application/json' }, 
+          //     body: JSON.stringify({ v: vitalsRef.current, nRef: neighborhoodRef.current, name: first_name }) 
+          //   }
+          // ).then(res => res.ok ? res.text() : "Error: Could not retrieve health context.");
           const fullAnswer = await streamAnswer(
             text, nextMessages,
             () => { /* keep Thinking… visible until TTS is ready */ },
             () => { /* accumulate internally — don't update UI yet */ },
-            healthContext
+            systemMsg // healthContext
           );
           if (!fullAnswer) {
             setMessages((prev) => {
@@ -898,7 +926,7 @@ const ElderView = () => {
       <Header />
 
       {/* ── Demo dropdown ── */}
-      <div className="fixed top-4 left-72 z-[60]">
+      <div className="fixed top-4 right-72 z-[60]">
         <div className="relative">
           <button
             onClick={() => setDemoOpen((v) => !v)}

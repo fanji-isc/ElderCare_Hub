@@ -210,7 +210,7 @@ export function CommunityPanel({ section = "all" }: { section?: CommunitySection
         const next = new Set(prev);
         next.add(id);
         const act = activitiesRef.current.find((a) => a.id === id);
-        toast.success(`NHH signed you up for ${act?.title ?? "the activity"}!`);
+        toast.success(`Joy has signed you up for ${act?.title ?? "the activity"}!`);
         return next;
       });
     };
