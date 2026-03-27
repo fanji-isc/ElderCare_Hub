@@ -1467,7 +1467,7 @@ def generate_clinician_summary(patient_id: str = Query(...)):
     Format your response exactly like this example — a titled header line, then dash-prefixed bullets (no more than 5 bullets in each section):
 
     Summary (based on medical record):
-    [A concise but data-rich clinical narrative in 2-3 paragraphs. Synthesize the patient's history, current risks, medications, and contributing factors. Emphasize causality, time course, and interactions.]
+    [A concise but data-rich clinical narrative in 1-2 bullet points. Synthesize the patient's history, current risks, medications, and contributing factors. Emphasize causality, time course, and interactions.]
 
     Suggested actions:
     [Provide a short list of clear, clinically appropriate next steps. Each action should be on its own bullet-point, concise, practical, and directly linked to the patient's risks and care gaps. Format in the style 'Physical therapy referral: urgent gait reassessment; right-leg compensation has persisted beyond expected post-op recovery window']
