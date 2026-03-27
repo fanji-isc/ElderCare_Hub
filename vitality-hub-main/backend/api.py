@@ -1615,8 +1615,8 @@ def get_resident_context(patient_id: str = ""):
     
     return response.output_text
 
-@app.get("/api/run-fall-checkin")
-def run_fall_check_in(patient_id: str = ""):
+@app.get("api/system-prompt")
+def get_system_prompt(patient_id: str = ""):
     neighborhoodJson = get_neighborhood(patient_id)
 
     latest_dict = neighborhoodJson[0] if neighborhoodJson else None
@@ -1646,22 +1646,14 @@ def run_fall_check_in(patient_id: str = ""):
     triage_answer = get_resident_context(patient_id)
     patient_desc = get_patient_desc(patient_id)
 
-    wellbeing_desc = f"""
+    nhh_desc = f"""
     ### ROLE: Elder-care assitant
 
     # CONTEXT: 
     You are a calm, friendly elder-care assistant. You are speaking directly to the following patient:
 
     {patient_desc}
-
-    # TASK
-    Provide a good morning message including a gentle summary of what the system has noticed regarding their current fall-risk based on their garmin and household data, and some advice for how best to behave today. 
-    Avoid returning too long of a message, your response should not require bullet points. Keep to 4-5 sentences.
-    Avoid giving too much technical detail, this summary should act as a higher level overview of their health.
-
-    Based on your summary, suggest something within their neighborhood that they might enjoy that could help them achieve your advised behaviour. 
-    Consider all activities and suggest the most appropriate for their specific wellbeing. Prioritise any activities happening today ({today.strftime('%a, %b %d')}) or tomorrow ({(today + timedelta(days=1)).strftime('%a, %b %d')}).
-
+ 
     # TONE:
     Speak clearly and briefly. Don't patronise them. Prioritise conciseness, your reply should keep to 4-5 sentences.
 
@@ -1674,7 +1666,8 @@ def run_fall_check_in(patient_id: str = ""):
     {triage_answer}
 
     # NEIGHBORHOOD ACTIVITIES :
-    
+    Consider all activities in their neighborhood community (Oakwood Pines) and suggest the most appropriate for their specific wellbeing. Prioritise any activities happening today ({today.strftime('%a, %b %d')}) or tomorrow ({(today + timedelta(days=1)).strftime('%a, %b %d')}).
+
     {activities}
 
     # BOOKING INSTRUCTION: 
@@ -1682,85 +1675,38 @@ def run_fall_check_in(patient_id: str = ""):
 
     Then, on a brand new line at the very end, append exactly: [[JOIN:ID]] where ID is that activity's booking ID number from the list above. 
     Do NOT speak or mention [[JOIN:ID]] — it is a silent machine code only, never part of the conversation with the patient. DO NOT sign them up without them explicitly asking to be.
-    """
-
-    return wellbeing_desc
-
-@app.get("/api/run-mental-checkin")
-def run_mental_check_in(patient_id: str = ""):
-    neighborhoodJson = get_neighborhood(patient_id)
-
-    latest_dict = neighborhoodJson[0] if neighborhoodJson else None
-    today = datetime.strptime(latest_dict.get('date'), '%Y-%m-%d')
-
-    lines = []
-    if latest_dict:
-        filtered_activities = []
-        for a in latest_dict.get("activities", []):
-            act_date = datetime.strptime(f"{a.get('date')} {today.year}", "%a, %b %d %Y")
-            if today <= act_date <= today + timedelta(days=3):
-                filtered_activities.append(a)
-            
-        sorted_activities = sorted(
-            filtered_activities, 
-            key=lambda x: datetime.strptime(x.get('date'), "%a, %b %d")
-        )
-        for a in sorted_activities:
-            attendeeNames = ", ".join([x.get("name", "") for x in a.get("attendees", [])])
-            suffix = ""
-            if attendeeNames:
-                extra = f" +{a.get('extraCount')} more" if a.get('extraCount', 0) > 0 else ""
-                suffix = f" — attending: {attendeeNames}{extra}"
-            lines.append(f" • [ID: {a.get('id', 0)}] {a.get('title', "")}: {a.get('date', "")} at {a.get('time', "")}, {a.get('location', "")} ({a.get('duration', "")}) {suffix}")
-    activities = "\n".join(lines)
-
-    triage_answer = get_resident_context(patient_id)
-    patient_desc = get_patient_desc(patient_id)
-
-    wellbeing_desc = f"""
-    ### ROLE: Elder-care assitant
-
-    # CONTEXT: 
-    You are a calm, friendly elder-care assistant. You are speaking directly to the following patient:
-
-    {patient_desc}
-
-    # TASK
-    Provide a good morning message including a gentle summary of what the system has noticed based on their garmin and household data with a focus on their mental health, and some advice for how best to behave today. 
-    Don't give too much technical detail, this summary should act as a higher level overview of their health.
-
-    Avoid returning too long of a message, your response should not require bullet points. Keep to 4-5 sentences.
-
-    Based on your summary, suggest something within their neighborhood that they might enjoy that could help them achieve your advised behaviour. 
-    Consider all activities and suggest the most appropriate for their specific wellbeing. Prioritise any activities happening today ({today.strftime('%a, %b %d')}) or tomorrow ({(today + timedelta(days=1)).strftime('%a, %b %d')}).
-
-    # TONE:
-    Speak clearly, briefly, and reassuringly. Don't patronise them. Prioritise conciseness, your reply should keep to 4-5 sentences.
-
-    # RESTRICTIONS:
-    DO NOT give medical diagnoses. 
-    If unsure, suggest contacting their healthcare professional.
-
-    # DATA SUMMARY: 
-
-    {triage_answer}
-
-    # NEIGHBORHOOD ACTIVITIES :
     
-    {activities}
-
-    # BOOKING INSTRUCTION: 
-    If the patient confirms they would like to join a specific activity, then confirm enthusiastically in your response that you have successfully registered them. 
-
-    Then, on a brand new line at the very end, append exactly: [[JOIN:ID]] where ID is that activity's booking ID number from the list above. 
-    Do NOT speak or mention [[JOIN:ID]] — it is a silent machine code only, never part of the conversation with the patient. DO NOT sign them up without them explicitly asking to be.
+    # CALL INSTRUCTION: 
+    If they asks to call or talk to their family, then confirm warmly in your normal response. 
+    
+    Then, on a brand new line at the very end, append exactly: [[CALL_FAMILY]] — this is a silent machine code, never speak or mention it.
     """
 
-    return wellbeing_desc
+    return nhh_desc
+
+@app.get("api/checkin-prompt")
+def get_check_in_prompt(mode: str = ""):
+    if mode == "fall":
+        return f"""
+        # TASK
+        Provide a good morning message including a gentle summary of what the system has noticed regarding their current fall-risk based on their garmin and household data, and some advice for how best to behave today. 
+        Avoid returning too long of a message, your response should not require bullet points. Keep to 4-5 sentences.
+        Avoid giving too much technical detail, this summary should act as a higher level overview of their health.
+        Based on your summary, suggest something within their neighborhood that they might enjoy which could help them achieve your advised behaviour. 
+        """
+    elif mode == "mental":
+        return f"""
+        # TASK
+        Provide a good morning message including a gentle summary of what the system has noticed based on their garmin and household data with a focus on their mental health, and some advice for how best to behave today. 
+        Don't give too much technical detail, this summary should act as a higher level overview of their health.
+        Avoid returning too long of a message, your response should not require bullet points. Keep to 4-5 sentences.
+        Based on your summary, suggest something within their neighborhood that they might enjoy which could help them achieve your advised behaviour. 
+        """
+    return ""
 
 # TODO: rewrite
 @app.post("/api/build-health-context")
-def build_health_context(data: dict) -> str:
+def get_shorter_system_prompt(data: dict) -> str:
     v = data.get("v", {})
     nRef = data.get("nRef", {})
     first_name = data.get("name", "Resident")
@@ -1814,7 +1760,7 @@ async def answer_stream(payload: dict = Body(...)):
 
     # Allow callers to inject a custom system prompt (e.g. RAG context with personal health data).
     # Fall back to the generic elder-care prompt if none is provided.
-    custom_system = (payload.get("system") or "").strip()
+    system_msg = (payload.get("system") or "").strip()
     
     # frank_desc = get_patient_desc()
     # system_msg = {
@@ -1832,7 +1778,7 @@ async def answer_stream(payload: dict = Body(...)):
         try:
             stream = client.responses.create(
                 model="gpt-5.4-nano",
-                instructions = custom_system,
+                instructions = system_msg,
                 input = history,
                 stream=True,
                 temperature=0.2

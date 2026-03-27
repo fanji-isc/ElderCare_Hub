@@ -423,7 +423,7 @@ const ElderView = () => {
     if (runningRef.current || isRecording) return;
     runningRef.current = true;
     setIsThinking(true);
-    const prompt = await fetch(`${API_BASE}/api/run-${mode}-checkin?patient_id=${HOME_ID}`).then(res => res.ok ? res.text() : "Error: Could not retrieve checkin prompt.");
+    const prompt = await fetch(`${API_BASE}/api/checkin-prompt?mode=${mode}`).then(res => res.ok ? res.text() : "Error: Could not retrieve checkin prompt.");
     speakAbortRef.current?.abort();
     const ttsCtrl = new AbortController();
     speakAbortRef.current = ttsCtrl;
