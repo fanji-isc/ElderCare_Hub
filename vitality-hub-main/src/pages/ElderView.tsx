@@ -898,7 +898,7 @@ const ElderView = () => {
       <Header />
 
       {/* ── Demo dropdown ── */}
-      <div className="fixed top-4 left-72 z-[60]">
+      <div className="fixed top-[68px] right-4 z-[60]">
         <div className="relative">
           <button
             onClick={() => setDemoOpen((v) => !v)}
