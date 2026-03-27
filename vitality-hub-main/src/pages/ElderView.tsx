@@ -22,8 +22,8 @@ import {
 
 const API_BASE = "http://localhost:3001";
 const HOME_ID = "PATIENT_001";
-const first_name = "Frank"
-const last_name = "Larson"
+const first_name = "Frank";
+const last_name = "Larson";
 
 type Vitals = {
   heartRate: number;
