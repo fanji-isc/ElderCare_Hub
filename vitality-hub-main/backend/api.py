@@ -1467,7 +1467,7 @@ def generate_clinician_summary(patient_id: str = Query(...)):
     Format your response exactly like this example — a titled header line, then dash-prefixed bullets (no more than 5 bullets in each section):
 
     Summary (based on medical record):
-    [A concise but data-rich clinical narrative in 2-3 paragraphs. Synthesize the patient's history, current risks, medications, and contributing factors. Emphasize causality, time course, and interactions.]
+    [A concise but data-rich clinical narrative in 1-2 bullet points. Synthesize the patient's history, current risks, medications, and contributing factors. Emphasize causality, time course, and interactions.]
 
     Suggested actions:
     [Provide a short list of clear, clinically appropriate next steps. Each action should be on its own bullet-point, concise, practical, and directly linked to the patient's risks and care gaps. Format in the style 'Physical therapy referral: urgent gait reassessment; right-leg compensation has persisted beyond expected post-op recovery window']
@@ -1514,39 +1514,62 @@ def clinician_overview(patient_id: str = Query(...)):
 
 def get_resident_context(patient_id: str = ""):
     return """
-    ### ⚠️ OVERALL RISK LEVEL: ELEVATED
-    **Primary Driver:** Gait instability with frailty indicators (Fall risk weighted_score 6)
+    ### ⚠️ OVERALL RISK LEVEL: CRITICAL
+    **Primary Driver:** Mobility/Gait instability (Geriatric Gait Summary) with dehydration exacerbation (Hydration)
 
     #### 1. THE "WHY" (Unified Insight)
-    The patient shows a high fall-risk profile driven primarily by gait abnormalities:
-    - Gait data: Fall risk level = High with weighted_score 6, gait speed 0.77 m/s (below 0.8 m/s threshold), stride variability 10.5% (slightly above baseline 10.2%), and significant right-leg guarding (GCT_delta_ms = 80 ms). Right-side guarding suggests pain/weakness with asymmetric loading.
-    - Symmetry: gait symmetry ~79% (vs baseline ~80%), indicating bilateral loading asymmetry.
-    - ECG/HRV: Sinus rhythm with average HR ~65 bpm; SDNN ~34.98 ms; RMSSD ~34 ms. Resting autonomic balance appears relatively preserved (no arrhythmia; HRV not profoundly reduced).
-    - Sleep: Recovery generally supports resilience (notable low sleep stress on peak recovery nights; one week profile shows Recovery up to 100 and avg_sleep_stress as low as ~4.86 on the best night). However, variability in sleep architecture exists across the week.
-    - Nutrition: Protein intake today ~58 g (below target ~60 g); appetite pattern includes skipped meals, which can worsen energy and muscle reserve.
-    - Hydration: Morning dehydration common; end-of-day colorLevel generally improves to 2-4, though day-to-day variability exists. No clear dark-urine/very low HRV combination observed yet; SDNN >30 ms overall reduces immediate orthostatic risk.
-    - Integration: The data align with the Fall Cascade (Gait + Nutrition + Hydration) at a high-risk level, but the Fridge flag for Appetite Loss or Dehydration is not explicitly documented as a separate clinical flag in the provided data. Given the gait risk and dehydration cues, the overall risk is Elevated rather than CRITICAL at this moment.
+    The patient shows a constellation of high fall-risk features that are interlinked across systems. Gait metrics reveal frailty physiology: latest speed 0.77 m/s (below the 0.8 m/s frailty threshold), gait variability modestly elevated at 10.5%, and a pronounced right-side limp with a 80 ms ground-contact time delta and 13 cm shorter right stride. This mobility impairment is occurring in the context of dehydration on most mornings (Hydration), which can worsen muscle function and balance. Nutrition shows appetite loss with protein intake at 58 g (below the 60 g target), potentially limiting muscle maintenance fueling. Sleep is generally restorative on good nights but exhibits episodes of high sleep stress and reduced deep sleep on certain nights, indicating circadian disruption that can impair emotional regulation and recovery. Taken together, this creates an imminent safety risk (CRITICAL physical) with the right-limb guarding and dehydration amplifying fall risk and potential deconditioning.    
+
+    Key contextual points:
+    - Cardiac/ECG at rest shows healthy autonomic tone (SINUS_NORMAL; resting HR ~65 bpm; SDNN ~35 ms; RMSSD ~34 ms), with no acute rhythm disturbance.
+    - Recovery in Sleep is highly variable across nights; one night shows peak recovery ( Recovery 100; very low sleep stress) while another shows significant sleep stress and reduced deep sleep, highlighting inconsistent circadian restoration.
+    - Gait asymmetry and guarding are clinically meaningful and align with frailty markers, signaling a need for immediate safety measures and targeted rehabilitation.
 
     #### 2. CROSS-SYSTEM CORRELATIONS
-    * **[Link 1]: Fall Cascade (Gait + Nutrition + Hydration) **
-    - The patient exhibits high gait risk (weighted_score 6) together with dehydration cues (morning dehydration on most days) and fluctuating protein intake (58 g today) with skipped meals. This triad elevates the risk for falls and undermines recovery capacity.
-    * **[Link 2]: Hydration vs Cardiac Autonomic State**
-    - Morning dehydration can transiently influence autonomic balance, yet resting HRV (SDNN ~35 ms) and HR (~65 bpm) are not profoundly deranged. No evidence of orthostatic intolerance (SDNN not <30 ms; no reported dark urine). Hydration inconsistency should be monitored as it can modulate HRV and perceived stress, potentially affecting short-term resilience.
+    * **[Link 1]: Slowing Syndrome (Gait + Nutrition + Sleep)**
+    - Gait: speed 0.77 m/s (frailty threshold met)
+    - Nutrition: protein intake 58 g (below target 60 g)
+    - Sleep: episodes of elevated sleep stress and reduced deep sleep on weaker nights
+    - Interpretation: When movement slows, and fueling is suboptimal alongside imperfect sleep, the risk of frailty progression and depressive/social withdrawal increases. Clinically, this mirrors a frailty/slowing phenotype with potential mood impact.
+
+    * **[Link 2]: Autonomic Dissonance (Heart Rate/HRV vs Gait Activity)**
+    - ECG HRV at rest appears healthy (SDNN ~35 ms; RMSSD ~34 ms) with resting HR ~65 bpm.
+    - Gait shows active instability (low speed, limp, asymmetry) but with no sustained tachycardia or HRV suppression at rest.
+    - Interpretation: No clear autonomic overload at rest, but the combination of poor gait quality and ongoing discomfort/pain risk could drive episodic internal load (pain/anxiety) during movement; watch for mismatch between effort and autonomic response during activities.
+
+    * [Link 3]: Circadian & Recovery Routine (Sleep vs Nutrition)*
+    - Sleep: overall solid night recovery is possible, but a night with high sleep stress and reduced deep sleep undermines emotional regulation and daytime balance.
+    - Nutrition: appetite loss and skipped meals can exacerbate sleep disruption and reduce metabolic fuel for recovery.
+    - Interpretation: Irregular meals coupled with inconsistent sleep quality can perpetuate daytime confusion, fatigue, and balance impairment.
+
+    * [Link 4]: Homeostatic Safety Flags (Dehydration + Asymmetry)*
+    - Hydration: repeated morning dehydration across several days; end-of-day hydration readings generally 2-4 (not chronic dehydration), but dehydration is present on multiple days.
+    - Gait: pronounced asymmetry (80 ms GCT delta) with right-side guarding.
+    - Safety flag: Dehydration + High Asymmetry meets the framework's CRITICAL physical threshold, signaling imminent fall risk without rapid mitigation.
+
+    * [Link 5]: Daily Routine Integrity (Meal Timing, Hydration, Deep Sleep)*
+    - Last-meal timing not explicitly provided; but nutrition shows irregular intake with skipped meals today and appetite challenges.
+    - Deep sleep on weaker nights is reduced, which can lower emotional regulation and balance confidence.
+    - Interpretation: Disrupted daily routines (irregular meals, inconsistent hydration) undermine deep sleep and recovery, compounding mood and balance concerns.
 
     #### 3. GUARDIAN ACTION ITEMS
-    * **Immediate:**
-    - Implement fall-prevention safeguards at home: clear pathways, secure lighting, remove trip hazards, and consider a mobility aid (e.g., cane/walker) until gait improves.
-    - Arrange prompt clinical assessment for right-limb pain/guarding (possible musculoskeletal/neuromuscular evaluation; imaging if indicated).
-    - Optimize hydration in the near term: ensure morning hydration to support autonomic readings and energy; monitor for symptoms of dizziness or near-falls.
-    - Verify nutrition focus: address skipped meals and aim for a protein target >60 g/day; consider a simple protein-forward plan to support energy and muscle with minimal cognitive load.
-    * **Daily Goal:**
-    - Stabilize hydration around a daily target (approx. 2.0-2.5 L, with emphasis on consistent intake in the morning and around meals).
-    - Achieve protein intake ≥60 g/day; distribute protein across meals to support muscle maintenance.
-    - Maintain sleep hygiene to minimize night-time arousal and support gait stability the following day.
-    * **Watch For:**
-    - Emergence of dizziness or near-falls, worsening right-limb pain, new or increasing asymmetry in gait, or any chest discomfort.
-    - Deterioration in hydration status (sustained morning dehydration, end-of-day colorLevel rising to 5-6) and any orthostatic symptoms.
-    - Sudden changes in sleep architecture or recovery metrics, or magnified daytime fatigue.
+    - **Immediate:**
+    - Conduct a rapid in-home safety check: remove trip hazards (rugs, cords), ensure adequate lighting, place a stable mobility aid (cane/walker) within easy reach, and consider close-guardian supervision during transfers or standing from seated positions.
+    - Provide immediate hydration: offer 500 ml water or fluids now to address morning dehydration, and confirm access to electrolytes if indicated.
+    - Pain/gait evaluation: assess for right-limb pain or weakness and secure prompt clinical evaluation (possible musculoskeletal screening) to address guarding and improve symmetry.
+    - Reinforce safety during mobility: avoid stairs or unsupervised ambulation; if assistance is unavailable, use a support person or device.
+
+    - **Daily Goal:**
+    - Raise protein intake to ≥60-70 g/day and sustain hydration around 2.0 L/day.
+    - Stabilize sleep routine: implement fixed bedtime and a brief wind-down (e.g., dim lights, 15-minute quiet activity) to support deeper sleep and circadian alignment.
+    - Start targeted mobility rehab focusing on right-limb strengthening (hip abductors, knee extensors, ankle dorsiflexors) and gait symmetry; consider initiation of a supervised physical therapy or home exercise program.
+    - Re-evaluate hydration strategy in the morning and across the day to minimize dehydration episodes and monitor impact on HRV and gait.
+
+    - **Watch For:**
+    - Dizziness or fainting upon standing, new/worsening right-limb pain, increased gait asymmetry, or any falls.
+    - Sudden mood changes, confusion, or withdrawal from activity; signs of delirium or systemic decline.
+    - Any deterioration in sleep quality or unresponsiveness to hydration and nutrition adjustments.
+    - Appetite decline persisting > a few days despite nutrition efforts; consider clinician discussion about appetite support.
     """
     client = get_openai_client()
     if client is None:
@@ -1568,17 +1591,27 @@ def get_resident_context(patient_id: str = ""):
     You are a Senior Clinical Data Scientist specializing in Geriatric Health. You analyze data from five distinct health monitoring systems (ECG, HR, Sleep, Hydration, and Nutrition) to create a unified safety and recovery profile for an elderly user.
     Your goal is to generate a summary of the patient's Garmin and Home Appliance data for their clinician to interprete.
  
-    # INTERPRETATION FRAMEWORK
-    You must cross-reference the data provided using the following clinical logic:
-    1. **Hydration-Cardiac Link:** 
-    - Correlate Smart Toilet `colorLevel` with ECG `sdnn_hrv_ms`. Dark urine (Level 5+) + low HRV (SDNN < 30) = High risk for orthostatic hypotension (dizziness when standing).
-    2. **Nutrition-Sleep-Stability Chain:** 
-    - Connect `protein_intake` (Fridge) with `deep_pct` and `restless_moments` (Sleep). Low protein or skipped meals in the elderly often trigger poor deep sleep and increased nighttime restlessness, which is a fall risk.
-    3. **The Digestion Tax:** 
-    - Compare Fridge `last_meal_time` with Sleep `avg_sleep_stress`. If dinner is late, explain how it prevents the heart rate from dropping, stealing recovery time.
-    4. **Geriatric Safety Flags:** 
-    - **Critical:** "Appetite Loss" or "Skipped Meals" (Fridge) + "Rising Sleep Stress" (Sleep).
-    - **Warning:** Low `spo2` (HR) + High `respiration` (HR/Sleep) + "Dehydration" (Toilet).
+    # INTERPRETATION FRAMEWORK: 
+    You must cross-reference data across all six systems to identify patterns of "Biological Resilience," "Mental Wellbeing," and "Acute Safety Risks." Use the following holistic logic:
+    1. **Neuromotor Stability (The Brain-Body Link):**
+    - Correlate `stride_variability_pct` (Gait) with `avg_sleep_stress` (Sleep) and `sdnn_hrv_ms` (ECG).
+    - *Logic:* High variability (>10%) + High Sleep Stress = **Neurological Fatigue**. 
+    - *Interpretation:* This indicates the nervous system is struggling to coordinate movement. Physically, this is a **High Fall Risk**. Mentally, this often presents as high anxiety, cognitive "fog," or the early onset of delirium/illness.
+    2. **The "Slowing" Syndrome (Mood & Frailty):**
+    - Connect `latest_snapshot.speed_ms` (Gait) with `protein_intake` (Fridge) and `overallScore` (Sleep).
+    - *Logic:* Speed < 0.8 m/s + Low Protein + Low Sleep Quality.
+    - *Interpretation:* Physically, this is **Frailty & Sarcopenia**. Mentally, this "Slowing" is a classic marker for **Geriatric Depression** or social withdrawal. A body that isn't fueling or moving is a mind that is likely retreating.
+    3. **Autonomic Dissonance (Pain & Anxiety):**
+    - Compare `avg_hr` and `sdnn_hrv_ms` (ECG) against `steps` and `cadence` (Gait).
+    - *Logic:* Elevated HR/Low HRV despite **Low Physical Activity**.
+    - *Interpretation:* This suggests "Internal Load." If the user isn't moving but the heart is racing, evaluate for **Hidden Pain** (which drives fall risk) or **Psychological Distress/Agitation**.
+    4. **Homeostatic Safety Flags:**
+    - **CRITICAL (Physical):** Gait Speed < 0.6 m/s OR (Dehydration + High Asymmetry). This is an imminent fall or collapse warning.
+    - **CRITICAL (Mental/Systemic):** "Appetite Loss" (Fridge) + "Restless Moments" (Sleep) + "Withdrawal from Activity" (Low Steps). This suggests a significant decline in mental health or the beginning of a systemic "failure to thrive."
+    5. **Circadian & Recovery Routine:**
+    - Compare `last_meal_time` (Fridge) and `nap_duration` (Sleep) against `deep_pct` (Sleep).
+    - *Logic:* Disrupted routines steal Deep Sleep. 
+    - *Interpretation:* Chronic lack of Deep Sleep reduces emotional regulation and increases daytime confusion (Sun-downing), which directly impacts both mood stability and physical balance.
 
     # OUTPUT STRUCTURE
     Your response must follow this template:
@@ -1697,10 +1730,12 @@ def get_check_in_prompt(mode: str = ""):
     elif mode == "mental":
         return f"""
         # TASK
-        Provide a good morning message including a gentle summary of what the system has noticed based on their garmin and household data with a focus on their mental health, and some advice for how best to behave today. 
+        Provide a good morning message including a gentle summary of what the system has noticed based on their garmin and household data with a focus on their mental health, and some advice for how best to behave today.
+        DO NOT TALK ABOUT FALL RISK. Your summary has to be about how he can improve his mental wellbeing.
+        Remind him he has an appointment today.
         Don't give too much technical detail, this summary should act as a higher level overview of their health.
         Avoid returning too long of a message, your response should not require bullet points. Keep to 4-5 sentences.
-        Based on your summary, suggest something within their neighborhood that they might enjoy which could help them achieve your advised behaviour. 
+        Based on your summary, suggest something within their neighborhood happening tomorrow that they might enjoy which could help them achieve your advised behaviour. 
         """
     return ""
 
