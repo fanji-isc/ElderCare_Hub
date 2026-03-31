@@ -19,7 +19,7 @@ import {
 } from "recharts";
 import { toast } from "sonner";
 
-type Vitals = { heartRate: number; steps: number; stressLevel: number; sleepHours: number };
+type Vitals = { heartRate: number; steps: number; stressLevel: number; sleepHours: number; mealsCount: number };
 type Med = { drug: string; status: string; authored: string; dosage: string };
 type Appt = { status: string; start: string; end: string; type: string; practitioner: string; location: string };
 
@@ -293,7 +293,7 @@ function ModalCard({
 
 // ── HealthCard ────────────────────────────────────────────────────────────────
 function HealthCard({
-  icon: Icon, iconBg, cardBg, title, label, labelColor, onClick,
+  icon: Icon, iconBg, cardBg, title, label, labelColor, subtitle, onClick,
 }: {
   icon: React.ElementType;
   iconBg: string;
@@ -301,6 +301,7 @@ function HealthCard({
   title: string;
   label: string;
   labelColor: string;
+  subtitle?: string;
   onClick: () => void;
 }) {
   return (
@@ -315,13 +316,14 @@ function HealthCard({
         <span className="text-base font-semibold text-foreground">{title}</span>
       </div>
       <p className={`text-sm font-medium leading-tight ${labelColor}`}>{label}</p>
+      {subtitle && <p className="mt-1 text-xs text-muted-foreground leading-tight">{subtitle}</p>}
     </div>
   );
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 const FamilyView = () => {
-  const [vitals, setVitals] = useState<Vitals>({ heartRate: 0, steps: 0, stressLevel: 0, sleepHours: 0 });
+  const [vitals, setVitals] = useState<Vitals>({ heartRate: 0, steps: 0, stressLevel: 0, sleepHours: 0, mealsCount: 0 });
   const [stepHistory, setStepHistory] = useState<{ day: string; steps: number }[]>([]);
   const [hydrationLevel, setHydrationLevel] = useState(0);
   const [gaitMetrics, setGaitMetrics] = useState({ symmetry: 0, variability: 0, speed: 0, cadence: 0, worseStride: 0, worseGCT: 0 });
@@ -405,16 +407,22 @@ const FamilyView = () => {
   useEffect(() => {
     (async () => {
       try {
-        const [dailyRes, sleepRes, toiletRes, gaitRes] = await Promise.all([
+        const [dailyRes, sleepRes, toiletRes, gaitRes, fridgeRes] = await Promise.all([
           fetch(`${API_BASE}/api/dailySummary?patient_id=${HOME_ID}`),
           fetch(`${API_BASE}/api/sleep?patient_id=${HOME_ID}`),
           fetch(`${API_BASE}/api/toilet?patient_id=${HOME_ID}`),
           fetch(`${API_BASE}/api/gait?patient_id=${HOME_ID}`),
+          fetch(`${API_BASE}/api/fridge?patient_id=${HOME_ID}`),
         ]);
         const dailyJson = dailyRes.ok ? await dailyRes.json() : [];
         const sleepJson = sleepRes.ok ? await sleepRes.json() : [];
         const toiletJson: any[] = toiletRes.ok ? await toiletRes.json() : [];
         const gaitJson: any[] = gaitRes.ok ? await gaitRes.json() : [];
+        const fridgeJson: any[] = fridgeRes.ok ? await fridgeRes.json() : [];
+        const latestFridge = [...fridgeJson]
+          .filter((d: any) => d?.calendarDate)
+          .sort((a: any, b: any) => String(b.calendarDate).localeCompare(String(a.calendarDate)))[0];
+        const mealsCount = Array.isArray(latestFridge?.mealsDetected) ? latestFridge.mealsDetected.length : 0;
 
         // Derive gait risk from latest day's sessions (average key metrics)
         const latestGait = [...gaitJson]
@@ -462,6 +470,7 @@ const FamilyView = () => {
           steps: Number(day?.totalSteps ?? 0),
           stressLevel: extractStress(day),
           sleepHours: extractSleep(sleepJson),
+          mealsCount,
         });
       } catch { /* silent */ }
       finally { setLoaded(true); }
@@ -472,6 +481,21 @@ const FamilyView = () => {
   const heart     = heartStatus(vitals.heartRate);
   const steps     = stepsStatus(vitals.steps);
   const stress    = stressStatus(vitals.stressLevel);
+  const stepsTrend = (() => {
+    if (stepHistory.length < 2) return { label: steps.label, subtitle: undefined };
+    const prev = stepHistory.slice(0, -1).reduce((s, d) => s + d.steps, 0) / (stepHistory.length - 1);
+    const curr = vitals.steps;
+    if (prev === 0) return { label: steps.label, subtitle: undefined };
+    const pct = Math.round(((curr - prev) / prev) * 100);
+    if (pct <= -20) return { label: `${curr.toLocaleString()} steps · ↓ ${Math.abs(pct)}%`, subtitle: undefined };
+    if (pct >= 20)  return { label: `${curr.toLocaleString()} steps · ↑ ${pct}%`, subtitle: undefined };
+    return { label: steps.label, subtitle: undefined };
+  })();
+
+  const nutrition = vitals.mealsCount >= 3 ? { label: `${vitals.mealsCount} meals tracked`, color: "text-emerald-600" }
+                  : vitals.mealsCount === 2 ? { label: `${vitals.mealsCount} meals tracked`, color: "text-amber-600" }
+                  : vitals.mealsCount === 1 ? { label: `1 meal tracked`, color: "text-orange-600" }
+                  :                           { label: "No meals tracked", color: "text-rose-600" };
   const hydration = hydrationStatus(hydrationLevel);
   const gait      = gaitStatus(gaitMetrics.symmetry, gaitMetrics.variability, gaitMetrics.speed, gaitMetrics.cadence, gaitMetrics.worseStride, gaitMetrics.worseGCT);
   const overall = loaded ? overallStatus(vitals) : "good";
@@ -794,7 +818,6 @@ const FamilyView = () => {
               <div className="flex flex-wrap items-center gap-2 mb-1">
                 <h3 className={`text-base font-bold ${statusConfig.text}`}>{statusConfig.message}</h3>
               </div>
-              <p className={`text-sm ${statusConfig.sub}`}>{statusConfig.sub2}</p>
               {highlights.length > 0 && (
                 <p className="mt-2 text-sm text-foreground/75 leading-relaxed">{highlights.join(" ")}</p>
               )}
@@ -819,7 +842,7 @@ const FamilyView = () => {
           <HealthCard
             icon={Utensils} iconBg="bg-teal-500/15 text-teal-600" cardBg="bg-sky-50"
             title="Nutrition & Diet"
-            label="Meals tracked" labelColor="text-teal-600"
+            label={nutrition.label} labelColor={nutrition.color}
             onClick={() => setOpenModal("nutrition")}
           />
           <HealthCard
@@ -831,7 +854,8 @@ const FamilyView = () => {
           <HealthCard
             icon={Footprints} iconBg="bg-ecg/15 text-ecg" cardBg="bg-sky-50"
             title="Steps Today"
-            label={steps.label} labelColor={steps.color}
+            label={stepsTrend.label} labelColor={steps.color}
+            subtitle={stepsTrend.subtitle}
             onClick={() => setOpenModal("steps")}
           />
           <HealthCard

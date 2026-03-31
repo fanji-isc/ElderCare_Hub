@@ -218,6 +218,27 @@ export function CommunityPanel({ section = "all" }: { section?: CommunitySection
     return () => window.removeEventListener("NHH-join-activity", handler);
   }, []);
 
+  // Listen for Joy connecting Frank with a neighbor via voice command — fires when [[CONNECT_NEIGHBOR:name]]
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const name = (e as CustomEvent<{ name: string }>).detail.name.toLowerCase();
+      setPosts((prev) => {
+        const post = prev.find((p) => p.name.toLowerCase() === name);
+        if (!post) return prev;
+        setConnected((prevC) => {
+          if (prevC.has(post.id)) return prevC;
+          const next = new Set(prevC);
+          next.add(post.id);
+          toast.success(`Joy has connected you with ${post.name}!`);
+          return next;
+        });
+        return prev;
+      });
+    };
+    window.addEventListener("NHH-connect-neighbor", handler);
+    return () => window.removeEventListener("NHH-connect-neighbor", handler);
+  }, []);
+
   const handleHelp = (id: number, name: string) => {
     setHelped((prev) => {
       const next = new Set(prev);

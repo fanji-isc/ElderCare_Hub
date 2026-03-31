@@ -27,6 +27,9 @@ else
     echo "==> FHIR already configured, skipping."
 fi
 
+echo "==> Starting IRIS web server (port 52773)..."
+/usr/irissys/httpd/bin/httpd -f /usr/irissys/httpd/conf/httpd.conf -d /usr/irissys/httpd -c "Listen 52773" || true
+
 echo "==> Loading Garmin data into IRIS..."
 # Using the full path to the venv python
 /opt/venv/bin/python /app/backend/iris_db.py
