@@ -19,7 +19,7 @@ import {
 } from "recharts";
 import { toast } from "sonner";
 
-type Vitals = { heartRate: number; steps: number; stressLevel: number; sleepHours: number, mealsCount: number };
+type Vitals = { heartRate: number; steps: number; stressLevel: number; sleepHours: number; mealsCount: number };
 type Med = { drug: string; status: string; authored: string; dosage: string };
 type Appt = { status: string; start: string; end: string; type: string; practitioner: string; location: string };
 
@@ -102,8 +102,9 @@ function gaitStatus(symmetryPct: number, variabilityPct: number, speedMs: number
 
 function nutritionStatus(mealsCount: number) {
   let colour = "text-emerald-600"
-  if (mealsCount < 2) colour = "text-rose-600";
   if (mealsCount === 2) colour = "text-amber-600";
+  if (mealsCount === 1) colour = "text-orange-600";
+  if (mealsCount === 0)  return  { label: `No meals tracked`, color: "text-rose-600"};
   return  { label: `${mealsCount} meals tracked`, color: colour};
 }
 
@@ -299,7 +300,7 @@ function ModalCard({
 
 // ── HealthCard ────────────────────────────────────────────────────────────────
 function HealthCard({
-  icon: Icon, iconBg, cardBg, title, label, labelColor, onClick,
+  icon: Icon, iconBg, cardBg, title, label, labelColor, subtitle, onClick,
 }: {
   icon: React.ElementType;
   iconBg: string;
@@ -307,6 +308,7 @@ function HealthCard({
   title: string;
   label: string;
   labelColor: string;
+  subtitle?: string;
   onClick: () => void;
 }) {
   return (
@@ -321,13 +323,14 @@ function HealthCard({
         <span className="text-base font-semibold text-foreground">{title}</span>
       </div>
       <p className={`text-sm font-medium leading-tight ${labelColor}`}>{label}</p>
+      {subtitle && <p className="mt-1 text-xs text-muted-foreground leading-tight">{subtitle}</p>}
     </div>
   );
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 const FamilyView = () => {
-  const [vitals, setVitals] = useState<Vitals>({ heartRate: 0, steps: 0, stressLevel: 0, sleepHours: 0 });
+  const [vitals, setVitals] = useState<Vitals>({ heartRate: 0, steps: 0, stressLevel: 0, sleepHours: 0, mealsCount: 0 });
   const [stepHistory, setStepHistory] = useState<{ day: string; steps: number }[]>([]);
   const [hydrationLevel, setHydrationLevel] = useState(0);
   const [gaitMetrics, setGaitMetrics] = useState({ symmetry: 0, variability: 0, speed: 0, cadence: 0, worseStride: 0, worseGCT: 0 });
@@ -416,14 +419,14 @@ const FamilyView = () => {
           fetch(`${API_BASE}/api/sleep?patient_id=${HOME_ID}`),
           fetch(`${API_BASE}/api/toilet?patient_id=${HOME_ID}`),
           fetch(`${API_BASE}/api/gait?patient_id=${HOME_ID}`),
-          fetch(`${API_BASE}/api/fridge?patient_id=${HOME_ID}`)
+          fetch(`${API_BASE}/api/fridge?patient_id=${HOME_ID}`),
         ]);
         const dailyJson = dailyRes.ok ? await dailyRes.json() : [];
         const sleepJson = sleepRes.ok ? await sleepRes.json() : [];
         const toiletJson: any[] = toiletRes.ok ? await toiletRes.json() : [];
         const gaitJson: any[] = gaitRes.ok ? await gaitRes.json() : [];
         const fridgeJson: any[] = fridgeRes.ok ? await fridgeRes.json() : [];
-
+    
         // Derive gait risk from latest day's sessions (average key metrics)
         const latestGait = [...gaitJson]
           .filter((d: any) => d?.calendarDate)
@@ -485,6 +488,17 @@ const FamilyView = () => {
   const heart     = heartStatus(vitals.heartRate);
   const steps     = stepsStatus(vitals.steps);
   const stress    = stressStatus(vitals.stressLevel);
+  const stepsTrend = (() => {
+    if (stepHistory.length < 2) return { label: steps.label, subtitle: undefined };
+    const prev = stepHistory.slice(0, -1).reduce((s, d) => s + d.steps, 0) / (stepHistory.length - 1);
+    const curr = vitals.steps;
+    if (prev === 0) return { label: steps.label, subtitle: undefined };
+    const pct = Math.round(((curr - prev) / prev) * 100);
+    if (pct <= -20) return { label: `${curr.toLocaleString()} steps · ↓ ${Math.abs(pct)}%`, subtitle: undefined };
+    if (pct >= 20)  return { label: `${curr.toLocaleString()} steps · ↑ ${pct}%`, subtitle: undefined };
+    return { label: steps.label, subtitle: undefined };
+  })();
+
   const hydration = hydrationStatus(hydrationLevel);
   const gait      = gaitStatus(gaitMetrics.symmetry, gaitMetrics.variability, gaitMetrics.speed, gaitMetrics.cadence, gaitMetrics.worseStride, gaitMetrics.worseGCT);
   const nutrition = nutritionStatus(vitals.mealsCount)
@@ -808,7 +822,6 @@ const FamilyView = () => {
               <div className="flex flex-wrap items-center gap-2 mb-1">
                 <h3 className={`text-base font-bold ${statusConfig.text}`}>{statusConfig.message}</h3>
               </div>
-              <p className={`text-sm ${statusConfig.sub}`}>{statusConfig.sub2}</p>
               {highlights.length > 0 && (
                 <p className="mt-2 text-sm text-foreground/75 leading-relaxed">{highlights.join(" ")}</p>
               )}
@@ -845,7 +858,8 @@ const FamilyView = () => {
           <HealthCard
             icon={Footprints} iconBg="bg-ecg/15 text-ecg" cardBg="bg-sky-50"
             title="Steps Today"
-            label={steps.label} labelColor={steps.color}
+            label={stepsTrend.label} labelColor={steps.color}
+            subtitle={stepsTrend.subtitle}
             onClick={() => setOpenModal("steps")}
           />
           <HealthCard

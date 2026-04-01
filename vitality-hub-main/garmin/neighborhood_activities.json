@@ -5,17 +5,33 @@
       {
         "id": 1,
         "title": "Chair Yoga Session",
-        "subtitle": "Beginner friendly · Low impact",
-        "date": "Tue, Apr 07",
+        "subtitle": "Beginner friendly \u00b7 Low impact",
+        "date": "Tuesday, Apr 07",
         "time": "9:00 AM",
         "location": "Oakwood Community Center, Room 3",
         "duration": "45 min",
         "category": "exercise",
         "attendees": [
-          { "name": "Barbara",  "initials": "B", "color": "rose" },
-          { "name": "Eleanor",  "initials": "E", "color": "violet" },
-          { "name": "Dorothy",  "initials": "D", "color": "pink" },
-          { "name": "Ruth",     "initials": "R", "color": "amber" }
+          {
+            "name": "Barbara",
+            "initials": "B",
+            "color": "rose"
+          },
+          {
+            "name": "Eleanor",
+            "initials": "E",
+            "color": "violet"
+          },
+          {
+            "name": "Dorothy",
+            "initials": "D",
+            "color": "pink"
+          },
+          {
+            "name": "Ruth",
+            "initials": "R",
+            "color": "amber"
+          }
         ],
         "extraCount": 3,
         "badge": "New session",
@@ -26,15 +42,27 @@
         "id": 8,
         "title": "Healthy Soup Cooking Demo",
         "subtitle": "Nutritious & easy recipes",
-        "date": "Wed, Apr 08",
+        "date": "Wednesday, Apr 08",
         "time": "11:00 AM",
         "location": "Community Kitchen, Ground Floor",
         "duration": "1 hr",
         "category": "cooking",
         "attendees": [
-          { "name": "Bob",      "initials": "B", "color": "rose" },
-          { "name": "Frances",  "initials": "F", "color": "purple" },
-          { "name": "Margaret", "initials": "M", "color": "emerald" }
+          {
+            "name": "Bob",
+            "initials": "B",
+            "color": "rose"
+          },
+          {
+            "name": "Frances",
+            "initials": "F",
+            "color": "purple"
+          },
+          {
+            "name": "Margaret",
+            "initials": "M",
+            "color": "emerald"
+          }
         ],
         "extraCount": 2,
         "badge": "Today!",
@@ -44,16 +72,28 @@
       {
         "id": 2,
         "title": "Neighborhood Walk",
-        "subtitle": "Easy pace · Riverside Path",
-        "date": "Thu, Apr 09",
+        "subtitle": "Easy pace \u00b7 Riverside Path",
+        "date": "Thursday, Apr 09",
         "time": "7:30 AM",
-        "location": "Riverside Park — main entrance",
+        "location": "Riverside Park \u2014 main entrance",
         "duration": "1.5 hrs",
         "category": "walk",
         "attendees": [
-          { "name": "George",   "initials": "G", "color": "blue" },
-          { "name": "Frances",  "initials": "F", "color": "purple" },
-          { "name": "Harold",   "initials": "H", "color": "amber" }
+          {
+            "name": "George",
+            "initials": "G",
+            "color": "blue"
+          },
+          {
+            "name": "Frances",
+            "initials": "F",
+            "color": "purple"
+          },
+          {
+            "name": "Harold",
+            "initials": "H",
+            "color": "amber"
+          }
         ],
         "extraCount": 2,
         "badge": "Today!",
@@ -63,16 +103,28 @@
       {
         "id": 3,
         "title": "Meditation Circle",
-        "subtitle": "Online or in-person · All welcome",
-        "date": "Sat, Apr 11",
+        "subtitle": "Online or in-person \u00b7 All welcome",
+        "date": "Saturday, Apr 11",
         "time": "10:00 AM",
         "location": "Community Center / Zoom",
         "duration": "30 min",
         "category": "meditation",
         "attendees": [
-          { "name": "Dorothy",  "initials": "D", "color": "pink" },
-          { "name": "Harold",   "initials": "H", "color": "amber" },
-          { "name": "Margaret", "initials": "M", "color": "emerald" }
+          {
+            "name": "Dorothy",
+            "initials": "D",
+            "color": "pink"
+          },
+          {
+            "name": "Harold",
+            "initials": "H",
+            "color": "amber"
+          },
+          {
+            "name": "Margaret",
+            "initials": "M",
+            "color": "emerald"
+          }
         ],
         "extraCount": 5,
         "badge": "Online spots only",
@@ -82,14 +134,18 @@
       {
         "id": 4,
         "title": "Nature Hiking Trip",
-        "subtitle": "Moderate trail · Group outing",
-        "date": "Tue, Apr 14",
+        "subtitle": "Moderate trail \u00b7 Group outing",
+        "date": "Tuesday, Apr 14",
         "time": "9:00 AM",
         "location": "Oakwood City Nature Reserve",
         "duration": "2 hrs",
         "category": "hiking",
         "attendees": [
-          { "name": "Robert", "initials": "R", "color": "teal" }
+          {
+            "name": "Robert",
+            "initials": "R",
+            "color": "teal"
+          }
         ],
         "extraCount": 10,
         "badge": null,
@@ -99,16 +155,28 @@
       {
         "id": 5,
         "title": "Card Games Afternoon",
-        "subtitle": "Bridge, Rummy & more · All welcome",
-        "date": "Sun, Apr 12",
+        "subtitle": "Bridge, Rummy & more \u00b7 All welcome",
+        "date": "Sunday, Apr 12",
         "time": "2:00 PM",
         "location": "Senior Lounge, Room 4",
         "duration": "2 hrs",
         "category": "games",
         "attendees": [
-          { "name": "Ruth",     "initials": "R", "color": "amber" },
-          { "name": "Harold",   "initials": "H", "color": "amber" },
-          { "name": "Frances",  "initials": "F", "color": "purple" }
+          {
+            "name": "Ruth",
+            "initials": "R",
+            "color": "amber"
+          },
+          {
+            "name": "Harold",
+            "initials": "H",
+            "color": "amber"
+          },
+          {
+            "name": "Frances",
+            "initials": "F",
+            "color": "purple"
+          }
         ],
         "extraCount": 3,
         "badge": "Weekly favorite",
@@ -118,15 +186,23 @@
       {
         "id": 6,
         "title": "Memory & Storytelling",
-        "subtitle": "Share stories · Build connections",
-        "date": "Mon, Apr 13",
+        "subtitle": "Share stories \u00b7 Build connections",
+        "date": "Monday, Apr 13",
         "time": "11:00 AM",
         "location": "Community Center, Hall B",
         "duration": "1 hr",
         "category": "storytelling",
         "attendees": [
-          { "name": "Margaret", "initials": "M", "color": "emerald" },
-          { "name": "Dorothy",  "initials": "D", "color": "pink" }
+          {
+            "name": "Margaret",
+            "initials": "M",
+            "color": "emerald"
+          },
+          {
+            "name": "Dorothy",
+            "initials": "D",
+            "color": "pink"
+          }
         ],
         "extraCount": 4,
         "badge": "New session",
@@ -136,15 +212,23 @@
       {
         "id": 7,
         "title": "Community Garden Club",
-        "subtitle": "Spring planting · All skill levels",
-        "date": "Wed, Apr 22",
+        "subtitle": "Spring planting \u00b7 All skill levels",
+        "date": "Wednesday, Apr 22",
         "time": "10:30 AM",
         "location": "Oakwood Community Gardens",
         "duration": "1.5 hrs",
         "category": "gardening",
         "attendees": [
-          { "name": "Eleanor",  "initials": "E", "color": "violet" },
-          { "name": "George",   "initials": "G", "color": "blue" }
+          {
+            "name": "Eleanor",
+            "initials": "E",
+            "color": "violet"
+          },
+          {
+            "name": "George",
+            "initials": "G",
+            "color": "blue"
+          }
         ],
         "extraCount": 6,
         "badge": null,
@@ -158,7 +242,7 @@
         "name": "Barbara",
         "initials": "B",
         "color": "rose",
-        "activity": "completed her morning walk — 2,100 steps before breakfast!",
+        "activity": "completed her morning walk \u2014 2,100 steps before breakfast!",
         "time": "32 min ago",
         "icon": "walk"
       },
@@ -167,7 +251,7 @@
         "name": "Marcus",
         "initials": "M",
         "color": "teal",
-        "activity": "had a great night of sleep — 7.5 hours, sleep score 88.",
+        "activity": "had a great night of sleep \u2014 7.5 hours, sleep score 88.",
         "time": "1 hr ago",
         "icon": "sleep"
       },
@@ -185,7 +269,7 @@
         "name": "Harold",
         "initials": "H",
         "color": "amber",
-        "activity": "stayed well hydrated all day — 8 glasses of water logged.",
+        "activity": "stayed well hydrated all day \u2014 8 glasses of water logged.",
         "time": "3 hrs ago",
         "icon": "health"
       },
@@ -203,7 +287,7 @@
         "name": "George",
         "initials": "G",
         "color": "blue",
-        "activity": "helped Ruth carry her groceries up three flights — great neighbour!",
+        "activity": "helped Ruth carry her groceries up three flights \u2014 great neighbour!",
         "time": "Yesterday",
         "icon": "helping"
       },
@@ -224,7 +308,7 @@
         "name": "Margaret",
         "initials": "M",
         "color": "violet",
-        "message": "Could use a ride to my eye doctor this Thursday at 2pm — Oak Street Clinic.",
+        "message": "Could use a ride to my eye doctor this Thursday at 2pm \u2014 Oak Street Clinic.",
         "date": "Thu, Jan 15",
         "time": "9:12 AM",
         "category": "Ride"
@@ -235,7 +319,7 @@
         "name": "Barbara",
         "initials": "B",
         "color": "rose",
-        "message": "Happy to give rides Tues & Thurs — I pass right by the clinic and pharmacy.",
+        "message": "Happy to give rides Tues & Thurs \u2014 I pass right by the clinic and pharmacy.",
         "date": "Thu, Jan 15",
         "time": "8:45 AM",
         "category": "Ride"
@@ -257,7 +341,7 @@
         "name": "George",
         "initials": "G",
         "color": "blue",
-        "message": "Made too much soup this weekend — happy to share with a neighbour!",
+        "message": "Made too much soup this weekend \u2014 happy to share with a neighbour!",
         "date": "Thu, Jan 15",
         "time": "6:50 AM",
         "category": "Meal"
@@ -268,7 +352,7 @@
         "name": "Ruth",
         "initials": "R",
         "color": "pink",
-        "message": "Need help carrying groceries up 3 flights — the elevator is broken this week.",
+        "message": "Need help carrying groceries up 3 flights \u2014 the elevator is broken this week.",
         "date": "Wed, Jan 14",
         "time": "4:15 PM",
         "category": "Groceries"

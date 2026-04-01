@@ -95,8 +95,9 @@ function gaitStatus(symmetryPct: number, variabilityPct: number, speedMs: number
 
 function nutritionStatus(mealsCount: number) {
   let colour = "text-emerald-600"
-  if (mealsCount < 2) colour = "text-rose-600";
   if (mealsCount === 2) colour = "text-amber-600";
+  if (mealsCount === 1) colour = "text-orange-600";
+  if (mealsCount === 0)  return  { label: `No meals tracked`, color: "text-rose-600"};
   return  { label: `${mealsCount} meals tracked`, color: colour};
 }
 
@@ -470,8 +471,15 @@ const ElderView = () => {
         });
         return;
       }
-      const buf = await fetchTTSBuffer(ttsReady(fullText), ttsCtrl.signal);
-      setMessages([{ role: "assistant", content: fullText }]);
+      const joinMatch = fullText.match(/\[\[JOIN:(\d+)\]\]/i);
+      const displayText = fullText.replace(/\n?\s*\[\[JOIN:\d+\]\]/gi, "").replace(/\n?\s*\[\[CALL_FAMILY\]\]/gi, "").replace(/\n?\s*\[\[CONNECT_NEIGHBOR:[^\]]+\]\]/gi, "").trim();
+      const buf = await fetchTTSBuffer(ttsReady(displayText), ttsCtrl.signal);
+      setMessages([{ role: "assistant", content: displayText }]);
+      if (joinMatch) {
+        const activityId = parseInt(joinMatch[1], 10);
+        setOpenPanel("activity");
+        setPendingJoinId(activityId);
+      }
       if (buf && !ttsCtrl.signal.aborted) await decodeAndPlay(buf, ttsCtrl.signal);
     } catch {
       setMessages((prev) => {
@@ -527,6 +535,15 @@ const ElderView = () => {
   const sleepS     = sleepStatus(vitals.sleepHours);
   const heartS     = heartStatus(vitals.heartRate);
   const stepsS     = stepsStatus(vitals.steps);
+  const stepsTrendLabel = (() => {
+    if (stepHistory.length < 2) return stepsS.label;
+    const prev = stepHistory.slice(0, -1).reduce((s, d) => s + d.steps, 0) / (stepHistory.length - 1);
+    if (prev === 0) return stepsS.label;
+    const pct = Math.round(((vitals.steps - prev) / prev) * 100);
+    if (pct <= -20) return `${vitals.steps.toLocaleString()} steps · ↓ ${Math.abs(pct)}%`;
+    if (pct >= 20)  return `${vitals.steps.toLocaleString()} steps · ↑ ${pct}%`;
+    return stepsS.label;
+  })();
   const stressS    = stressStatus(vitals.stressLevel);
   const hydrationS = hydrationStatus(vitals.hydrationColorLevel);
   const gaitS      = gaitStatus(gaitMetrics.symmetry, gaitMetrics.variability, gaitMetrics.speed, gaitMetrics.cadence, gaitMetrics.worseStride, gaitMetrics.worseGCT);
@@ -730,7 +747,8 @@ const ElderView = () => {
           } else {
             const joinMatch = fullAnswer.match(/\[\[JOIN:(\d+)\]\]/i);
             const callMatch = fullAnswer.match(/\[\[CALL_FAMILY\]\]/i);
-            const displayAnswer = fullAnswer.replace(/\n?\s*\[\[JOIN:\d+\]\]/gi, "").replace(/\n?\s*\[\[CALL_FAMILY\]\]/gi, "").trim();
+            const connectMatch = fullAnswer.match(/\[\[CONNECT_NEIGHBOR:([^\]]+)\]\]/i);
+            const displayAnswer = fullAnswer.replace(/\n?\s*\[\[JOIN:\d+\]\]/gi, "").replace(/\n?\s*\[\[CALL_FAMILY\]\]/gi, "").replace(/\n?\s*\[\[CONNECT_NEIGHBOR:[^\]]+\]\]/gi, "").trim();
             const buf = await fetchTTSBuffer(ttsReady(displayAnswer), ttsCtrl.signal);
             setMessages((prev) => {
               const msgs = [...prev];
@@ -747,6 +765,11 @@ const ElderView = () => {
             }
             if (callMatch) {
               startCall();
+            }
+            if (connectMatch) {
+              const neighborName = connectMatch[1].trim();
+              setOpenPanel("helping");
+              window.dispatchEvent(new CustomEvent("NHH-connect-neighbor", { detail: { name: neighborName } }));
             }
           }
         } catch {
@@ -1148,7 +1171,7 @@ const ElderView = () => {
               <HealthCard icon={Moon} iconBg="bg-sleep/15 text-sleep" cardBg="bg-sky-50" title="Sleep Analysis" label={sleepS.label} labelColor={sleepS.color} onClick={() => setOpenModal("sleep")} />
               <HealthCard icon={Utensils} iconBg="bg-teal-500/15 text-teal-600" cardBg="bg-sky-50" title="Nutrition & Diet" label={nutritionS.label} labelColor={nutritionS.color} onClick={() => setOpenModal("nutrition")} />
               <HealthCard icon={Brain} iconBg="bg-stress/15 text-stress" cardBg="bg-sky-50" title="Stress" label={stressS.label} labelColor={stressS.color} onClick={() => setOpenModal("stress")} />
-              <HealthCard icon={Footprints} iconBg="bg-ecg/15 text-ecg" cardBg="bg-sky-50" title="Steps Today" label={stepsS.label} labelColor={stepsS.color} onClick={() => setOpenModal("steps")} />
+              <HealthCard icon={Footprints} iconBg="bg-ecg/15 text-ecg" cardBg="bg-sky-50" title="Steps Today" label={stepsTrendLabel} labelColor={stepsS.color} onClick={() => setOpenModal("steps")} />
               <HealthCard icon={Shield} iconBg="bg-amber-500/15 text-amber-600" cardBg="bg-sky-50" title="Gait Analysis" label={gaitS.label} labelColor={gaitS.color} onClick={() => setOpenModal("gait")} />
               <HealthCard icon={Droplets} iconBg="bg-teal-500/15 text-teal-600" cardBg="bg-sky-50" title="Hydration" label={hydrationS.label} labelColor={hydrationS.color} onClick={() => setOpenModal("hydration")} />
               <HealthCard icon={Pill} iconBg="bg-blue-500/15 text-blue-600" cardBg="bg-sky-50" title="Medication" label="Active Rx" labelColor="text-blue-600" onClick={() => setOpenModal("medication")} />
