@@ -19,7 +19,7 @@ import {
 } from "recharts";
 import { toast } from "sonner";
 
-type Vitals = { heartRate: number; steps: number; stressLevel: number; sleepHours: number };
+type Vitals = { heartRate: number; steps: number; stressLevel: number; sleepHours: number, mealsCount: number };
 type Med = { drug: string; status: string; authored: string; dosage: string };
 type Appt = { status: string; start: string; end: string; type: string; practitioner: string; location: string };
 
@@ -92,13 +92,19 @@ function hydrationStatus(level: number) {
 }
 
 function gaitStatus(symmetryPct: number, variabilityPct: number, speedMs: number, cadence: number, worseStride: number, worseGCT: number) {
-  if (symmetryPct === 0) return { label: "No data",     note: "Gait data unavailable",                color: "text-muted-foreground", status: "fair" as const };
-  // Same thresholds as WalkingActivityChart
-  const isHigh =   cadence < 80  || speedMs < 0.7  || worseStride < 90  || worseGCT > 950 || symmetryPct < 78  || variabilityPct > 10;
-  const isMed  =   cadence < 100 || speedMs < 1.0  || worseStride < 140 || worseGCT > 650 || symmetryPct < 95  || variabilityPct > 5;
-  if (isHigh) return { label: "High Risk",     note: "Significant gait irregularities detected", color: "text-rose-600",    status: "warn" as const };
-  if (isMed)  return { label: "Moderate Risk", note: "Some asymmetry — worth monitoring",        color: "text-amber-600",   status: "fair" as const };
-  return       { label: "Low Risk",            note: "Gait looks steady and balanced",           color: "text-emerald-600", status: "good" as const };
+  if (symmetryPct === 0) return { label: "No data", note: "Gait data unavailable",          color: "text-muted-foreground", status: "fair" as const };
+  const isHigh = cadence < 80  || speedMs < 0.7  || worseStride < 90  || worseGCT > 950 || symmetryPct < 78  || variabilityPct > 10;
+  if (isHigh) return { label: "Irregular gait",     note: "Significant gait irregularities detected", color: "text-rose-600",    status: "warn" as const };
+  const isMed  = cadence < 100 || speedMs < 1.0  || worseStride < 140 || worseGCT > 650 || symmetryPct < 95  || variabilityPct > 5;
+  if (isMed)  return { label: "Some asymmetry", note: "Some asymmetry — worth monitoring",        color: "text-amber-600",   status: "fair" as const };
+  return             { label: "Steady and Balanced",      note: "Gait looks steady and balanced",           color: "text-emerald-600", status: "good" as const };
+}
+
+function nutritionStatus(mealsCount: number) {
+  let colour = "text-emerald-600"
+  if (mealsCount < 2) colour = "text-rose-600";
+  if (mealsCount === 2) colour = "text-amber-600";
+  return  { label: `${mealsCount} meals tracked`, color: colour};
 }
 
 function overallStatus(vitals: Vitals) {
@@ -405,16 +411,18 @@ const FamilyView = () => {
   useEffect(() => {
     (async () => {
       try {
-        const [dailyRes, sleepRes, toiletRes, gaitRes] = await Promise.all([
+        const [dailyRes, sleepRes, toiletRes, gaitRes, fridgeRes] = await Promise.all([
           fetch(`${API_BASE}/api/dailySummary?patient_id=${HOME_ID}`),
           fetch(`${API_BASE}/api/sleep?patient_id=${HOME_ID}`),
           fetch(`${API_BASE}/api/toilet?patient_id=${HOME_ID}`),
           fetch(`${API_BASE}/api/gait?patient_id=${HOME_ID}`),
+          fetch(`${API_BASE}/api/fridge?patient_id=${HOME_ID}`)
         ]);
         const dailyJson = dailyRes.ok ? await dailyRes.json() : [];
         const sleepJson = sleepRes.ok ? await sleepRes.json() : [];
         const toiletJson: any[] = toiletRes.ok ? await toiletRes.json() : [];
         const gaitJson: any[] = gaitRes.ok ? await gaitRes.json() : [];
+        const fridgeJson: any[] = fridgeRes.ok ? await fridgeRes.json() : [];
 
         // Derive gait risk from latest day's sessions (average key metrics)
         const latestGait = [...gaitJson]
@@ -456,12 +464,17 @@ const FamilyView = () => {
             }))
         );
 
+        const latestFridge = [...fridgeJson].sort((a, b) =>
+          String(b?.calendarDate || "").localeCompare(String(a?.calendarDate || ""))
+        )[0];
+
         const day = allDays[allDays.length - 1] ?? null;
         setVitals({
           heartRate: Number(day?.currentDayRestingHeartRate ?? day?.restingHeartRate ?? 0),
           steps: Number(day?.totalSteps ?? 0),
           stressLevel: extractStress(day),
           sleepHours: extractSleep(sleepJson),
+          mealsCount: (latestFridge.mealsDetected ?? []).length
         });
       } catch { /* silent */ }
       finally { setLoaded(true); }
@@ -474,6 +487,7 @@ const FamilyView = () => {
   const stress    = stressStatus(vitals.stressLevel);
   const hydration = hydrationStatus(hydrationLevel);
   const gait      = gaitStatus(gaitMetrics.symmetry, gaitMetrics.variability, gaitMetrics.speed, gaitMetrics.cadence, gaitMetrics.worseStride, gaitMetrics.worseGCT);
+  const nutrition = nutritionStatus(vitals.mealsCount)
   const overall = loaded ? overallStatus(vitals) : "good";
 
   const statusConfig = {
@@ -819,8 +833,8 @@ const FamilyView = () => {
           <HealthCard
             icon={Utensils} iconBg="bg-teal-500/15 text-teal-600" cardBg="bg-sky-50"
             title="Nutrition & Diet"
-            label="Meals tracked" labelColor="text-teal-600"
-            onClick={() => setOpenModal("nutrition")}
+            label={nutrition.label} labelColor={nutrition.color}            
+            onClick={() => setOpenModal("nutrition")}            
           />
           <HealthCard
             icon={Brain} iconBg="bg-stress/15 text-stress" cardBg="bg-sky-50"

@@ -27,10 +27,10 @@ const FALLBACK: FridgeDay = {
     { item: "Cottage Cheese", quantity: "200 g", expiresInDays: 6, category: "dairy", stockLevel: "medium" },
     { item: "Strawberries", quantity: "200 g", expiresInDays: 3, category: "fruit", stockLevel: "low" },
   ],
-  dailyNutrition: { calories: 1640, protein: 58, carbs: 188, fat: 47, fiber: 25, waterLiters: 1.9 },
+  dailyNutrition: { calories: 842, protein: 45, carbs: 70, fat: 23, fiber: 9, waterLiters: 1.9 },
   mealsDetected: [
-    { time: "07:30", meal: "Breakfast", items: ["Greek Yogurt", "Strawberries"], calories: 290 },
-    { time: "12:45", meal: "Lunch", items: ["Turkey Slices", "Carrots"], calories: 380 },
+    { time: "07:30", meal: "Breakfast", items: ["Greek Yogurt", "Strawberries"], calories: 362 },
+    { time: "12:45", meal: "Lunch", items: ["Turkey Slices", "Carrots"], calories: 480 },
   ],
   alerts: [
     { type: "expiring", item: "Milk", message: "Milk expires tomorrow" },
@@ -148,7 +148,7 @@ export function SmartFridgeCard() {
             {expiring.map((a, i) => (
               <div key={i} className="flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2">
                 <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0 text-amber-500" />
-                <p className="text-xs text-amber-800">{a.message}</p>
+                <p className="text-xs text-amber-800">{a.item}: {a.message}</p>
               </div>
             ))}
           </div>

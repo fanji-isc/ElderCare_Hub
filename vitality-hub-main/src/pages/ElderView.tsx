@@ -87,10 +87,17 @@ function hydrationStatus(level: number) {
 function gaitStatus(symmetryPct: number, variabilityPct: number, speedMs: number, cadence: number, worseStride: number, worseGCT: number) {
   if (symmetryPct === 0) return { label: "No data", note: "Gait data unavailable",          color: "text-muted-foreground", status: "fair" as const };
   const isHigh = cadence < 80  || speedMs < 0.7  || worseStride < 90  || worseGCT > 950 || symmetryPct < 78  || variabilityPct > 10;
-  if (isHigh) return { label: "High Risk",     note: "Significant gait irregularities detected", color: "text-rose-600",    status: "warn" as const };
+  if (isHigh) return { label: "Irregular gait",     note: "Significant gait irregularities detected", color: "text-rose-600",    status: "warn" as const };
   const isMed  = cadence < 100 || speedMs < 1.0  || worseStride < 140 || worseGCT > 650 || symmetryPct < 95  || variabilityPct > 5;
-  if (isMed)  return { label: "Moderate Risk", note: "Some asymmetry — worth monitoring",        color: "text-amber-600",   status: "fair" as const };
-  return             { label: "Low Risk",      note: "Gait looks steady and balanced",           color: "text-emerald-600", status: "good" as const };
+  if (isMed)  return { label: "Some asymmetry", note: "Some asymmetry — worth monitoring",        color: "text-amber-600",   status: "fair" as const };
+  return             { label: "Steady and Balanced",      note: "Gait looks steady and balanced",           color: "text-emerald-600", status: "good" as const };
+}
+
+function nutritionStatus(mealsCount: number) {
+  let colour = "text-emerald-600"
+  if (mealsCount < 2) colour = "text-rose-600";
+  if (mealsCount === 2) colour = "text-amber-600";
+  return  { label: `${mealsCount} meals tracked`, color: colour};
 }
 
 // ── ModalCard ─────────────────────────────────────────────────────────────────
@@ -523,6 +530,7 @@ const ElderView = () => {
   const stressS    = stressStatus(vitals.stressLevel);
   const hydrationS = hydrationStatus(vitals.hydrationColorLevel);
   const gaitS      = gaitStatus(gaitMetrics.symmetry, gaitMetrics.variability, gaitMetrics.speed, gaitMetrics.cadence, gaitMetrics.worseStride, gaitMetrics.worseGCT);
+  const nutritionS = nutritionStatus(vitals.mealsCount);
 
   const renderModalContent = () => {
     switch (openModal) {
@@ -705,18 +713,11 @@ const ElderView = () => {
           const ttsCtrl = new AbortController();
           speakAbortRef.current = ttsCtrl;
           stopAudio();
-          // const healthContext = await fetch(`${API_BASE}/api/build-health-context`, 
-          //   { 
-          //     method: 'POST', 
-          //     headers: { 'Content-Type': 'application/json' }, 
-          //     body: JSON.stringify({ v: vitalsRef.current, nRef: neighborhoodRef.current, name: first_name }) 
-          //   }
-          // ).then(res => res.ok ? res.text() : "Error: Could not retrieve health context.");
           const fullAnswer = await streamAnswer(
             text, nextMessages,
             () => { /* keep Thinking… visible until TTS is ready */ },
             () => { /* accumulate internally — don't update UI yet */ },
-            systemMsg // healthContext
+            systemMsg
           );
           if (!fullAnswer) {
             setMessages((prev) => {
@@ -1145,7 +1146,7 @@ const ElderView = () => {
             <div className="grid grid-cols-3 gap-3">
               <HealthCard icon={Heart} iconBg="bg-heart/15 text-heart" cardBg="bg-sky-50" title="Heart Health" label={heartS.label} labelColor={heartS.color} onClick={() => setOpenModal("heart")} />
               <HealthCard icon={Moon} iconBg="bg-sleep/15 text-sleep" cardBg="bg-sky-50" title="Sleep Analysis" label={sleepS.label} labelColor={sleepS.color} onClick={() => setOpenModal("sleep")} />
-              <HealthCard icon={Utensils} iconBg="bg-teal-500/15 text-teal-600" cardBg="bg-sky-50" title="Nutrition & Diet" label="Meals tracked" labelColor="text-teal-600" onClick={() => setOpenModal("nutrition")} />
+              <HealthCard icon={Utensils} iconBg="bg-teal-500/15 text-teal-600" cardBg="bg-sky-50" title="Nutrition & Diet" label={nutritionS.label} labelColor={nutritionS.color} onClick={() => setOpenModal("nutrition")} />
               <HealthCard icon={Brain} iconBg="bg-stress/15 text-stress" cardBg="bg-sky-50" title="Stress" label={stressS.label} labelColor={stressS.color} onClick={() => setOpenModal("stress")} />
               <HealthCard icon={Footprints} iconBg="bg-ecg/15 text-ecg" cardBg="bg-sky-50" title="Steps Today" label={stepsS.label} labelColor={stepsS.color} onClick={() => setOpenModal("steps")} />
               <HealthCard icon={Shield} iconBg="bg-amber-500/15 text-amber-600" cardBg="bg-sky-50" title="Gait Analysis" label={gaitS.label} labelColor={gaitS.color} onClick={() => setOpenModal("gait")} />

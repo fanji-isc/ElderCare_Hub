@@ -245,7 +245,7 @@ export function WalkingActivityChart() {
   const overall: RiskLevel = rLevels
     ? overallLevel(Object.values(rLevels) as RiskLevel[])
     : "low";
-  const overallLabel = { high: "High Risk", medium: "Moderate Risk", low: "Low Risk" }[overall];
+  const overallLabel = { high: `High Risk`, medium: "Moderate Risk", low: "Low Risk" }[overall];
 
   const patterns: Pattern[] = latestSession && rLevels ? [
     { name: "Cadence",                  level: rLevels.cadence,     detail: `${latestSession.cadence} spm — normal 100–120` },
