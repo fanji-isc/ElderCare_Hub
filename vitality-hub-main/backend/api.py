@@ -884,60 +884,6 @@ def extract_gait(patient_id: str):
     }
     return gaitNote, gaitConcern, gait_metrics
 
-FRANK_FHIR_ID = "2"
-FRANK_FHIR_FILE = "/fhirdata/Frank_Larson_c7c448b0-f1f5-45c2-aa50-2763f799c984.json"
-DIZZINESS_KEYWORDS = ["dizziness", "dizzy", "orthostatic", "dehydration", "urination"]
-
-def extract_frank_medications_from_file():
-    """Read Frank's active medications directly from the FHIR JSON file."""
-    try:
-        with open(FRANK_FHIR_FILE) as f:
-            bundle = json.load(f)
-        meds = []
-        for e in bundle.get("entry", []):
-            r = e.get("resource", {})
-            if r.get("resourceType") != "MedicationRequest" or r.get("status") != "active":
-                continue
-            med = r.get("medicationCodeableConcept", {})
-            drug = med.get("text") or med.get("coding", [{}])[0].get("display", "Unknown")
-            dosage = r.get("dosageInstruction", [{}])[0].get("text", "")
-            meds.append({"drug": drug, "dosage": dosage})
-        return meds
-    except Exception:
-        return []
-
-def extract_fall_risk_medications():
-    """Return medications that warn about dizziness or dehydration risk."""
-    flagged = []
-    for m in extract_frank_medications_from_file():
-        dosage = (m.get("dosage") or "").lower()
-        if any(kw in dosage for kw in DIZZINESS_KEYWORDS):
-            flagged.append(f"{m['drug']} — {m['dosage']}")
-    return flagged
-
-def extract_frank_appointments_from_file():
-    """Read Frank's upcoming appointments from the FHIR JSON file."""
-    try:
-        with open(FRANK_FHIR_FILE) as f:
-            bundle = json.load(f)
-        appts = []
-        for e in bundle.get("entry", []):
-            r = e.get("resource", {})
-            if r.get("resourceType") != "Appointment":
-                continue
-            svc = r.get("serviceType", [{}])[0].get("coding", [{}])[0].get("display", "Appointment")
-            start = r.get("start", "")
-            status = r.get("status", "")
-            doctor = next((p["actor"].get("display", "") for p in r.get("participant", []) if "Practitioner" in p.get("actor", {}).get("reference", "")), "")
-            location = next((p["actor"].get("display", "") for p in r.get("participant", []) if "Location" in p.get("actor", {}).get("reference", "")), "")
-            appts.append({"service": svc, "start": start, "status": status, "doctor": doctor, "location": location})
-        now = datetime.now(timezone.utc).isoformat()
-        appts = [a for a in appts if a["start"] >= now]
-        appts.sort(key=lambda x: x["start"])
-        return appts
-    except Exception:
-        return []
-
 def extract_phone_calls(patient_id: str):
     phoneCallJson = get_phone_calls(patient_id)
     phone_calls = {"phoneCallMinutes": 0, "phoneCallTrend": []}
@@ -1113,6 +1059,17 @@ def get_patient_medications(first_name: str, last_name: str):
         return medications
     except Exception as e:
         raise e
+
+def extract_fall_risk_medications(first_name: str, last_name: str):
+    """Return medications that warn about dizziness or dehydration risk."""
+    flagged = []
+    medications = get_patient_medications(first_name, last_name)
+    active_meds = [m for m in medications if m['status'] == 'active']
+    for m in active_meds:
+        dosage_instructions = (m.get("dosage") or "").lower()
+        if any(kw in dosage_instructions for kw in ["dizziness", "dizzy", "orthostatic", "dehydration", "urination"]):
+            flagged.append(f"{m['drug']} — {m['dosage']}")
+    return flagged
 
 @app.get("/api/fhir/vitals")
 def get_fhir_vitals(patient_id: str = ""):
@@ -1566,144 +1523,211 @@ def clinician_overview(patient_id: str = Query(...)):
 
 # ── AI System Prompts ─────────────────────────────────────────────────────────
 
-# def get_resident_context(patient_id: str = ""):
-#     return """
-#     ### ⚠️ OVERALL RISK LEVEL: CRITICAL
-#     **Primary Driver:** Mobility/Gait instability (Geriatric Gait Summary) with dehydration exacerbation (Hydration)
+def get_resident_context(patient_id: str = ""):
+    return """
+    ### ⚠️ OVERALL RISK LEVEL: CRITICAL
+    **Primary Driver:** Mobility/Gait instability (Geriatric Gait Summary) with dehydration exacerbation (Hydration)
 
-#     #### 1. THE "WHY" (Unified Insight)
-#     The patient shows a constellation of high fall-risk features that are interlinked across systems. Gait metrics reveal frailty physiology: latest speed 0.77 m/s (below the 0.8 m/s frailty threshold), gait variability modestly elevated at 10.5%, and a pronounced right-side limp with a 80 ms ground-contact time delta and 13 cm shorter right stride. This mobility impairment is occurring in the context of dehydration on most mornings (Hydration), which can worsen muscle function and balance. Nutrition shows appetite loss with protein intake at 58 g (below the 60 g target), potentially limiting muscle maintenance fueling. Sleep is generally restorative on good nights but exhibits episodes of high sleep stress and reduced deep sleep on certain nights, indicating circadian disruption that can impair emotional regulation and recovery. Taken together, this creates an imminent safety risk (CRITICAL physical) with the right-limb guarding and dehydration amplifying fall risk and potential deconditioning.    
+    #### 1. THE "WHY" (Unified Insight)
+    The patient shows a constellation of high fall-risk features that are interlinked across systems. Gait metrics reveal frailty physiology: latest speed 0.77 m/s (below the 0.8 m/s frailty threshold), gait variability modestly elevated at 10.5%, and a pronounced right-side limp with a 80 ms ground-contact time delta and 13 cm shorter right stride. This mobility impairment is occurring in the context of dehydration on most mornings (Hydration), which can worsen muscle function and balance. Nutrition shows appetite loss with protein intake at 58 g (below the 60 g target), potentially limiting muscle maintenance fueling. Sleep is generally restorative on good nights but exhibits episodes of high sleep stress and reduced deep sleep on certain nights, indicating circadian disruption that can impair emotional regulation and recovery. Taken together, this creates an imminent safety risk (CRITICAL physical) with the right-limb guarding and dehydration amplifying fall risk and potential deconditioning.    
 
-#     Key contextual points:
-#     - Cardiac/ECG at rest shows healthy autonomic tone (SINUS_NORMAL; resting HR ~65 bpm; SDNN ~35 ms; RMSSD ~34 ms), with no acute rhythm disturbance.
-#     - Recovery in Sleep is highly variable across nights; one night shows peak recovery ( Recovery 100; very low sleep stress) while another shows significant sleep stress and reduced deep sleep, highlighting inconsistent circadian restoration.
-#     - Gait asymmetry and guarding are clinically meaningful and align with frailty markers, signaling a need for immediate safety measures and targeted rehabilitation.
+    Key contextual points:
+    - Cardiac/ECG at rest shows healthy autonomic tone (SINUS_NORMAL; resting HR ~65 bpm; SDNN ~35 ms; RMSSD ~34 ms), with no acute rhythm disturbance.
+    - Recovery in Sleep is highly variable across nights; one night shows peak recovery ( Recovery 100; very low sleep stress) while another shows significant sleep stress and reduced deep sleep, highlighting inconsistent circadian restoration.
+    - Gait asymmetry and guarding are clinically meaningful and align with frailty markers, signaling a need for immediate safety measures and targeted rehabilitation.
 
-#     #### 2. CROSS-SYSTEM CORRELATIONS
-#     * **[Link 1]: Slowing Syndrome (Gait + Nutrition + Sleep)**
-#     - Gait: speed 0.77 m/s (frailty threshold met)
-#     - Nutrition: protein intake 58 g (below target 60 g)
-#     - Sleep: episodes of elevated sleep stress and reduced deep sleep on weaker nights
-#     - Interpretation: When movement slows, and fueling is suboptimal alongside imperfect sleep, the risk of frailty progression and depressive/social withdrawal increases. Clinically, this mirrors a frailty/slowing phenotype with potential mood impact.
+    #### 2. CROSS-SYSTEM CORRELATIONS
+    * **[Link 1]: Slowing Syndrome (Gait + Nutrition + Sleep)**
+    - Gait: speed 0.77 m/s (frailty threshold met)
+    - Nutrition: protein intake 58 g (below target 60 g)
+    - Sleep: episodes of elevated sleep stress and reduced deep sleep on weaker nights
+    - Interpretation: When movement slows, and fueling is suboptimal alongside imperfect sleep, the risk of frailty progression and depressive/social withdrawal increases. Clinically, this mirrors a frailty/slowing phenotype with potential mood impact.
 
-#     * **[Link 2]: Autonomic Dissonance (Heart Rate/HRV vs Gait Activity)**
-#     - ECG HRV at rest appears healthy (SDNN ~35 ms; RMSSD ~34 ms) with resting HR ~65 bpm.
-#     - Gait shows active instability (low speed, limp, asymmetry) but with no sustained tachycardia or HRV suppression at rest.
-#     - Interpretation: No clear autonomic overload at rest, but the combination of poor gait quality and ongoing discomfort/pain risk could drive episodic internal load (pain/anxiety) during movement; watch for mismatch between effort and autonomic response during activities.
+    * **[Link 2]: Autonomic Dissonance (Heart Rate/HRV vs Gait Activity)**
+    - ECG HRV at rest appears healthy (SDNN ~35 ms; RMSSD ~34 ms) with resting HR ~65 bpm.
+    - Gait shows active instability (low speed, limp, asymmetry) but with no sustained tachycardia or HRV suppression at rest.
+    - Interpretation: No clear autonomic overload at rest, but the combination of poor gait quality and ongoing discomfort/pain risk could drive episodic internal load (pain/anxiety) during movement; watch for mismatch between effort and autonomic response during activities.
 
-#     * [Link 3]: Circadian & Recovery Routine (Sleep vs Nutrition)*
-#     - Sleep: overall solid night recovery is possible, but a night with high sleep stress and reduced deep sleep undermines emotional regulation and daytime balance.
-#     - Nutrition: appetite loss and skipped meals can exacerbate sleep disruption and reduce metabolic fuel for recovery.
-#     - Interpretation: Irregular meals coupled with inconsistent sleep quality can perpetuate daytime confusion, fatigue, and balance impairment.
+    * [Link 3]: Circadian & Recovery Routine (Sleep vs Nutrition)*
+    - Sleep: overall solid night recovery is possible, but a night with high sleep stress and reduced deep sleep undermines emotional regulation and daytime balance.
+    - Nutrition: appetite loss and skipped meals can exacerbate sleep disruption and reduce metabolic fuel for recovery.
+    - Interpretation: Irregular meals coupled with inconsistent sleep quality can perpetuate daytime confusion, fatigue, and balance impairment.
 
-#     * [Link 4]: Homeostatic Safety Flags (Dehydration + Asymmetry)*
-#     - Hydration: repeated morning dehydration across several days; end-of-day hydration readings generally 2-4 (not chronic dehydration), but dehydration is present on multiple days.
-#     - Gait: pronounced asymmetry (80 ms GCT delta) with right-side guarding.
-#     - Safety flag: Dehydration + High Asymmetry meets the framework's CRITICAL physical threshold, signaling imminent fall risk without rapid mitigation.
+    * [Link 4]: Homeostatic Safety Flags (Dehydration + Asymmetry)*
+    - Hydration: repeated morning dehydration across several days; end-of-day hydration readings generally 2-4 (not chronic dehydration), but dehydration is present on multiple days.
+    - Gait: pronounced asymmetry (80 ms GCT delta) with right-side guarding.
+    - Safety flag: Dehydration + High Asymmetry meets the framework's CRITICAL physical threshold, signaling imminent fall risk without rapid mitigation.
 
-#     * [Link 5]: Daily Routine Integrity (Meal Timing, Hydration, Deep Sleep)*
-#     - Last-meal timing not explicitly provided; but nutrition shows irregular intake with skipped meals today and appetite challenges.
-#     - Deep sleep on weaker nights is reduced, which can lower emotional regulation and balance confidence.
-#     - Interpretation: Disrupted daily routines (irregular meals, inconsistent hydration) undermine deep sleep and recovery, compounding mood and balance concerns.
+    * [Link 5]: Daily Routine Integrity (Meal Timing, Hydration, Deep Sleep)*
+    - Last-meal timing not explicitly provided; but nutrition shows irregular intake with skipped meals today and appetite challenges.
+    - Deep sleep on weaker nights is reduced, which can lower emotional regulation and balance confidence.
+    - Interpretation: Disrupted daily routines (irregular meals, inconsistent hydration) undermine deep sleep and recovery, compounding mood and balance concerns.
 
-#     #### 3. GUARDIAN ACTION ITEMS
-#     - **Immediate:**
-#     - Conduct a rapid in-home safety check: remove trip hazards (rugs, cords), ensure adequate lighting, place a stable mobility aid (cane/walker) within easy reach, and consider close-guardian supervision during transfers or standing from seated positions.
-#     - Provide immediate hydration: offer 500 ml water or fluids now to address morning dehydration, and confirm access to electrolytes if indicated.
-#     - Pain/gait evaluation: assess for right-limb pain or weakness and secure prompt clinical evaluation (possible musculoskeletal screening) to address guarding and improve symmetry.
-#     - Reinforce safety during mobility: avoid stairs or unsupervised ambulation; if assistance is unavailable, use a support person or device.
+    #### 3. GUARDIAN ACTION ITEMS
+    - **Immediate:**
+    - Conduct a rapid in-home safety check: remove trip hazards (rugs, cords), ensure adequate lighting, place a stable mobility aid (cane/walker) within easy reach, and consider close-guardian supervision during transfers or standing from seated positions.
+    - Provide immediate hydration: offer 500 ml water or fluids now to address morning dehydration, and confirm access to electrolytes if indicated.
+    - Pain/gait evaluation: assess for right-limb pain or weakness and secure prompt clinical evaluation (possible musculoskeletal screening) to address guarding and improve symmetry.
+    - Reinforce safety during mobility: avoid stairs or unsupervised ambulation; if assistance is unavailable, use a support person or device.
 
-#     - **Daily Goal:**
-#     - Raise protein intake to ≥60-70 g/day and sustain hydration around 2.0 L/day.
-#     - Stabilize sleep routine: implement fixed bedtime and a brief wind-down (e.g., dim lights, 15-minute quiet activity) to support deeper sleep and circadian alignment.
-#     - Start targeted mobility rehab focusing on right-limb strengthening (hip abductors, knee extensors, ankle dorsiflexors) and gait symmetry; consider initiation of a supervised physical therapy or home exercise program.
-#     - Re-evaluate hydration strategy in the morning and across the day to minimize dehydration episodes and monitor impact on HRV and gait.
+    - **Daily Goal:**
+    - Raise protein intake to ≥60-70 g/day and sustain hydration around 2.0 L/day.
+    - Stabilize sleep routine: implement fixed bedtime and a brief wind-down (e.g., dim lights, 15-minute quiet activity) to support deeper sleep and circadian alignment.
+    - Start targeted mobility rehab focusing on right-limb strengthening (hip abductors, knee extensors, ankle dorsiflexors) and gait symmetry; consider initiation of a supervised physical therapy or home exercise program.
+    - Re-evaluate hydration strategy in the morning and across the day to minimize dehydration episodes and monitor impact on HRV and gait.
 
-#     - **Watch For:**
-#     - Dizziness or fainting upon standing, new/worsening right-limb pain, increased gait asymmetry, or any falls.
-#     - Sudden mood changes, confusion, or withdrawal from activity; signs of delirium or systemic decline.
-#     - Any deterioration in sleep quality or unresponsiveness to hydration and nutrition adjustments.
-#     - Appetite decline persisting > a few days despite nutrition efforts; consider clinician discussion about appetite support.
-#     """
-#     client = get_openai_client()
-#     if client is None:
-#         raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
+    - **Watch For:**
+    - Dizziness or fainting upon standing, new/worsening right-limb pain, increased gait asymmetry, or any falls.
+    - Sudden mood changes, confusion, or withdrawal from activity; signs of delirium or systemic decline.
+    - Any deterioration in sleep quality or unresponsiveness to hydration and nutrition adjustments.
+    - Appetite decline persisting > a few days despite nutrition efforts; consider clinician discussion about appetite support.
+    """
+    client = get_openai_client()
+    if client is None:
+        raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
     
-#     garmin_dict = interprete_garmin(patient_id)
-#     home_dict = interprete_home_data(patient_id)
-#     if garmin_dict.get("status") == "error" or home_dict.get("status") == "error":
-#         garmin_data = "None"
-#         home_data = "None"
-#     else:
-#         garmin_data = garmin_dict.get("data")
-#         home_data = home_dict.get("data")
+    garmin_dict = interprete_garmin(patient_id)
+    home_dict = interprete_home_data(patient_id)
+    if garmin_dict.get("status") == "error" or home_dict.get("status") == "error":
+        garmin_data = "None"
+        home_data = "None"
+    else:
+        garmin_data = garmin_dict.get("data")
+        home_data = home_dict.get("data")
 
-#     triage_desc = f"""
-#     ### ROLE: ELDERLY SYSTEMIC RISK ANALYST
+    triage_desc = f"""
+    ### ROLE: ELDERLY SYSTEMIC RISK ANALYST
 
-#     # CONTEXT:
-#     You are a Senior Clinical Data Scientist specializing in Geriatric Health. You analyze data from five distinct health monitoring systems (ECG, HR, Sleep, Hydration, and Nutrition) to create a unified safety and recovery profile for an elderly user.
-#     Your goal is to generate a summary of the patient's Garmin and Home Appliance data for their clinician to interprete.
+    # CONTEXT:
+    You are a Senior Clinical Data Scientist specializing in Geriatric Health. You analyze data from five distinct health monitoring systems (ECG, HR, Sleep, Hydration, and Nutrition) to create a unified safety and recovery profile for an elderly user.
+    Your goal is to generate a summary of the patient's Garmin and Home Appliance data for their clinician to interprete.
  
-#     # INTERPRETATION FRAMEWORK: 
-#     You must cross-reference data across all six systems to identify patterns of "Biological Resilience," "Mental Wellbeing," and "Acute Safety Risks." Use the following holistic logic:
-#     1. **Neuromotor Stability (The Brain-Body Link):**
-#     - Correlate `stride_variability_pct` (Gait) with `avg_sleep_stress` (Sleep) and `sdnn_hrv_ms` (ECG).
-#     - *Logic:* High variability (>10%) + High Sleep Stress = **Neurological Fatigue**. 
-#     - *Interpretation:* This indicates the nervous system is struggling to coordinate movement. Physically, this is a **High Fall Risk**. Mentally, this often presents as high anxiety, cognitive "fog," or the early onset of delirium/illness.
-#     2. **The "Slowing" Syndrome (Mood & Frailty):**
-#     - Connect `latest_snapshot.speed_ms` (Gait) with `protein_intake` (Fridge) and `overallScore` (Sleep).
-#     - *Logic:* Speed < 0.8 m/s + Low Protein + Low Sleep Quality.
-#     - *Interpretation:* Physically, this is **Frailty & Sarcopenia**. Mentally, this "Slowing" is a classic marker for **Geriatric Depression** or social withdrawal. A body that isn't fueling or moving is a mind that is likely retreating.
-#     3. **Autonomic Dissonance (Pain & Anxiety):**
-#     - Compare `avg_hr` and `sdnn_hrv_ms` (ECG) against `steps` and `cadence` (Gait).
-#     - *Logic:* Elevated HR/Low HRV despite **Low Physical Activity**.
-#     - *Interpretation:* This suggests "Internal Load." If the user isn't moving but the heart is racing, evaluate for **Hidden Pain** (which drives fall risk) or **Psychological Distress/Agitation**.
-#     4. **Homeostatic Safety Flags:**
-#     - **CRITICAL (Physical):** Gait Speed < 0.6 m/s OR (Dehydration + High Asymmetry). This is an imminent fall or collapse warning.
-#     - **CRITICAL (Mental/Systemic):** "Appetite Loss" (Fridge) + "Restless Moments" (Sleep) + "Withdrawal from Activity" (Low Steps). This suggests a significant decline in mental health or the beginning of a systemic "failure to thrive."
-#     5. **Circadian & Recovery Routine:**
-#     - Compare `last_meal_time` (Fridge) and `nap_duration` (Sleep) against `deep_pct` (Sleep).
-#     - *Logic:* Disrupted routines steal Deep Sleep. 
-#     - *Interpretation:* Chronic lack of Deep Sleep reduces emotional regulation and increases daytime confusion (Sun-downing), which directly impacts both mood stability and physical balance.
+    # INTERPRETATION FRAMEWORK: 
+    You must cross-reference data across all six systems to identify patterns of "Biological Resilience," "Mental Wellbeing," and "Acute Safety Risks." Use the following holistic logic:
+    1. **Neuromotor Stability (The Brain-Body Link):**
+    - Correlate `stride_variability_pct` (Gait) with `avg_sleep_stress` (Sleep) and `sdnn_hrv_ms` (ECG).
+    - *Logic:* High variability (>10%) + High Sleep Stress = **Neurological Fatigue**. 
+    - *Interpretation:* This indicates the nervous system is struggling to coordinate movement. Physically, this is a **High Fall Risk**. Mentally, this often presents as high anxiety, cognitive "fog," or the early onset of delirium/illness.
+    2. **The "Slowing" Syndrome (Mood & Frailty):**
+    - Connect `latest_snapshot.speed_ms` (Gait) with `protein_intake` (Fridge) and `overallScore` (Sleep).
+    - *Logic:* Speed < 0.8 m/s + Low Protein + Low Sleep Quality.
+    - *Interpretation:* Physically, this is **Frailty & Sarcopenia**. Mentally, this "Slowing" is a classic marker for **Geriatric Depression** or social withdrawal. A body that isn't fueling or moving is a mind that is likely retreating.
+    3. **Autonomic Dissonance (Pain & Anxiety):**
+    - Compare `avg_hr` and `sdnn_hrv_ms` (ECG) against `steps` and `cadence` (Gait).
+    - *Logic:* Elevated HR/Low HRV despite **Low Physical Activity**.
+    - *Interpretation:* This suggests "Internal Load." If the user isn't moving but the heart is racing, evaluate for **Hidden Pain** (which drives fall risk) or **Psychological Distress/Agitation**.
+    4. **Homeostatic Safety Flags:**
+    - **CRITICAL (Physical):** Gait Speed < 0.6 m/s OR (Dehydration + High Asymmetry). This is an imminent fall or collapse warning.
+    - **CRITICAL (Mental/Systemic):** "Appetite Loss" (Fridge) + "Restless Moments" (Sleep) + "Withdrawal from Activity" (Low Steps). This suggests a significant decline in mental health or the beginning of a systemic "failure to thrive."
+    5. **Circadian & Recovery Routine:**
+    - Compare `last_meal_time` (Fridge) and `nap_duration` (Sleep) against `deep_pct` (Sleep).
+    - *Logic:* Disrupted routines steal Deep Sleep. 
+    - *Interpretation:* Chronic lack of Deep Sleep reduces emotional regulation and increases daytime confusion (Sun-downing), which directly impacts both mood stability and physical balance.
 
-#     # OUTPUT STRUCTURE
-#     Your response must follow this template:
+    # OUTPUT STRUCTURE
+    Your response must follow this template:
 
-#     ---
-#     ### ⚠️ OVERALL RISK LEVEL: [LOW | ELEVATED | CRITICAL]
-#     **Primary Driver:** [Identify the #1 system causing the risk today]
+    ---
+    ### ⚠️ OVERALL RISK LEVEL: [LOW | ELEVATED | CRITICAL]
+    **Primary Driver:** [Identify the #1 system causing the risk today]
 
-#     #### 1. THE "WHY" (Unified Insight)
-#     [A concise narrative explaining how the different data points are interacting. E.g., "The user is electrically stable but physically vulnerable due to under-fueling and dehydration."]
+    #### 1. THE "WHY" (Unified Insight)
+    [A concise narrative explaining how the different data points are interacting. E.g., "The user is electrically stable but physically vulnerable due to under-fueling and dehydration."]
 
-#     #### 2. CROSS-SYSTEM CORRELATIONS
-#     * **[Link 1]:** (e.g., Nutrition vs. Sleep)
-#     * **[Link 2]:** (e.g., Hydration vs. Cardiac)
+    #### 2. CROSS-SYSTEM CORRELATIONS
+    * **[Link 1]:** (e.g., Nutrition vs. Sleep)
+    * **[Link 2]:** (e.g., Hydration vs. Cardiac)
 
-#     #### 3. GUARDIAN ACTION ITEMS
-#     * **Immediate:** [Action to take now, e.g., Drink 500ml water]
-#     * **Daily Goal:** [Nutritional or activity adjustment]
-#     * **Watch For:** [Clinical symptom to observe, e.g., Dizziness, gait changes]
-#     ---
+    #### 3. GUARDIAN ACTION ITEMS
+    * **Immediate:** [Action to take now, e.g., Drink 500ml water]
+    * **Daily Goal:** [Nutritional or activity adjustment]
+    * **Watch For:** [Clinical symptom to observe, e.g., Dizziness, gait changes]
+    ---
 
-#     # INPUT:    
-#     1. The patient's Garmin data is: 
-#     {garmin_data}
+    # INPUT:    
+    1. The patient's Garmin data is: 
+    {garmin_data}
 
-#     2. The patient's Home data is: 
-#     {home_data}
-#     """
-#     response = client.responses.create(
-#         model="gpt-5-nano",
-#         instructions = triage_desc,
-#         input = "Generate a summary of the patient's Garmin and Home Appliance data for their clinician to interprete."
-#     )
+    2. The patient's Home data is: 
+    {home_data}
+    """
+    response = client.responses.create(
+        model="gpt-5-nano",
+        instructions = triage_desc,
+        input = "Generate a summary of the patient's Garmin and Home Appliance data for their clinician to interprete."
+    )
     
-#     return response.output_text
+    return response.output_text
+
+def old_system_prompt(patient_id: str = "") -> str:
+    neighborhoodJson = get_neighborhood(patient_id)
+
+    latest_dict = neighborhoodJson[0] if neighborhoodJson else None
+    lines = []
+    if latest_dict:
+        today = datetime.strptime(latest_dict.get('date'), '%Y-%m-%d')
+        filtered_activities = []
+        for a in latest_dict.get("activities", []):
+            act_date = datetime.strptime(f"{a.get('date')} {today.year}", "%A, %b %d %Y")
+            if today <= act_date <= today + timedelta(days=3):
+                filtered_activities.append(a)
+            
+        sorted_activities = sorted(
+            filtered_activities, 
+            key=lambda x: datetime.strptime(x.get('date'), "%A, %b %d")
+        )
+        for a in sorted_activities:
+            attendeeNames = ", ".join([x.get("name", "") for x in a.get("attendees", [])])
+            suffix = ""
+            if attendeeNames:
+                extra = f" +{a.get('extraCount')} more" if a.get('extraCount', 0) > 0 else ""
+                suffix = f" — attending: {attendeeNames}{extra}"
+            lines.append(f" • [ID: {a.get('id', 0)}] {a.get('title', "")}: {a.get('date', "")} at {a.get('time', "")}, {a.get('location', "")} ({a.get('duration', "")}) {suffix}")
+    activities = "\n".join(lines)
+
+    triage_answer = get_resident_context(patient_id)
+    patient_desc = get_patient_desc(patient_id)
+
+    nhh_desc = f"""
+    ### ROLE: Elder-care assitant
+
+    # CONTEXT: 
+    You are a calm, friendly elder-care assistant. You are speaking directly to the following patient:
+
+    {patient_desc}
+ 
+    # TONE:
+    Speak clearly and briefly. Don't patronise them. Prioritise conciseness, your reply should keep to 4-5 sentences.
+
+    # RESTRICTIONS:
+    DO NOT give medical diagnoses. 
+    If unsure, suggest contacting their healthcare professional.
+
+    # DATA SUMMARY: 
+
+    {triage_answer}
+
+    # NEIGHBORHOOD ACTIVITIES :
+    Consider all activities in their neighborhood community (Oakwood Pines) and suggest the most appropriate for their specific wellbeing. Prioritise any activities happening today ({today.strftime('%A, %b %d')}) or tomorrow ({(today + timedelta(days=1)).strftime('%A, %b %d')}).
+
+    {activities}
+
+    # BOOKING INSTRUCTION: 
+    If the patient confirms they would like to join a specific activity, then confirm enthusiastically in your response that you have successfully registered them. 
+
+    Then, on a brand new line at the very end, append exactly: [[JOIN:ID]] where ID is that activity's booking ID number from the list above. 
+    Do NOT speak or mention [[JOIN:ID]] — it is a silent machine code only, never part of the conversation with the patient. DO NOT sign them up without them explicitly asking to be.
+    
+    # CALL INSTRUCTION: 
+    If they asks to call or talk to their family, then confirm warmly in your normal response. 
+    
+    Then, on a brand new line at the very end, append exactly: [[CALL_FAMILY]] — this is a silent machine code, never speak or mention it.
+    """
+
+    return nhh_desc
 
 @app.get("/api/system-prompt")
-def get_system_prompt(patient_id: str = "") -> str:
+def get_system_prompt(patient_id: str = "", first_name: str = "", last_name: str = "") -> str:
     # ── Real-time health data ──────────────────────────────────────────────────
     hoursAsleep = extract_sleep(patient_id)
     fridge = extract_fridge(patient_id)
@@ -1733,16 +1757,21 @@ def get_system_prompt(patient_id: str = "") -> str:
     if current_items:                        data_lines.append(f"- Current fridge inventory: {', '.join(current_items)}")
     expiring_items = fridge.get("expiringItems", [])
     if expiring_items:                       data_lines.append(f"- Fridge items expiring soon: {', '.join(expiring_items)}")
-
-    fall_risk_meds = extract_fall_risk_medications()
+    
+    # TODO: get patient name from the patient id or make it a parameter
+    fall_risk_meds = extract_fall_risk_medications(first_name, last_name)
     if fall_risk_meds:                       data_lines.append(f"- Medications that may cause dizziness or dehydration:\n  " + "\n  ".join(fall_risk_meds))
 
-    all_meds = extract_frank_medications_from_file()
-    if all_meds:
-        med_lines = [f"  • {m['drug']}: {m['dosage']}" for m in all_meds]
+    # TODO: get patient name from the patient id or make it a parameter
+    medications = get_patient_medications(first_name, last_name)
+    active_meds = [m for m in medications if m['status'] == 'active']
+    if active_meds:
+        med_lines = [f"  • {m['drug']}: {m['dosage']}" for m in active_meds]
         data_lines.append("- Active prescriptions:\n" + "\n".join(med_lines))
 
-    appts = extract_frank_appointments_from_file()
+    # TODO: get patient name from the patient id or make it a parameter
+    appts = get_patient_appointments(first_name, last_name)
+    appts.sort(key=lambda x: x["start"])
     if appts:
         appt_lines = []
         for a in appts:
@@ -1753,8 +1782,8 @@ def get_system_prompt(patient_id: str = "") -> str:
             except Exception:
                 date_str = a["start"][:10]
                 time_str = ""
-            parts = [f"{date_str} at {time_str}", a["service"]]
-            if a["doctor"]: parts.append(f"with {a['doctor']}")
+            parts = [f"{date_str} at {time_str}", a["type"]]
+            if a["practitioner"]: parts.append(f"with {a['practitioner']}")
             if a["location"]: parts.append(f"at {a['location']}")
             appt_lines.append("  • " + " — ".join(parts))
         data_lines.append("- Upcoming appointments:\n" + "\n".join(appt_lines))
@@ -1764,13 +1793,13 @@ def get_system_prompt(patient_id: str = "") -> str:
     # ── Neighborhood — all upcoming activities ─────────────────────────────────
     neighborhoodJson = get_neighborhood(patient_id)
     latest_dict = neighborhoodJson[0] if neighborhoodJson else None
-    today = datetime.strptime(latest_dict.get('date'), '%Y-%m-%d') if latest_dict else datetime.now()
 
     act_lines = []
     if latest_dict:
+        today = datetime.strptime(latest_dict.get('date'), '%Y-%m-%d')
         sorted_activities = sorted(
             latest_dict.get("activities", []),
-            key=lambda x: (lambda d: datetime.strptime(d, "%A, %b %d %Y") if d.split(",")[0] not in ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"] else datetime.strptime(d, "%a, %b %d %Y"))(f"{x.get('date')} {today.year}")
+            key=lambda x: (lambda d: datetime.strptime(d, "%A, %b %d %Y"))(f"{x.get('date')} {today.year}")
         )
         day_abbr = {"Mon,": "Monday,", "Tue,": "Tuesday,", "Wed,": "Wednesday,", "Thu,": "Thursday,", "Fri,": "Friday,", "Sat,": "Saturday,", "Sun,": "Sunday,"}
         for a in sorted_activities:
@@ -1817,7 +1846,7 @@ def get_system_prompt(patient_id: str = "") -> str:
     When Frank asks about appointments, you MUST read out every detail for each one: full date, time, appointment type, physician name (if any), and location. Never omit any of these fields. Example: "You have a Primary Care Check-up on Wednesday, April 8th at 9:00 AM with Dr. James Patel at Medfield Family Practice."
 
     # NEIGHBORHOOD ACTIVITIES (Oakwood Pines — all upcoming):
-    Consider all activities and suggest the most appropriate for Frank's wellbeing. Prioritise any happening today ({today.strftime('%a, %b %d')}) or tomorrow ({(today + timedelta(days=1)).strftime('%a, %b %d')}).
+    Consider all activities and suggest the most appropriate for Frank's wellbeing. Prioritise any happening today ({today.strftime('%A, %b %d')}) or tomorrow ({(today + timedelta(days=1)).strftime('%A, %b %d')}).
 
     {activities}
 
@@ -1862,14 +1891,13 @@ def get_system_prompt(patient_id: str = "") -> str:
 #         return f"""
 #         # TASK
 #         Provide a good morning message including a gentle summary of what the system has noticed based on their garmin and household data with a focus on their mental health, and some advice for how best to behave today.
-#         DO NOT TALK ABOUT FALL RISK. Your summary has to be about how he can improve his mental wellbeing.
-#         Remind him he has an appointment today.
-#         Don't give too much technical detail, this summary should act as a higher level overview of their health.
+#         DO NOT TALK ABOUT FALL RISK. Your summary has to be about how they can improve their mental wellbeing.
+#         Remind them they have an appointment today.
 #         Avoid returning too long of a message, your response should not require bullet points. Keep to 4-5 sentences.
+#         Avoid giving too much technical detail, this summary should act as a higher level overview of their health.
 #         Based on your summary, suggest something within their neighborhood happening tomorrow that they might enjoy which could help them achieve your advised behaviour. 
 #         """
 #     return ""
-#         # Then suggest one simple, comforting recipe using ingredients currently in his fridge inventory (listed in your context — name the specific items).
 
 
 @app.get("/api/checkin-prompt")

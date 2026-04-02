@@ -4778,8 +4778,8 @@
         "serviceType": [
           { "coding": [{ "display": "Primary Care Check-up" }] }
         ],
-        "start": "2026-04-08T09:00:00Z",
-        "end":   "2026-04-08T09:30:00Z",
+        "start": "2026-04-09T09:00:00Z",
+        "end":   "2026-04-09T09:30:00Z",
         "participant": [
           {
             "actor": {
