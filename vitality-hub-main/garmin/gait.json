@@ -1,11 +1,11 @@
 [
   {
-    "calendarDate": "2026-01-11",
+    "calendarDate": "2026-04-21",
     "deviceId": "GARMIN_WATCH_001",
     "patientId": "PATIENT_001",
     "sessions": [
       {
-        "startTime": "2026-01-11T09:05:00.0",
+        "startTime": "2026-04-21T09:05:00.0",
         "durationSeconds": 900,
         "steps": 1080,
         "cadence": 86,
@@ -16,7 +16,7 @@
         "stepSymmetryPct": 79
       },
       {
-        "startTime": "2026-01-11T15:45:00.0",
+        "startTime": "2026-04-21T15:45:00.0",
         "durationSeconds": 1080,
         "steps": 1310,
         "cadence": 88,
@@ -29,12 +29,12 @@
     ]
   },
   {
-    "calendarDate": "2026-01-12",
+    "calendarDate": "2026-04-22",
     "deviceId": "GARMIN_WATCH_001",
     "patientId": "PATIENT_001",
     "sessions": [
       {
-        "startTime": "2026-01-12T09:30:00.0",
+        "startTime": "2026-04-22T09:30:00.0",
         "durationSeconds": 780,
         "steps": 940,
         "cadence": 83,
@@ -45,7 +45,7 @@
         "stepSymmetryPct": 78
       },
       {
-        "startTime": "2026-01-12T14:30:00.0",
+        "startTime": "2026-04-22T14:30:00.0",
         "durationSeconds": 1020,
         "steps": 1240,
         "cadence": 87,
@@ -58,12 +58,12 @@
     ]
   },
   {
-    "calendarDate": "2026-01-13",
+    "calendarDate": "2026-04-23",
     "deviceId": "GARMIN_WATCH_001",
     "patientId": "PATIENT_001",
     "sessions": [
       {
-        "startTime": "2026-01-13T08:55:00.0",
+        "startTime": "2026-04-23T08:55:00.0",
         "durationSeconds": 960,
         "steps": 1170,
         "cadence": 88,
@@ -74,7 +74,7 @@
         "stepSymmetryPct": 81
       },
       {
-        "startTime": "2026-01-13T15:20:00.0",
+        "startTime": "2026-04-23T15:20:00.0",
         "durationSeconds": 1140,
         "steps": 1400,
         "cadence": 91,
@@ -87,12 +87,12 @@
     ]
   },
   {
-    "calendarDate": "2026-01-14",
+    "calendarDate": "2026-04-24",
     "deviceId": "GARMIN_WATCH_001",
     "patientId": "PATIENT_001",
     "sessions": [
       {
-        "startTime": "2026-01-14T09:05:00.0",
+        "startTime": "2026-04-24T09:05:00.0",
         "durationSeconds": 1020,
         "steps": 1250,
         "cadence": 89,
@@ -103,7 +103,7 @@
         "stepSymmetryPct": 83
       },
       {
-        "startTime": "2026-01-14T16:00:00.0",
+        "startTime": "2026-04-24T16:00:00.0",
         "durationSeconds": 1260,
         "steps": 1550,
         "cadence": 92,
@@ -116,12 +116,12 @@
     ]
   },
   {
-    "calendarDate": "2026-01-15",
+    "calendarDate": "2026-04-25",
     "deviceId": "GARMIN_WATCH_001",
     "patientId": "PATIENT_001",
     "sessions": [
       {
-        "startTime": "2026-01-15T09:10:00.0",
+        "startTime": "2026-04-25T09:10:00.0",
         "durationSeconds": 840,
         "steps": 1020,
         "cadence": 87,
@@ -132,7 +132,7 @@
         "stepSymmetryPct": 79
       },
       {
-        "startTime": "2026-01-15T15:30:00.0",
+        "startTime": "2026-04-25T15:30:00.0",
         "durationSeconds": 1200,
         "steps": 1540,
         "cadence": 90,
@@ -145,12 +145,12 @@
     ]
   },
   {
-    "calendarDate": "2026-01-16",
+    "calendarDate": "2026-04-26",
     "deviceId": "GARMIN_WATCH_001",
     "patientId": "PATIENT_001",
     "sessions": [
       {
-        "startTime": "2026-01-16T08:45:00.0",
+        "startTime": "2026-04-26T08:45:00.0",
         "durationSeconds": 660,
         "steps": 780,
         "cadence": 82,
@@ -161,7 +161,7 @@
         "stepSymmetryPct": 75
       },
       {
-        "startTime": "2026-01-16T14:00:00.0",
+        "startTime": "2026-04-26T14:00:00.0",
         "durationSeconds": 900,
         "steps": 1100,
         "cadence": 85,
@@ -174,12 +174,12 @@
     ]
   },
   {
-    "calendarDate": "2026-01-17",
+    "calendarDate": "2026-04-27",
     "deviceId": "GARMIN_WATCH_001",
     "patientId": "PATIENT_001",
     "sessions": [
       {
-        "startTime": "2026-01-17T09:22:00.0",
+        "startTime": "2026-04-27T09:22:00.0",
         "durationSeconds": 720,
         "steps": 870,
         "cadence": 84,
@@ -190,7 +190,7 @@
         "stepSymmetryPct": 77
       },
       {
-        "startTime": "2026-01-17T16:15:00.0",
+        "startTime": "2026-04-27T16:15:00.0",
         "durationSeconds": 960,
         "steps": 1160,
         "cadence": 86,

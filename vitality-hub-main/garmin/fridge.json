@@ -1,6 +1,6 @@
 [
   {
-    "calendarDate": "2026-01-15",
+    "calendarDate": "2026-04-25",
     "deviceId": "SMART_FRIDGE_001",
     "patientId": "PATIENT_001",
     "inventory": [
@@ -33,7 +33,7 @@
     ]
   },
   {
-    "calendarDate": "2026-01-16",
+    "calendarDate": "2026-04-26",
     "deviceId": "SMART_FRIDGE_001",
     "patientId": "PATIENT_001",
     "inventory": [
@@ -65,7 +65,7 @@
     ]
   },
   {
-    "calendarDate": "2026-01-17",
+    "calendarDate": "2026-04-27",
     "deviceId": "SMART_FRIDGE_001",
     "patientId": "PATIENT_001",
     "inventory": [
