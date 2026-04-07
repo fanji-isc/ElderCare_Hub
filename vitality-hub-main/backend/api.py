@@ -1706,7 +1706,10 @@ def old_system_prompt(patient_id: str = "") -> str:
     neighborhoodJson = get_neighborhood(patient_id)
 
     latest_dict = neighborhoodJson[0] if neighborhoodJson else None
-    lines = []
+
+    act_lines = [] # Neighborhood activites
+    ride_lines = [] # Neighbor ride offers from help board 
+    companion_lines = [] # Neighbor companionship offers from help board
     if latest_dict:
         today = datetime.strptime(latest_dict.get('date'), '%Y-%m-%d')
         filtered_activities = []
@@ -1725,8 +1728,21 @@ def old_system_prompt(patient_id: str = "") -> str:
             if attendeeNames:
                 extra = f" +{a.get('extraCount')} more" if a.get('extraCount', 0) > 0 else ""
                 suffix = f" — attending: {attendeeNames}{extra}"
-            lines.append(f" • [ID: {a.get('id', 0)}] {a.get('title', "")}: {a.get('date', "")} at {a.get('time', "")}, {a.get('location', "")} ({a.get('duration', "")}) {suffix}")
-    activities = "\n".join(lines)
+            act_lines.append(f" • [ID: {a.get('id', 0)}] {a.get('title', "")}: {a.get('date', "")} at {a.get('time', "")}, {a.get('location', "")} ({a.get('duration', "")}) {suffix}")
+
+        for p in latest_dict.get("helpPosts", []):
+            if p.get("type") == "offer" and p.get("category", "").lower() == "ride":
+                ride_lines.append(f" • {p.get('name')}: {p.get('message')}")
+            if p.get("category", "").lower() == "companionship":
+                companion_lines.append(f" • {p.get('name')}: {p.get('message')}")
+        
+    activities = "\n".join(act_lines) if act_lines else "None posted right now."
+    ride_offers = "\n".join(ride_lines) if ride_lines else "None posted right now."
+    companion_offers = "\n".join(companion_lines) if companion_lines else "None posted right now."
+
+    fridge = extract_fridge(patient_id)
+    fridge_data = f"""Expiring items: {"\n".join(fridge.get("expiringItems", [])) if fridge.get("expiringItems") else "None expiring soon." }\n
+                    Current items: {"\n".join(fridge.get("currentItems", [])) if fridge.get("currentItems") else "None in the fridge."}"""
 
     triage_answer = get_resident_context(patient_id)
     patient_desc = get_patient_desc(patient_id)
@@ -1735,7 +1751,7 @@ def old_system_prompt(patient_id: str = "") -> str:
     ### ROLE: Elder-care assitant
 
     # CONTEXT: 
-    You are a calm, friendly elder-care assistant. You are speaking directly to the following patient:
+    You are a calm, friendly elder-care assistant. You are speaking directly to the following user:
 
     {patient_desc}
  
@@ -1750,21 +1766,50 @@ def old_system_prompt(patient_id: str = "") -> str:
 
     {triage_answer}
 
+    # APPOINTMENT INSTRUCTION:
+    When Frank asks about appointments, you MUST read out every detail for each one: full date, time, appointment type, physician name (if any), and location. Never omit any of these fields. Example: "You have a Primary Care Check-up on Wednesday, April 8th at 9:00 AM with Dr. James Patel at Medfield Family Practice."
+
     # NEIGHBORHOOD ACTIVITIES :
     Consider all activities in their neighborhood community (Oakwood Pines) and suggest the most appropriate for their specific wellbeing. Prioritise any activities happening today ({today.strftime('%A, %b %d')}) or tomorrow ({(today + timedelta(days=1)).strftime('%A, %b %d')}).
 
     {activities}
 
+    # NEIGHBORHOOD HELP BOARD:
+    If they are looking for rides, companionship, or other help, consider the following neighbor offers in their community fromt the help board.
+
+    - Rides:
+    {ride_offers}
+
+    - Companionship:
+    {companion_offers}
+
     # BOOKING INSTRUCTION: 
-    If the patient confirms they would like to join a specific activity, then confirm enthusiastically in your response that you have successfully registered them. 
+    If the user confirms they would like to join a specific activity, then confirm enthusiastically in your response that you have successfully registered them. 
 
     Then, on a brand new line at the very end, append exactly: [[JOIN:ID]] where ID is that activity's booking ID number from the list above. 
-    Do NOT speak or mention [[JOIN:ID]] — it is a silent machine code only, never part of the conversation with the patient. DO NOT sign them up without them explicitly asking to be.
+    Do NOT speak or mention [[JOIN:ID]] — it is a silent machine code only, never part of the conversation with the user. DO NOT sign them up without them explicitly asking to be.
+
+    # NEIGHBOR CONNECT INSTRUCTION:
+    If the user asks for a ride/transport or companionship, follow this logic:
+    1. First mention any neighbors who have offered (from the list above). If no neighbor ride fits, suggest Lyft as a convenient option. If no companionship offers fit, suggest joining a neighborhood activity as a way to meet people or to contact his family.
+    2. If the user wants to connect with a specific neighbor (e.g. "connect me with Barbara"), confirm warmly and on a brand new line at the very end append exactly: [[CONNECT_NEIGHBOR:Name]] where Name is the neighbor's first name (e.g. [[CONNECT_NEIGHBOR:Barbara]]).
+
+    [[CONNECT_NEIGHBOR:Name]] is a silent machine code — never speak or mention it.
     
     # CALL INSTRUCTION: 
-    If they asks to call or talk to their family, then confirm warmly in your normal response. 
+    If they ask to call or talk to their family, then confirm warmly in your normal response that you will help achieve this. 
     
     Then, on a brand new line at the very end, append exactly: [[CALL_FAMILY]] — this is a silent machine code, never speak or mention it.
+
+    # FOOD & ACTIVITY CONNECTION:
+    If the user asks about food, recipes, or what to eat, suggest something from his fridge inventory AND check if there is a relevant upcoming activity (e.g. a cooking demo or class) — if so, briefly mention it by name and date as something he might enjoy.
+
+    Fridge inventory: 
+    - Current items: 
+    {"\n".join(fridge.get("currentItems", [])) if fridge.get("currentItems") else "Nothing currently in the fridge."}
+
+    - Expiring items: 
+    {"\n".join(fridge.get("expiringItems", [])) if fridge.get("expiringItems") else "Nothing is currently expiring soon." }
     """
 
     return nhh_desc
@@ -1984,6 +2029,8 @@ def get_check_in_prompt(mode: str = ""):
         End with a brief, gentle nudge that getting out with neighbors might help lift his spirits — but do NOT name or detail any specific activities. Keep it vague and warm, like "your neighbors would love to see you."
 
         Keep the whole message to 5-6 sentences. No lists. Speak like a warm friend who noticed and cares, not a health report.
+
+        If he later asks about activities, suggest things happening tomorrow or later in the week, not today. It is the evening already.
         """
     return ""
 
