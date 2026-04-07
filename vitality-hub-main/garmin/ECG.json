@@ -2,8 +2,8 @@
     {
         "summary": {
             "detailId": "2da08eb7-4f18-485e-86d5-9952aa33943d",
-            "startTime": 1777332773,
-            "startTimeLocal": "2026-04-27T19:32:53.0",
+            "startTime": 1777505573,
+            "startTimeLocal": "2026-04-29T19:32:53.0",
             "timeZoneOffsetInSeconds": -18000,
             "rhythmClassification": "SINUS_NORMAL",
             "mountingSide": "LEFT",
@@ -3869,8 +3869,8 @@
             "leadType": "Lead I"
         },
         "processingInfo": {
-            "uploadTime": 1768437230370,
-            "processingTime": 1768437230377,
+            "uploadTime": 1777509173370,
+            "processingTime": 1777509173377,
             "apiVersion": "25.15.0"
         }
     }

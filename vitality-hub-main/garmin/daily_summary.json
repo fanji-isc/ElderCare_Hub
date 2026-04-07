@@ -1,7 +1,7 @@
 [
     {
         "userProfilePK": 142121536,
-        "calendarDate": "2026-04-21",
+        "calendarDate": "2026-04-23",
         "uuid": "b12a03c1a447214b8ffbe8af9dd9c94d",
         "durationInMilliseconds": 86400000,
         "totalKilocalories": 2180.0,
@@ -14,10 +14,10 @@
         "dailyStepGoal": 8560,
         "totalDistanceMeters": 7330,
         "wellnessDistanceMeters": 3833,
-        "wellnessStartTimeGmt": "2026-04-21T05:00:00.0",
-        "wellnessEndTimeGmt": "2026-04-22T05:00:00.0",
-        "wellnessStartTimeLocal": "2026-04-21T00:00:00.0",
-        "wellnessEndTimeLocal": "2026-04-22T00:00:00.0",
+        "wellnessStartTimeGmt": "2026-04-23T05:00:00.0",
+        "wellnessEndTimeGmt": "2026-04-24T05:00:00.0",
+        "wellnessStartTimeLocal": "2026-04-23T00:00:00.0",
+        "wellnessEndTimeLocal": "2026-04-24T00:00:00.0",
         "highlyActiveSeconds": 612,
         "activeSeconds": 3820,
         "moderateIntensityMinutes": 38,
@@ -36,7 +36,7 @@
         "source": 0,
         "allDayStress": {
             "userProfilePK": 142121536,
-            "calendarDate": "2026-04-21",
+            "calendarDate": "2026-04-23",
             "aggregatorList": [
                 {
                     "type": "TOTAL",
@@ -54,7 +54,7 @@
         },
         "bodyBattery": {
             "userProfilePK": 142121536,
-            "calendarDate": "2026-04-21",
+            "calendarDate": "2026-04-23",
             "chargedValue": 48,
             "drainedValue": 55,
             "bodyBatteryStatList": [
@@ -62,37 +62,37 @@
                     "bodyBatteryStatType": "HIGHEST",
                     "statsValue": 78,
                     "bodyBatteryStatus": "MEASURED",
-                    "statTimestamp": "2026-04-21T10:45:00.0"
+                    "statTimestamp": "2026-04-23T10:45:00.0"
                 },
                 {
                     "bodyBatteryStatType": "LOWEST",
                     "statsValue": 23,
                     "bodyBatteryStatus": "MODELED",
-                    "statTimestamp": "2026-04-22T01:30:00.0"
+                    "statTimestamp": "2026-04-24T01:30:00.0"
                 },
                 {
                     "bodyBatteryStatType": "MOSTRECENT",
                     "statsValue": 28,
                     "bodyBatteryStatus": "MEASURED",
-                    "statTimestamp": "2026-04-22T05:00:00.0"
+                    "statTimestamp": "2026-04-24T05:00:00.0"
                 },
                 {
                     "bodyBatteryStatType": "ENDOFDAY",
                     "statsValue": 26,
                     "bodyBatteryStatus": "MEASURED",
-                    "statTimestamp": "2026-04-22T04:30:00.0"
+                    "statTimestamp": "2026-04-24T04:30:00.0"
                 },
                 {
                     "bodyBatteryStatType": "STARTOFDAY",
                     "statsValue": 42,
                     "bodyBatteryStatus": "MEASURED",
-                    "statTimestamp": "2026-04-21T05:01:00.0"
+                    "statTimestamp": "2026-04-23T05:01:00.0"
                 }
             ]
         },
         "hydration": {
             "userProfilePK": 142121536,
-            "calendarDate": "2026-04-21",
+            "calendarDate": "2026-04-23",
             "valueInML": 600.0,
             "goalInML": 2129.292,
             "sweatLossInML": 820.0,
@@ -100,7 +100,7 @@
         },
         "respiration": {
             "userProfilePK": 142121536,
-            "calendarDate": "2026-04-21",
+            "calendarDate": "2026-04-23",
             "avgWakingRespirationValue": 14.0,
             "highestRespirationValue": 22.0,
             "lowestRespirationValue": 8.0,
@@ -109,7 +109,7 @@
     },
     {
         "userProfilePK": 142121536,
-        "calendarDate": "2026-04-22",
+        "calendarDate": "2026-04-24",
         "uuid": "c23b14d2b558325c9ffcf9bg0ee0d05e",
         "durationInMilliseconds": 86400000,
         "totalKilocalories": 2290.0,
@@ -122,10 +122,10 @@
         "dailyStepGoal": 8560,
         "totalDistanceMeters": 6612,
         "wellnessDistanceMeters": 3458,
-        "wellnessStartTimeGmt": "2026-04-22T05:00:00.0",
-        "wellnessEndTimeGmt": "2026-04-23T05:00:00.0",
-        "wellnessStartTimeLocal": "2026-04-22T00:00:00.0",
-        "wellnessEndTimeLocal": "2026-04-23T00:00:00.0",
+        "wellnessStartTimeGmt": "2026-04-24T05:00:00.0",
+        "wellnessEndTimeGmt": "2026-04-25T05:00:00.0",
+        "wellnessStartTimeLocal": "2026-04-24T00:00:00.0",
+        "wellnessEndTimeLocal": "2026-04-25T00:00:00.0",
         "highlyActiveSeconds": 820,
         "activeSeconds": 4600,
         "moderateIntensityMinutes": 52,
@@ -144,7 +144,7 @@
         "source": 0,
         "allDayStress": {
             "userProfilePK": 142121536,
-            "calendarDate": "2026-04-22",
+            "calendarDate": "2026-04-24",
             "aggregatorList": [
                 {
                     "type": "TOTAL",
@@ -162,7 +162,7 @@
         },
         "bodyBattery": {
             "userProfilePK": 142121536,
-            "calendarDate": "2026-04-22",
+            "calendarDate": "2026-04-24",
             "chargedValue": 55,
             "drainedValue": 62,
             "bodyBatteryStatList": [
@@ -170,37 +170,37 @@
                     "bodyBatteryStatType": "HIGHEST",
                     "statsValue": 82,
                     "bodyBatteryStatus": "MEASURED",
-                    "statTimestamp": "2026-04-22T11:10:00.0"
+                    "statTimestamp": "2026-04-24T11:10:00.0"
                 },
                 {
                     "bodyBatteryStatType": "LOWEST",
                     "statsValue": 20,
                     "bodyBatteryStatus": "MODELED",
-                    "statTimestamp": "2026-04-23T02:00:00.0"
+                    "statTimestamp": "2026-04-25T02:00:00.0"
                 },
                 {
                     "bodyBatteryStatType": "MOSTRECENT",
                     "statsValue": 25,
                     "bodyBatteryStatus": "MEASURED",
-                    "statTimestamp": "2026-04-23T05:00:00.0"
+                    "statTimestamp": "2026-04-25T05:00:00.0"
                 },
                 {
                     "bodyBatteryStatType": "ENDOFDAY",
                     "statsValue": 23,
                     "bodyBatteryStatus": "MEASURED",
-                    "statTimestamp": "2026-04-23T04:40:00.0"
+                    "statTimestamp": "2026-04-25T04:40:00.0"
                 },
                 {
                     "bodyBatteryStatType": "STARTOFDAY",
                     "statsValue": 38,
                     "bodyBatteryStatus": "MEASURED",
-                    "statTimestamp": "2026-04-22T05:01:00.0"
+                    "statTimestamp": "2026-04-24T05:01:00.0"
                 }
             ]
         },
         "hydration": {
             "userProfilePK": 142121536,
-            "calendarDate": "2026-04-22",
+            "calendarDate": "2026-04-24",
             "valueInML": 850.0,
             "goalInML": 2129.292,
             "sweatLossInML": 950.0,
@@ -208,7 +208,7 @@
         },
         "respiration": {
             "userProfilePK": 142121536,
-            "calendarDate": "2026-04-22",
+            "calendarDate": "2026-04-24",
             "avgWakingRespirationValue": 15.0,
             "highestRespirationValue": 23.0,
             "lowestRespirationValue": 7.0,
@@ -217,7 +217,7 @@
     },
     {
         "userProfilePK": 142121536,
-        "calendarDate": "2026-04-23",
+        "calendarDate": "2026-04-25",
         "uuid": "d34c25e3c669436d0ggdg0ch1ff1e16f",
         "durationInMilliseconds": 86400000,
         "totalKilocalories": 2115.0,
@@ -230,10 +230,10 @@
         "dailyStepGoal": 8560,
         "totalDistanceMeters": 5374,
         "wellnessDistanceMeters": 2810,
-        "wellnessStartTimeGmt": "2026-04-23T05:00:00.0",
-        "wellnessEndTimeGmt": "2026-04-24T05:00:00.0",
-        "wellnessStartTimeLocal": "2026-04-23T00:00:00.0",
-        "wellnessEndTimeLocal": "2026-04-24T00:00:00.0",
+        "wellnessStartTimeGmt": "2026-04-25T05:00:00.0",
+        "wellnessEndTimeGmt": "2026-04-26T05:00:00.0",
+        "wellnessStartTimeLocal": "2026-04-25T00:00:00.0",
+        "wellnessEndTimeLocal": "2026-04-26T00:00:00.0",
         "highlyActiveSeconds": 380,
         "activeSeconds": 2900,
         "moderateIntensityMinutes": 24,
@@ -252,7 +252,7 @@
         "source": 0,
         "allDayStress": {
             "userProfilePK": 142121536,
-            "calendarDate": "2026-04-23",
+            "calendarDate": "2026-04-25",
             "aggregatorList": [
                 {
                     "type": "TOTAL",
@@ -270,7 +270,7 @@
         },
         "bodyBattery": {
             "userProfilePK": 142121536,
-            "calendarDate": "2026-04-23",
+            "calendarDate": "2026-04-25",
             "chargedValue": 60,
             "drainedValue": 45,
             "bodyBatteryStatList": [
@@ -278,37 +278,37 @@
                     "bodyBatteryStatType": "HIGHEST",
                     "statsValue": 88,
                     "bodyBatteryStatus": "MEASURED",
-                    "statTimestamp": "2026-04-23T10:20:00.0"
+                    "statTimestamp": "2026-04-25T10:20:00.0"
                 },
                 {
                     "bodyBatteryStatType": "LOWEST",
                     "statsValue": 30,
                     "bodyBatteryStatus": "MODELED",
-                    "statTimestamp": "2026-04-24T01:00:00.0"
+                    "statTimestamp": "2026-04-26T01:00:00.0"
                 },
                 {
                     "bodyBatteryStatType": "MOSTRECENT",
                     "statsValue": 43,
                     "bodyBatteryStatus": "MEASURED",
-                    "statTimestamp": "2026-04-24T05:00:00.0"
+                    "statTimestamp": "2026-04-26T05:00:00.0"
                 },
                 {
                     "bodyBatteryStatType": "ENDOFDAY",
                     "statsValue": 41,
                     "bodyBatteryStatus": "MEASURED",
-                    "statTimestamp": "2026-04-24T04:30:00.0"
+                    "statTimestamp": "2026-04-26T04:30:00.0"
                 },
                 {
                     "bodyBatteryStatType": "STARTOFDAY",
                     "statsValue": 45,
                     "bodyBatteryStatus": "MEASURED",
-                    "statTimestamp": "2026-04-23T05:01:00.0"
+                    "statTimestamp": "2026-04-25T05:01:00.0"
                 }
             ]
         },
         "hydration": {
             "userProfilePK": 142121536,
-            "calendarDate": "2026-04-23",
+            "calendarDate": "2026-04-25",
             "valueInML": 400.0,
             "goalInML": 2129.292,
             "sweatLossInML": 620.0,
@@ -316,7 +316,7 @@
         },
         "respiration": {
             "userProfilePK": 142121536,
-            "calendarDate": "2026-04-23",
+            "calendarDate": "2026-04-25",
             "avgWakingRespirationValue": 14.0,
             "highestRespirationValue": 21.0,
             "lowestRespirationValue": 7.0,
@@ -325,7 +325,7 @@
     },
     {
         "userProfilePK": 142121536,
-        "calendarDate": "2026-04-24",
+        "calendarDate": "2026-04-26",
         "uuid": "e45d36f4d77a547e1hhhh1di2gg2f27g",
         "durationInMilliseconds": 86400000,
         "totalKilocalories": 2340.0,
@@ -338,10 +338,10 @@
         "dailyStepGoal": 8560,
         "totalDistanceMeters": 3654,
         "wellnessDistanceMeters": 1911,
-        "wellnessStartTimeGmt": "2026-04-24T05:00:00.0",
-        "wellnessEndTimeGmt": "2026-04-25T05:00:00.0",
-        "wellnessStartTimeLocal": "2026-04-24T00:00:00.0",
-        "wellnessEndTimeLocal": "2026-04-25T00:00:00.0",
+        "wellnessStartTimeGmt": "2026-04-26T05:00:00.0",
+        "wellnessEndTimeGmt": "2026-04-27T05:00:00.0",
+        "wellnessStartTimeLocal": "2026-04-26T00:00:00.0",
+        "wellnessEndTimeLocal": "2026-04-27T00:00:00.0",
         "highlyActiveSeconds": 920,
         "activeSeconds": 5100,
         "moderateIntensityMinutes": 58,
@@ -360,7 +360,7 @@
         "source": 0,
         "allDayStress": {
             "userProfilePK": 142121536,
-            "calendarDate": "2026-04-24",
+            "calendarDate": "2026-04-26",
             "aggregatorList": [
                 {
                     "type": "TOTAL",
@@ -378,7 +378,7 @@
         },
         "bodyBattery": {
             "userProfilePK": 142121536,
-            "calendarDate": "2026-04-24",
+            "calendarDate": "2026-04-26",
             "chargedValue": 50,
             "drainedValue": 68,
             "bodyBatteryStatList": [
@@ -386,37 +386,37 @@
                     "bodyBatteryStatType": "HIGHEST",
                     "statsValue": 80,
                     "bodyBatteryStatus": "MEASURED",
-                    "statTimestamp": "2026-04-24T11:50:00.0"
+                    "statTimestamp": "2026-04-26T11:50:00.0"
                 },
                 {
                     "bodyBatteryStatType": "LOWEST",
                     "statsValue": 12,
                     "bodyBatteryStatus": "MODELED",
-                    "statTimestamp": "2026-04-25T03:10:00.0"
+                    "statTimestamp": "2026-04-27T03:10:00.0"
                 },
                 {
                     "bodyBatteryStatType": "MOSTRECENT",
                     "statsValue": 18,
                     "bodyBatteryStatus": "MEASURED",
-                    "statTimestamp": "2026-04-25T05:00:00.0"
+                    "statTimestamp": "2026-04-27T05:00:00.0"
                 },
                 {
                     "bodyBatteryStatType": "ENDOFDAY",
                     "statsValue": 16,
                     "bodyBatteryStatus": "MEASURED",
-                    "statTimestamp": "2026-04-25T04:45:00.0"
+                    "statTimestamp": "2026-04-27T04:45:00.0"
                 },
                 {
                     "bodyBatteryStatType": "STARTOFDAY",
                     "statsValue": 36,
                     "bodyBatteryStatus": "MEASURED",
-                    "statTimestamp": "2026-04-24T05:01:00.0"
+                    "statTimestamp": "2026-04-26T05:01:00.0"
                 }
             ]
         },
         "hydration": {
             "userProfilePK": 142121536,
-            "calendarDate": "2026-04-24",
+            "calendarDate": "2026-04-26",
             "valueInML": 1100.0,
             "goalInML": 2129.292,
             "sweatLossInML": 1150.0,
@@ -424,7 +424,7 @@
         },
         "respiration": {
             "userProfilePK": 142121536,
-            "calendarDate": "2026-04-24",
+            "calendarDate": "2026-04-26",
             "avgWakingRespirationValue": 16.0,
             "highestRespirationValue": 25.0,
             "lowestRespirationValue": 7.0,
@@ -433,7 +433,7 @@
     },
     {
         "userProfilePK": 142121536,
-        "calendarDate": "2026-04-25",
+        "calendarDate": "2026-04-27",
         "uuid": "f56e47g5e88b658f2iiij2ej3hh3g38h",
         "durationInMilliseconds": 86400000,
         "totalKilocalories": 2240.0,
@@ -446,10 +446,10 @@
         "dailyStepGoal": 8560,
         "totalDistanceMeters": 2523,
         "wellnessDistanceMeters": 1319,
-        "wellnessStartTimeGmt": "2026-04-25T05:00:00.0",
-        "wellnessEndTimeGmt": "2026-04-26T05:00:00.0",
-        "wellnessStartTimeLocal": "2026-04-25T00:00:00.0",
-        "wellnessEndTimeLocal": "2026-04-26T00:00:00.0",
+        "wellnessStartTimeGmt": "2026-04-27T05:00:00.0",
+        "wellnessEndTimeGmt": "2026-04-28T05:00:00.0",
+        "wellnessStartTimeLocal": "2026-04-27T00:00:00.0",
+        "wellnessEndTimeLocal": "2026-04-28T00:00:00.0",
         "highlyActiveSeconds": 710,
         "activeSeconds": 4200,
         "moderateIntensityMinutes": 44,
@@ -468,7 +468,7 @@
         "source": 0,
         "allDayStress": {
             "userProfilePK": 142121536,
-            "calendarDate": "2026-04-25",
+            "calendarDate": "2026-04-27",
             "aggregatorList": [
                 {
                     "type": "TOTAL",
@@ -486,7 +486,7 @@
         },
         "bodyBattery": {
             "userProfilePK": 142121536,
-            "calendarDate": "2026-04-25",
+            "calendarDate": "2026-04-27",
             "chargedValue": 52,
             "drainedValue": 58,
             "bodyBatteryStatList": [
@@ -494,37 +494,37 @@
                     "bodyBatteryStatType": "HIGHEST",
                     "statsValue": 83,
                     "bodyBatteryStatus": "MEASURED",
-                    "statTimestamp": "2026-04-25T10:55:00.0"
+                    "statTimestamp": "2026-04-27T10:55:00.0"
                 },
                 {
                     "bodyBatteryStatType": "LOWEST",
                     "statsValue": 22,
                     "bodyBatteryStatus": "MODELED",
-                    "statTimestamp": "2026-04-26T02:20:00.0"
+                    "statTimestamp": "2026-04-28T02:20:00.0"
                 },
                 {
                     "bodyBatteryStatType": "MOSTRECENT",
                     "statsValue": 27,
                     "bodyBatteryStatus": "MEASURED",
-                    "statTimestamp": "2026-04-26T05:00:00.0"
+                    "statTimestamp": "2026-04-28T05:00:00.0"
                 },
                 {
                     "bodyBatteryStatType": "ENDOFDAY",
                     "statsValue": 25,
                     "bodyBatteryStatus": "MEASURED",
-                    "statTimestamp": "2026-04-26T04:35:00.0"
+                    "statTimestamp": "2026-04-28T04:35:00.0"
                 },
                 {
                     "bodyBatteryStatType": "STARTOFDAY",
                     "statsValue": 40,
                     "bodyBatteryStatus": "MEASURED",
-                    "statTimestamp": "2026-04-25T05:01:00.0"
+                    "statTimestamp": "2026-04-27T05:01:00.0"
                 }
             ]
         },
         "hydration": {
             "userProfilePK": 142121536,
-            "calendarDate": "2026-04-25",
+            "calendarDate": "2026-04-27",
             "valueInML": 750.0,
             "goalInML": 2129.292,
             "sweatLossInML": 890.0,
@@ -532,7 +532,7 @@
         },
         "respiration": {
             "userProfilePK": 142121536,
-            "calendarDate": "2026-04-25",
+            "calendarDate": "2026-04-27",
             "avgWakingRespirationValue": 15.0,
             "highestRespirationValue": 23.0,
             "lowestRespirationValue": 7.0,
@@ -541,7 +541,7 @@
     },
     {
         "userProfilePK": 142121536,
-        "calendarDate": "2026-04-26",
+        "calendarDate": "2026-04-28",
         "uuid": "g67f58h6f99c769g3jjjk3fk4ii4h49i",
         "durationInMilliseconds": 86400000,
         "totalKilocalories": 2310.0,
@@ -554,10 +554,10 @@
         "dailyStepGoal": 8560,
         "totalDistanceMeters": 1705,
         "wellnessDistanceMeters": 891,
-        "wellnessStartTimeGmt": "2026-04-26T05:00:00.0",
-        "wellnessEndTimeGmt": "2026-04-27T05:00:00.0",
-        "wellnessStartTimeLocal": "2026-04-26T00:00:00.0",
-        "wellnessEndTimeLocal": "2026-04-27T00:00:00.0",
+        "wellnessStartTimeGmt": "2026-04-28T05:00:00.0",
+        "wellnessEndTimeGmt": "2026-04-29T05:00:00.0",
+        "wellnessStartTimeLocal": "2026-04-28T00:00:00.0",
+        "wellnessEndTimeLocal": "2026-04-29T00:00:00.0",
         "highlyActiveSeconds": 880,
         "activeSeconds": 4900,
         "moderateIntensityMinutes": 55,
@@ -576,7 +576,7 @@
         "source": 0,
         "allDayStress": {
             "userProfilePK": 142121536,
-            "calendarDate": "2026-04-26",
+            "calendarDate": "2026-04-28",
             "aggregatorList": [
                 {
                     "type": "TOTAL",
@@ -594,7 +594,7 @@
         },
         "bodyBattery": {
             "userProfilePK": 142121536,
-            "calendarDate": "2026-04-26",
+            "calendarDate": "2026-04-28",
             "chargedValue": 51,
             "drainedValue": 63,
             "bodyBatteryStatList": [
@@ -602,37 +602,37 @@
                     "bodyBatteryStatType": "HIGHEST",
                     "statsValue": 81,
                     "bodyBatteryStatus": "MEASURED",
-                    "statTimestamp": "2026-04-26T11:25:00.0"
+                    "statTimestamp": "2026-04-28T11:25:00.0"
                 },
                 {
                     "bodyBatteryStatType": "LOWEST",
                     "statsValue": 18,
                     "bodyBatteryStatus": "MODELED",
-                    "statTimestamp": "2026-04-27T02:45:00.0"
+                    "statTimestamp": "2026-04-29T02:45:00.0"
                 },
                 {
                     "bodyBatteryStatType": "MOSTRECENT",
                     "statsValue": 24,
                     "bodyBatteryStatus": "MEASURED",
-                    "statTimestamp": "2026-04-27T05:00:00.0"
+                    "statTimestamp": "2026-04-29T05:00:00.0"
                 },
                 {
                     "bodyBatteryStatType": "ENDOFDAY",
                     "statsValue": 22,
                     "bodyBatteryStatus": "MEASURED",
-                    "statTimestamp": "2026-04-27T04:38:00.0"
+                    "statTimestamp": "2026-04-29T04:38:00.0"
                 },
                 {
                     "bodyBatteryStatType": "STARTOFDAY",
                     "statsValue": 37,
                     "bodyBatteryStatus": "MEASURED",
-                    "statTimestamp": "2026-04-26T05:01:00.0"
+                    "statTimestamp": "2026-04-28T05:01:00.0"
                 }
             ]
         },
         "hydration": {
             "userProfilePK": 142121536,
-            "calendarDate": "2026-04-26",
+            "calendarDate": "2026-04-28",
             "valueInML": 950.0,
             "goalInML": 2129.292,
             "sweatLossInML": 1020.0,
@@ -640,7 +640,7 @@
         },
         "respiration": {
             "userProfilePK": 142121536,
-            "calendarDate": "2026-04-26",
+            "calendarDate": "2026-04-28",
             "avgWakingRespirationValue": 15.0,
             "highestRespirationValue": 24.0,
             "lowestRespirationValue": 7.0,
@@ -649,7 +649,7 @@
     },
     {
         "userProfilePK": 142121536,
-        "calendarDate": "2026-04-27",
+        "calendarDate": "2026-04-29",
         "uuid": "a45f05f2b557414a9eeae7be9cc8b83c",
         "durationInMilliseconds": 86400000,
         "totalKilocalories": 2363.0,
@@ -663,10 +663,10 @@
         "dailyStepGoal": 8560,
         "totalDistanceMeters": 1078,
         "wellnessDistanceMeters": 564,
-        "wellnessStartTimeGmt": "2026-04-27T05:00:00.0",
-        "wellnessEndTimeGmt": "2026-04-28T05:00:00.0",
-        "wellnessStartTimeLocal": "2026-04-27T00:00:00.0",
-        "wellnessEndTimeLocal": "2026-04-28T00:00:00.0",
+        "wellnessStartTimeGmt": "2026-04-29T05:00:00.0",
+        "wellnessEndTimeGmt": "2026-04-30T05:00:00.0",
+        "wellnessStartTimeLocal": "2026-04-29T00:00:00.0",
+        "wellnessEndTimeLocal": "2026-04-30T00:00:00.0",
         "highlyActiveSeconds": 1029,
         "activeSeconds": 5953,
         "moderateIntensityMinutes": 66,
@@ -691,7 +691,7 @@
         "source": 0,
         "allDayStress": {
             "userProfilePK": 142121536,
-            "calendarDate": "2026-04-27",
+            "calendarDate": "2026-04-29",
             "aggregatorList": [
                 {
                     "type": "TOTAL",
@@ -748,7 +748,7 @@
         },
         "bodyBattery": {
             "userProfilePK": 142121536,
-            "calendarDate": "2026-04-27",
+            "calendarDate": "2026-04-29",
             "chargedValue": 53,
             "drainedValue": 66,
             "bodyBatteryVersion": 3.0,
@@ -757,49 +757,49 @@
                     "bodyBatteryStatType": "HIGHEST",
                     "statsValue": 84,
                     "bodyBatteryStatus": "MEASURED",
-                    "statTimestamp": "2026-04-27T11:36:00.0"
+                    "statTimestamp": "2026-04-29T11:36:00.0"
                 },
                 {
                     "bodyBatteryStatType": "LOWEST",
                     "statsValue": 18,
                     "bodyBatteryStatus": "MODELED",
-                    "statTimestamp": "2026-04-28T02:39:00.0"
+                    "statTimestamp": "2026-04-30T02:39:00.0"
                 },
                 {
                     "bodyBatteryStatType": "MOSTRECENT",
                     "statsValue": 22,
                     "bodyBatteryStatus": "MEASURED",
-                    "statTimestamp": "2026-04-28T05:00:00.0"
+                    "statTimestamp": "2026-04-30T05:00:00.0"
                 },
                 {
                     "bodyBatteryStatType": "ENDOFDAY",
                     "statsValue": 21,
                     "bodyBatteryStatus": "MEASURED",
-                    "statTimestamp": "2026-04-28T04:43:00.0"
+                    "statTimestamp": "2026-04-30T04:43:00.0"
                 },
                 {
                     "bodyBatteryStatType": "STARTOFDAY",
                     "statsValue": 35,
                     "bodyBatteryStatus": "MEASURED",
-                    "statTimestamp": "2026-04-27T05:01:00.0"
+                    "statTimestamp": "2026-04-29T05:01:00.0"
                 },
                 {
                     "bodyBatteryStatType": "SLEEPSTART",
                     "statsValue": 31,
                     "bodyBatteryStatus": "MEASURED",
-                    "statTimestamp": "2026-04-27T03:02:00.0"
+                    "statTimestamp": "2026-04-29T03:02:00.0"
                 },
                 {
                     "bodyBatteryStatType": "SLEEPEND",
                     "statsValue": 84,
                     "bodyBatteryStatus": "MEASURED",
-                    "statTimestamp": "2026-04-27T11:38:00.0"
+                    "statTimestamp": "2026-04-29T11:38:00.0"
                 },
                 {
                     "bodyBatteryStatType": "DURINGSLEEP",
                     "statsValue": 53,
                     "bodyBatteryStatus": "MEASURED",
-                    "statTimestamp": "2026-04-27T11:38:00.0"
+                    "statTimestamp": "2026-04-29T11:38:00.0"
                 }
             ]
         },
@@ -809,23 +809,23 @@
         "averageMonitoringEnvironmentAltitude": 93.0,
         "hydration": {
             "userProfilePK": 142121536,
-            "calendarDate": "2026-04-27",
+            "calendarDate": "2026-04-29",
             "valueInML": 0.0,
             "activityIntakeInML": 0.0,
             "goalInML": 2129.292,
             "capped": false,
             "sweatLossInML": 1071.0,
             "adjustedGoalInML": 3200.292,
-            "lastEntryTimestampLocal": "2026-04-27T13:46:47.0"
+            "lastEntryTimestampLocal": "2026-04-29T13:46:47.0"
         },
         "respiration": {
             "userProfilePK": 142121536,
-            "calendarDate": "2026-04-27",
+            "calendarDate": "2026-04-29",
             "avgWakingRespirationValue": 15.0,
             "highestRespirationValue": 24.0,
             "lowestRespirationValue": 7.0,
             "latestRespirationValue": 13.0,
-            "latestRespirationTimeGMT": "2026-04-28T05:00:00.0",
+            "latestRespirationTimeGMT": "2026-04-30T05:00:00.0",
             "algorithmVersion": 100
         },
         "bodyBatteryFeedback": {

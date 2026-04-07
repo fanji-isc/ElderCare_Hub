@@ -1,12 +1,12 @@
 [
   {
-    "date": "2026-04-27",
+    "date": "2026-04-30",
     "activities": [
       {
         "id": 1,
         "title": "Chair Yoga Session",
         "subtitle": "Beginner friendly \u00b7 Low impact",
-        "date": "Monday, Apr 27",
+        "date": "Thursday, Apr 30",
         "time": "9:00 AM",
         "location": "Oakwood Community Center, Room 3",
         "duration": "45 min",
@@ -42,7 +42,7 @@
         "id": 8,
         "title": "Healthy Soup Cooking Demo",
         "subtitle": "Nutritious & easy recipes",
-        "date": "Tuesday, Apr 28",
+        "date": "Friday, May 01",
         "time": "11:00 AM",
         "location": "Community Kitchen, Ground Floor",
         "duration": "1 hr",
@@ -73,7 +73,7 @@
         "id": 2,
         "title": "Neighborhood Walk",
         "subtitle": "Easy pace \u00b7 Riverside Path",
-        "date": "Wednesday, Apr 29",
+        "date": "Saturday, May 02",
         "time": "7:30 AM",
         "location": "Riverside Park \u2014 main entrance",
         "duration": "1.5 hrs",
@@ -104,7 +104,7 @@
         "id": 3,
         "title": "Meditation Circle",
         "subtitle": "Online or in-person \u00b7 All welcome",
-        "date": "Friday, May 01",
+        "date": "Monday, May 04",
         "time": "10:00 AM",
         "location": "Community Center / Zoom",
         "duration": "30 min",
@@ -213,7 +213,7 @@
         "id": 7,
         "title": "Community Garden Club",
         "subtitle": "Spring planting \u00b7 All skill levels",
-        "date": "Wednesday, May 13",
+        "date": "Thursday, May 07",
         "time": "10:30 AM",
         "location": "Oakwood Community Gardens",
         "duration": "1.5 hrs",
@@ -353,7 +353,7 @@
         "initials": "R",
         "color": "pink",
         "message": "Need help carrying groceries up 3 flights \u2014 the elevator is broken this week.",
-        "date": "Mon, Apr 27",
+        "date": "Thu, Apr 30",
         "time": "4:15 PM",
         "category": "Groceries"
       },
@@ -375,7 +375,7 @@
         "initials": "E",
         "color": "purple",
         "message": "Anyone have a good mystery novel to lend? I've finished mine.",
-        "date": "Tue, Apr 21",
+        "date": "Tue, Apr 28",
         "time": "3:30 PM",
         "category": "Other"
       },

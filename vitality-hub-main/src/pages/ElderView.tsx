@@ -465,7 +465,7 @@ const ElderView = () => {
         setMessages((prev) => {
           const msgs = [...prev];
           if (msgs.length > 0 && msgs[msgs.length - 1].role === "assistant" && !msgs[msgs.length - 1].content) {
-            msgs[msgs.length - 1] = { ...msgs[msgs.length - 1], content: `Good morning, ${first_name}! I'm here whenever you need me.` };
+            msgs[msgs.length - 1] = { ...msgs[msgs.length - 1], content: `Hello, ${first_name}! I'm here whenever you need me.` };
           }
           return msgs;
         });
@@ -485,7 +485,7 @@ const ElderView = () => {
       setMessages((prev) => {
         const msgs = [...prev];
         if (msgs.length > 0 && msgs[msgs.length - 1].role === "assistant" && !msgs[msgs.length - 1].content) {
-          msgs[msgs.length - 1] = { ...msgs[msgs.length - 1], content: `Good morning, ${first_name}! I'm here whenever you need me.` };
+          msgs[msgs.length - 1] = { ...msgs[msgs.length - 1], content: `Hello, ${first_name}! I'm here whenever you need me.` };
         }
         return msgs;
       });
@@ -987,7 +987,7 @@ const ElderView = () => {
         <div className="mb-8 text-center">
           <p className="text-lg font-medium text-muted-foreground">{today}</p>
           <h2 className="mt-1 text-5xl font-display font-bold text-foreground">
-            Good morning, {first_name}!
+            Hello, {first_name}!
           </h2>
         </div>
 
@@ -1023,7 +1023,7 @@ const ElderView = () => {
                 {isRecording
                   ? "Release to send"
                   : isThinking
-                  ? messages.length === 0 ? "Preparing your morning check-in…" : "Getting your answer…"
+                  ? messages.length === 0 ? "Preparing your check-in…" : "Getting your answer…"
                   : NHHStatus || "Hold to speak"}
               </p>
             </div>

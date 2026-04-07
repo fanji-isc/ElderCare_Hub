@@ -1321,6 +1321,7 @@ def get_patient_context(patient_id: str = ""):
     bp_trend    = get_fhir_bp_trend(patient_id)
     care_plans  = get_fhir_care_plans(patient_id)
     care_teams  = get_fhir_care_teams(patient_id)
+    appointments = get_fhir_appointments(patient_id)
     
     try:
         patient_bundle = _fhir_get("Patient", {"_id": patient_id})
@@ -1371,6 +1372,10 @@ def get_patient_context(patient_id: str = ""):
         f"    Activities: {', '.join(p['activities']) if p['activities'] else 'No activities listed'}"
         for p in care_plans
     ) or "  None"
+    appt_text  = "\n".join(
+        f"  - {a['start'][:10]}: {a['type']} with {a['practitioner']} at {a['location']} (Status: {a['status']})"
+        for a in appointments
+    ) or "  None"
 
     context = f"""
     Patient: {name} {age_str}
@@ -1395,6 +1400,9 @@ def get_patient_context(patient_id: str = ""):
 
     Care Teams:
     {cteam_text}
+
+    Upcoming Appointments:
+    {appt_text}
     """
     return context
 
@@ -1409,9 +1417,28 @@ def get_patient_desc(patient_id: str = ""):
             - recurrent orthostatic dizziness/near-falls with dehydration risk (noted Jan 2026; borderline hypernatremia, mild creatinine rise),
             - and major depressive disorder (bereavement-related after spouse's death in Jan 2025; on sertraline).
 
-            Independent ambulation post-TKA; fall-prevention and hydration education in place.
+            Recent status (2026-01-20): HR 64/min, weight 88.2 kg (BMI 28.4). Labs show sodium 146 mmol/L, creatinine 1.3 mg/dL, and glucose 148 mg/dL.
 
-            His son **David** is his primary contact. His primary care provider is **Dr. Sarah Mitchell** (Medfield Family Health Center)."""
+            His son **David** is his primary contact. His primary care provider is **Dr. Sarah Mitchell** (Medfield Family Health Center).
+
+            Upcoming Appointments:
+            - Cardiology follow-up: 2026-05-01 (Dr. Sarah Chen)
+            - Primary care check-up: 2026-05-08 (Dr. James Patel)
+            - Lab work (blood panel): 2026-05-15 (Quest Diagnostics, Medfield)
+
+            Active Medications:
+            - Sertraline 50 mg each morning
+            - Metoprolol succinate ER 50 mg daily
+            - Gabapentin 300 mg three times daily
+            - Lisinopril 10 mg daily
+            - Metformin 500 mg twice daily with meals
+            - Hydrochlorothiazide 25 mg every morning
+            - Atorvastatin 40 mg nightly
+            (Note: Amlodipine, glipizide, and naproxen are listed as stopped.)
+
+            Care context / plans: 
+            - Comprehensive elderly care plan (active, from 2024-06-15) focused on monitoring blood pressure and orthostatic vitals, fall/dizziness review (concern for polypharmacy-related dizziness), hydration education due to diuretic use, depression check-ins, medication reconciliation, and diabetes monitoring including annual HbA1c.
+            """
     patient_fhir = get_patient_context(patient_id)
     
     client = get_openai_client()
@@ -1434,12 +1461,19 @@ def get_patient_desc(patient_id: str = ""):
                             - prior neck-of-femur fracture (Feb 2024 total hip replacement), 
                             - and recent lobar pneumonia (Dec 2025). 
 
+                        Her daughter **Linda** lives 45 minutes away. Her primary care provider is **NP Davis**.
+
                         She uses a walking stick, and has home safety rails installed. 
 
-                        Her daughter **Linda** lives 45 minutes away. Her primary care provider is **NP Davis**.
+                        Upcoming Appointments:
+                        - Endocrinology (Diabetes review): Apr 2025
+
+                        Active Medications:
+                        - Levodopa/Carbidopa 25/100 mg, 1 tablet TID (for Parkinson's)
+                        - Amlodipine 5 mg, 1 tablet daily (for blood pressure)
                         """
     response = client.responses.create(
-        model="gpt-5-mini",
+        model="gpt-5.4-nano",
         instructions = medical_analyst,
         input= f"Analyze this FHIR bundle and provide a short summary of their medical history:\n\n{patient_fhir}"
     )
@@ -1822,6 +1856,14 @@ def get_system_prompt(patient_id: str = "", first_name: str = "", last_name: str
                 ride_lines.append(f" • {p.get('name')}: {p.get('message')}")
     ride_offers = "\n".join(ride_lines) if ride_lines else "None posted right now."
 
+    # ── Neighbor companionship offers from help board ─────────────────────────
+    companion_lines = []
+    if latest_dict:
+        for p in latest_dict.get("helpPosts", []):
+            if p.get("category", "").lower() == "companionship":
+                companion_lines.append(f" • {p.get('name')}: {p.get('message')}")
+    companion_offers = "\n".join(companion_lines) if companion_lines else "None posted right now."
+
     patient_desc = get_patient_desc(patient_id)
 
     return f"""
@@ -1854,11 +1896,15 @@ def get_system_prompt(patient_id: str = "", first_name: str = "", last_name: str
     Neighbors who have offered rides in the community help board:
     {ride_offers}
 
-    # RIDE / NEIGHBOR CONNECT INSTRUCTION:
-    If Frank asks for a ride or transport:
-    1. First mention any neighbors who have offered rides (from the list above).
+    # NEIGHBOR COMPANIONSHIP OFFERS:
+    Neighbors who have offered companionship in the community help board:
+    {companion_offers}
+
+    # NEIGHBOR CONNECT INSTRUCTION:
+    If Frank asks for a ride/transport or companionship, follow this logic:
+    1. First mention any neighbors who have offered (from the list above).
     2. If Frank wants to connect with a specific neighbor (e.g. "connect me with Barbara"), confirm warmly and on a brand new line at the very end append exactly: [[CONNECT_NEIGHBOR:Name]] where Name is the neighbor's first name (e.g. [[CONNECT_NEIGHBOR:Barbara]]).
-    3. If no neighbor ride fits, suggest Lyft as a convenient option.
+    3. If no neighbor ride fits, suggest Lyft as a convenient option. If no companionship offers fit, suggest joining a neighborhood activity as a way to meet people or to contact his family.
     [[CONNECT_NEIGHBOR:Name]] is a silent machine code — never speak or mention it.
 
     # FOOD & ACTIVITY CONNECTION:
@@ -1905,7 +1951,7 @@ def get_check_in_prompt(mode: str = ""):
     if mode == "fall":
         return f"""
         # TASK
-        You are Joy, checking in on Frank's fall risk this morning. You already have his real health data in your context — use it directly. Do NOT mention meals or nutrition.
+        Check in on Frank's fall risk this morning. You already have his real health data in your context — use it directly. Do NOT mention meals or nutrition.
         Focus only on these three signals:
         - Gait: comment on his balance or symmetry if concerning — do NOT mention specific numbers or speeds.
         - Hydration (smart toilet): if dehydrated, mention it increases dizziness and fall risk.
@@ -1917,7 +1963,7 @@ def get_check_in_prompt(mode: str = ""):
     elif mode == "mental":
         return f"""
         # TASK
-        You are Joy, Frank's caring friend checking in this evening. You already have his real health data in your context — do not use actual numbers. Do NOT ask how he slept or how he's feeling. You know.
+        Check in on Frank's mental wellbeing this evening. You already have his real health data in your context — do not use actual numbers. Do NOT ask how he slept or how he's feeling. You know.
         Open with "Good evening, Frank" — not "Good morning".
         DO NOT mention fall risk, gait, dehydration, or physical safety. DO NOT use bullet points.
 
@@ -1931,44 +1977,6 @@ def get_check_in_prompt(mode: str = ""):
         Keep the whole message to 5-6 sentences. No lists. Speak like a warm friend who noticed and cares, not a health report.
         """
     return ""
-
-# TODO: rewrite
-@app.post("/api/build-health-context")
-def get_shorter_system_prompt(data: dict) -> str:
-    v = data.get("v", {})
-    nRef = data.get("nRef", {})
-    first_name = data.get("name", "Resident")
-
-    home_data = ""
-    if v.get("sleepHours"):         home_data += f"- Sleep last night: {round(v.get("sleepHours"), 1)} hours \n"
-    if v.get("heartRate"):          home_data += f"- Resting heart rate: {v.get("heartRate")} BPM \n"
-    if v.get("steps"):              home_data += f"- Steps today: {v.get("steps")} \n"
-    if v.get("stressLevel"):        home_data += f"- Stress level: {v.get("stressLevel")}/100 (0 = very calm, 100 = very stressed) \n"
-    if (v.get("hydrationNote") and v.get("hydrationColorLevel", 0) > 0): 
-        home_data += f"- Hydration (smart toilet urine color sensor): level {v.get("hydrationColorLevel")}/8 — {v.get("hydrationNote")} \n"
-    if v.get("gaitNote"):           home_data += f"- Gait / walking analysis: {v.get("gaitNote")} \n"
-    if v.get("fallRiskAlert"):      home_data += f"- Combined fall risk alert: YES — gait irregularities combined with dehydration create elevated fall risk today \n"
-    if v.get("mealsCount"):         home_data += f"- Meals detected today (smart fridge): {v.get("mealsCount")} \n"
-    if len(v.get("currentItems")):  home_data += f"- Current fridge inventory: {', '.join(v.get("currentItems"))}"
-    if len(v.get("expiringItems")): home_data += f"- Fridge items expiring soon: {', '.join(v.get("expiringItems"))}"
-
-    context = f"""
-    You are Joy, a warm and caring AI health companion for {first_name}, an elderly person living independently.
-    {first_name}'s current health data (from their wearable sensors and smart home devices):
-    {home_data}
-
-    {first_name}'s neighborhood community (Oakwood Pines): 
-    {nRef}
-
-    Use {first_name}'s personal health data and neighborhood information to answer their questions accurately. 
-    Speak clearly and reassuringly, {first_name} should feel like you are a close companion not a doctor. 
-    Keep answers brief (2-3 sentences). 
-    DO NOT diagnose medical conditions. 
-    Address them as {first_name}.
-
-    CALL INSTRUCTION: If {first_name} mentions calling, contacting, or talking to any family member (son, daughter, David, family, etc.) — immediately confirm you are calling and append [[CALL_FAMILY]] on a new line at the very end. NEVER ask for a phone number. NEVER ask for confirmation. NEVER ask if they are ready. Just say something like "Calling your family now, Frank!" and append [[CALL_FAMILY]]. This is a silent machine code — never say it out loud.
-    """
-    return context
 
 # ── AI response endpoints ─────────────────────────────────────────────────────
 
