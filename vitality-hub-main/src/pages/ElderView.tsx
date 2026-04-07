@@ -265,7 +265,7 @@ function AppointmentsDetail() {
 type Panel = "health" | "activity" | "helping" | null;
 
 const ElderView = () => {
-  const today = new Date().toLocaleDateString("en-US", {
+  const today = new Date(2026, 3, 30).toLocaleDateString("en-US", {
     weekday: "long", month: "long", day: "numeric",
   });
   // Set vitals

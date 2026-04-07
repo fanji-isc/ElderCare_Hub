@@ -1517,6 +1517,9 @@ def generate_clinician_summary(patient_id: str = Query(...)):
     Suggested actions:
     [Provide a short list of clear, clinically appropriate next steps. Each action should be on its own bullet-point, concise, practical, and directly linked to the patient's risks and care gaps. Format in the style 'Physical therapy referral: urgent gait reassessment; right-leg compensation has persisted beyond expected post-op recovery window']
 
+    Home data insights:
+    [If the patient's home data (e.g., gait metrics, hydration patterns) reveals any insights that are not already captured in the medical record but are relevant to their clinical risks, include them here in 1-2 bullet points. Include the source of this data (Hydration: Smart Toilet, Nutrition: Smart Fridge, Everything else: Garmin device).]
+
     # TONE:
     Be clear, concise, and clinically grounded. Write as a clinician-to-clinician summary. Focus only on high-impact risks and actionable insights. Avoid unnecessary detail or exhaustive condition lists.
     """
@@ -1524,7 +1527,13 @@ def generate_clinician_summary(patient_id: str = Query(...)):
     response = client.responses.create(
         model="gpt-5-nano",
         instructions = medical_analyst,
-        input = f"Analyze this FHIR bundle and provide a short summary of their clinical risks:\n\n{patient_fhir}"
+        input = f"""Analyze this FHIR bundle and provide a short summary of their clinical risks:
+        
+                    {patient_fhir}
+
+                    And their home data insights (gait, hydration, sleep, etc):
+                    {get_resident_context(patient_id) if patient_id == "1" else "- No home data available for this patient."}
+                    """
     )
     summary_text = response.output_text
 
