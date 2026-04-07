@@ -18,9 +18,9 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Navigate to="/family" replace />} />
+          <Route path="/elder" element={<ElderView />} />
           <Route path="/family" element={<FamilyView />} />
           <Route path="/physician" element={<PhysicianView />} />
-          <Route path="/elder" element={<ElderView />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

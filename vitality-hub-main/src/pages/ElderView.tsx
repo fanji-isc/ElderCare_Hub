@@ -87,10 +87,18 @@ function hydrationStatus(level: number) {
 function gaitStatus(symmetryPct: number, variabilityPct: number, speedMs: number, cadence: number, worseStride: number, worseGCT: number) {
   if (symmetryPct === 0) return { label: "No data", note: "Gait data unavailable",          color: "text-muted-foreground", status: "fair" as const };
   const isHigh = cadence < 80  || speedMs < 0.7  || worseStride < 90  || worseGCT > 950 || symmetryPct < 78  || variabilityPct > 10;
-  if (isHigh) return { label: "High Risk",     note: "Significant gait irregularities detected", color: "text-rose-600",    status: "warn" as const };
+  if (isHigh) return { label: "Irregular gait",     note: "Significant gait irregularities detected", color: "text-rose-600",    status: "warn" as const };
   const isMed  = cadence < 100 || speedMs < 1.0  || worseStride < 140 || worseGCT > 650 || symmetryPct < 95  || variabilityPct > 5;
-  if (isMed)  return { label: "Moderate Risk", note: "Some asymmetry — worth monitoring",        color: "text-amber-600",   status: "fair" as const };
-  return             { label: "Low Risk",      note: "Gait looks steady and balanced",           color: "text-emerald-600", status: "good" as const };
+  if (isMed)  return { label: "Some asymmetry", note: "Some asymmetry — worth monitoring",        color: "text-amber-600",   status: "fair" as const };
+  return             { label: "Steady and Balanced",      note: "Gait looks steady and balanced",           color: "text-emerald-600", status: "good" as const };
+}
+
+function nutritionStatus(mealsCount: number) {
+  let colour = "text-emerald-600"
+  if (mealsCount === 2) colour = "text-amber-600";
+  if (mealsCount === 1) colour = "text-orange-600";
+  if (mealsCount === 0)  return  { label: `No meals tracked`, color: "text-rose-600"};
+  return  { label: `${mealsCount} meals tracked`, color: colour};
 }
 
 // ── ModalCard ─────────────────────────────────────────────────────────────────
@@ -257,7 +265,7 @@ function AppointmentsDetail() {
 type Panel = "health" | "activity" | "helping" | null;
 
 const ElderView = () => {
-  const today = new Date().toLocaleDateString("en-US", {
+  const today = new Date(2026, 3, 30).toLocaleDateString("en-US", {
     weekday: "long", month: "long", day: "numeric",
   });
   // Set vitals
@@ -303,7 +311,7 @@ const ElderView = () => {
   useEffect(() => {
     const fetchSystemPrompt = async () => {
       try {
-        const response = await fetch(`${API_BASE}/api/system-prompt?patient_id=${HOME_ID}`);
+        const response = await fetch(`${API_BASE}/api/system-prompt?patient_id=${HOME_ID}&first_name=${first_name}&last_name=${last_name}`);
         
         if (!response.ok) {
           throw new Error("Network response was not ok");
@@ -457,7 +465,7 @@ const ElderView = () => {
         setMessages((prev) => {
           const msgs = [...prev];
           if (msgs.length > 0 && msgs[msgs.length - 1].role === "assistant" && !msgs[msgs.length - 1].content) {
-            msgs[msgs.length - 1] = { ...msgs[msgs.length - 1], content: `Good morning, ${first_name}! I'm here whenever you need me.` };
+            msgs[msgs.length - 1] = { ...msgs[msgs.length - 1], content: `Hello, ${first_name}! I'm here whenever you need me.` };
           }
           return msgs;
         });
@@ -477,7 +485,7 @@ const ElderView = () => {
       setMessages((prev) => {
         const msgs = [...prev];
         if (msgs.length > 0 && msgs[msgs.length - 1].role === "assistant" && !msgs[msgs.length - 1].content) {
-          msgs[msgs.length - 1] = { ...msgs[msgs.length - 1], content: `Good morning, ${first_name}! I'm here whenever you need me.` };
+          msgs[msgs.length - 1] = { ...msgs[msgs.length - 1], content: `Hello, ${first_name}! I'm here whenever you need me.` };
         }
         return msgs;
       });
@@ -539,10 +547,7 @@ const ElderView = () => {
   const stressS    = stressStatus(vitals.stressLevel);
   const hydrationS = hydrationStatus(vitals.hydrationColorLevel);
   const gaitS      = gaitStatus(gaitMetrics.symmetry, gaitMetrics.variability, gaitMetrics.speed, gaitMetrics.cadence, gaitMetrics.worseStride, gaitMetrics.worseGCT);
-  const nutritionS = vitals.mealsCount >= 3 ? { label: `${vitals.mealsCount} meals tracked`, color: "text-emerald-600" }
-                   : vitals.mealsCount === 2  ? { label: `${vitals.mealsCount} meals tracked`, color: "text-amber-600" }
-                   : vitals.mealsCount === 1  ? { label: `1 meal tracked`, color: "text-orange-600" }
-                   :                            { label: "No meals tracked", color: "text-rose-600" };
+  const nutritionS = nutritionStatus(vitals.mealsCount);
 
   const renderModalContent = () => {
     switch (openModal) {
@@ -725,18 +730,11 @@ const ElderView = () => {
           const ttsCtrl = new AbortController();
           speakAbortRef.current = ttsCtrl;
           stopAudio();
-          // const healthContext = await fetch(`${API_BASE}/api/build-health-context`, 
-          //   { 
-          //     method: 'POST', 
-          //     headers: { 'Content-Type': 'application/json' }, 
-          //     body: JSON.stringify({ v: vitalsRef.current, nRef: neighborhoodRef.current, name: first_name }) 
-          //   }
-          // ).then(res => res.ok ? res.text() : "Error: Could not retrieve health context.");
           const fullAnswer = await streamAnswer(
             text, nextMessages,
             () => { /* keep Thinking… visible until TTS is ready */ },
             () => { /* accumulate internally — don't update UI yet */ },
-            systemMsg // healthContext
+            systemMsg
           );
           if (!fullAnswer) {
             setMessages((prev) => {
@@ -989,7 +987,7 @@ const ElderView = () => {
         <div className="mb-8 text-center">
           <p className="text-lg font-medium text-muted-foreground">{today}</p>
           <h2 className="mt-1 text-5xl font-display font-bold text-foreground">
-            Good morning, {first_name}!
+            Hello, {first_name}!
           </h2>
         </div>
 
@@ -1025,7 +1023,7 @@ const ElderView = () => {
                 {isRecording
                   ? "Release to send"
                   : isThinking
-                  ? messages.length === 0 ? "Preparing your morning check-in…" : "Getting your answer…"
+                  ? messages.length === 0 ? "Preparing your check-in…" : "Getting your answer…"
                   : NHHStatus || "Hold to speak"}
               </p>
             </div>

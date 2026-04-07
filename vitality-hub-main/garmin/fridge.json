@@ -1,6 +1,6 @@
 [
   {
-    "calendarDate": "2026-01-15",
+    "calendarDate": "2026-04-27",
     "deviceId": "SMART_FRIDGE_001",
     "patientId": "PATIENT_001",
     "inventory": [
@@ -33,7 +33,7 @@
     ]
   },
   {
-    "calendarDate": "2026-01-16",
+    "calendarDate": "2026-04-28",
     "deviceId": "SMART_FRIDGE_001",
     "patientId": "PATIENT_001",
     "inventory": [
@@ -65,7 +65,7 @@
     ]
   },
   {
-    "calendarDate": "2026-01-17",
+    "calendarDate": "2026-04-29",
     "deviceId": "SMART_FRIDGE_001",
     "patientId": "PATIENT_001",
     "inventory": [
@@ -80,20 +80,21 @@
       { "item": "Strawberries", "quantity": "200 g", "expiresInDays": 3, "category": "fruit", "stockLevel": "low" }
     ],
     "dailyNutrition": {
-      "calories": 1640,
-      "protein": 58,
-      "carbs": 188,
-      "fat": 47,
-      "fiber": 25,
+      "calories": 842,
+      "protein": 45,
+      "carbs": 70,
+      "fat": 23,
+      "fiber": 9,
       "waterLiters": 1.9
     },
     "mealsDetected": [
-      { "time": "09:15", "meal": "Breakfast", "items": ["Greek Yogurt"], "calories": 180 }
+      { "time": "07:30", "meal": "Breakfast", "items": ["Greek Yogurt", "Strawberries"], "calories": 362 },
+      { "time": "12:45", "meal": "Lunch", "items": ["Turkey Slices", "Carrots"], "calories": 480 }
     ],
     "alerts": [
       { "type": "expiring", "item": "Milk", "message": "Expires tomorrow — use soon" },
       { "type": "expiring", "item": "Turkey Slices", "message": "Expires in 2 days" },
-      { "type": "nutrition", "message": "Only 1 meal detected today — lunch and dinner were skipped" },
+      { "type": "nutrition", "message": "Only 2 meals detected today — dinner was skipped" },
       { "type": "nutrition", "message": "Calorie intake very low — possible appetite loss" }
     ]
   }
