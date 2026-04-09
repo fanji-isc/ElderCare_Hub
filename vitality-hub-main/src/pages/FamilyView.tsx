@@ -179,11 +179,11 @@ function MedicationDetail() {
 function getApptActions(type: string): string[] {
   const t = type.toLowerCase();
   if (t.includes("cardio") || t.includes("cardiac"))
-    return ["Arrange transport", "Bring current medication list", `Remind ${first_name} 1 day before`];
+    return [`Collate ${first_name}'s heart rate readings`, `Send ${first_name} their current medication list`, `Remind ${first_name} 1 day before`];
   if (t.includes("lab") || t.includes("blood") || t.includes("panel"))
     return [`Remind ${first_name} to fast (no food after midnight)`, "Arrange early morning transport"];
   if (t.includes("primary") || t.includes("general") || t.includes("check"))
-    return ["Arrange transport", "Prepare questions for the doctor", `Remind ${first_name} 1 day before`];
+    return ["Prepare questions for the doctor", `Remind ${first_name} 1 day before`];
   return ["Arrange transport", `Remind ${first_name} 1 day before`];
 }
 function AppointmentsDetail() {
