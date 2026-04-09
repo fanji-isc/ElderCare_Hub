@@ -275,6 +275,28 @@ function AppointmentsDetail() {
   );
 }
 
+// ── HipaaShieldIcon ───────────────────────────────────────────────────────────
+function HipaaShieldIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+      {/* Shield */}
+      <path d="M12 2L3 6.5V13C3 18.2 7 22 12 23C17 22 21 18.2 21 13V6.5L12 2Z" fill="#84cc16"/>
+      {/* Document (white) */}
+      <path d="M8 8H12.5L15 10.5V19H8V8Z" fill="white"/>
+      {/* Folded corner */}
+      <path d="M12.5 8V10.5H15L12.5 8Z" fill="#bef264"/>
+      {/* Medical cross */}
+      <rect x="11" y="12" width="1.5" height="4.5" rx="0.4" fill="#84cc16"/>
+      <rect x="9.25" y="13.5" width="5" height="1.5" rx="0.4" fill="#84cc16"/>
+      {/* Badge circle */}
+      <circle cx="18.5" cy="6" r="4" fill="white"/>
+      <circle cx="18.5" cy="6" r="3.2" fill="#84cc16"/>
+      {/* Checkmark */}
+      <path d="M17 6L18.2 7.3L20.1 4.8" stroke="white" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
 // ── ModalCard ─────────────────────────────────────────────────────────────────
 function ModalCard({
   icon: Icon, iconBg, gradient, title, subtitle, children,
@@ -288,10 +310,11 @@ function ModalCard({
         <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${iconBg} text-primary-foreground`}>
           <Icon className="h-4 w-4" />
         </div>
-        <div>
+        <div className="flex-1">
           <p className="text-sm font-semibold text-foreground leading-tight">{title}</p>
           {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
         </div>
+        <span title="HIPAA Protected Health Information" className="flex-shrink-0"><HipaaShieldIcon className="h-4 w-4" /></span>
       </div>
       <div className="p-5">{children}</div>
     </div>
@@ -320,7 +343,8 @@ function HealthCard({
         <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${iconBg}`}>
           <Icon className="h-5 w-5" />
         </div>
-        <span className="text-base font-semibold text-foreground">{title}</span>
+        <span className="text-base font-semibold text-foreground flex-1">{title}</span>
+        <span title="HIPAA Protected Health Information" className="flex-shrink-0"><HipaaShieldIcon className="h-4 w-4" /></span>
       </div>
       <p className={`text-sm font-medium leading-tight ${labelColor}`}>{label}</p>
       {subtitle && <p className="mt-1 text-xs text-muted-foreground leading-tight">{subtitle}</p>}
