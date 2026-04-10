@@ -15,11 +15,145 @@ import {
 
 const API_BASE = "http://localhost:3001";
 
-const FRANK_AVATAR = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMDAgMjAwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCI+CiAgPCEtLSBCYWNrZ3JvdW5kIGNpcmNsZSAtLT4KICA8Y2lyY2xlIGN4PSIxMDAiIGN5PSIxMDAiIHI9IjEwMCIgZmlsbD0iI2RiZWFmZSIvPgoKICA8IS0tIE5lY2sgLS0+CiAgPHJlY3QgeD0iNzgiIHk9IjEzOCIgd2lkdGg9IjQ0IiBoZWlnaHQ9IjM1IiByeD0iOCIgZmlsbD0iI2Y1Y2JhNyIvPgoKICA8IS0tIFNoaXJ0IGNvbGxhciAtLT4KICA8cGF0aCBkPSJNNjggMTY1IFExMDAgMTg1IDEzMiAxNjUgTDE0NSAyMDAgSDU1IFoiIGZpbGw9IiMxZTNhNWYiLz4KICA8cGF0aCBkPSJNMTAwIDE3NSBMODggMTY1IEwxMDAgMTU1IEwxMTIgMTY1IFoiIGZpbGw9IiNmZmZmZmYiIG9wYWNpdHk9IjAuOSIvPgoKICA8IS0tIEhlYWQgc2hhcGUgLS0+CiAgPGVsbGlwc2UgY3g9IjEwMCIgY3k9IjEwNSIgcng9IjQ2IiByeT0iNTIiIGZpbGw9IiNmNWNiYTciLz4KCiAgPCEtLSBFYXJzIC0tPgogIDxlbGxpcHNlIGN4PSI1NCIgY3k9IjExMCIgcng9IjgiIHJ5PSIxMSIgZmlsbD0iI2YwYjg4YSIvPgogIDxlbGxpcHNlIGN4PSIxNDYiIGN5PSIxMTAiIHJ4PSI4IiByeT0iMTEiIGZpbGw9IiNmMGI4OGEiLz4KICA8ZWxsaXBzZSBjeD0iNTQiIGN5PSIxMTAiIHJ4PSI1IiByeT0iNyIgZmlsbD0iI2U4YTg3YyIvPgogIDxlbGxpcHNlIGN4PSIxNDYiIGN5PSIxMTAiIHJ4PSI1IiByeT0iNyIgZmlsbD0iI2U4YTg3YyIvPgoKICA8IS0tIFdoaXRlL3NpbHZlciBoYWlyIG9uIHRvcCAtLT4KICA8ZWxsaXBzZSBjeD0iMTAwIiBjeT0iNjgiIHJ4PSI0NiIgcnk9IjIyIiBmaWxsPSIjZDBkMGQwIi8+CiAgPHBhdGggZD0iTTU2IDc1IFE1OCA1NSA3NSA1MCBRMTAwIDQyIDEyNSA1MCBRMTQyIDU1IDE0NCA3NSIgZmlsbD0iI2M4YzhjOCIvPgogIDwhLS0gSGFpciB0ZXh0dXJlIGxpbmVzIC0tPgogIDxwYXRoIGQ9Ik03MCA1MiBRODAgNDYgMTAwIDQ0IFExMjAgNDYgMTMwIDUyIiBzdHJva2U9IiNiMGIwYjAiIHN0cm9rZS13aWR0aD0iMS41IiBmaWxsPSJub25lIi8+CiAgPHBhdGggZD0iTTY1IDYwIFE4MCA1MiAxMDAgNTAgUTEyMCA1MiAxMzUgNjAiIHN0cm9rZT0iI2IwYjBiMCIgc3Ryb2tlLXdpZHRoPSIxLjUiIGZpbGw9Im5vbmUiLz4KCiAgPCEtLSBTaWRlIGhhaXIgKHRlbXBsZXMsIGdyYXkpIC0tPgogIDxwYXRoIGQ9Ik01NiA4MCBRNTIgOTAgNTQgMTA1IiBzdHJva2U9IiNhYWFhYWEiIHN0cm9rZS13aWR0aD0iNSIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgPHBhdGggZD0iTTE0NCA4MCBRMTQ4IDkwIDE0NiAxMDUiIHN0cm9rZT0iI2FhYWFhYSIgc3Ryb2tlLXdpZHRoPSI1IiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KCiAgPCEtLSBFeWVicm93cyAoYnVzaHksIGdyYXkpIC0tPgogIDxwYXRoIGQ9Ik03MiA5NSBRODIgOTEgOTIgOTMiIHN0cm9rZT0iIzk5OTk5OSIgc3Ryb2tlLXdpZHRoPSIzLjUiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogIDxwYXRoIGQ9Ik0xMDggOTMgUTExOCA5MSAxMjggOTUiIHN0cm9rZT0iIzk5OTk5OSIgc3Ryb2tlLXdpZHRoPSIzLjUiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgoKICA8IS0tIEV5ZXMgLS0+CiAgPGVsbGlwc2UgY3g9IjgyIiBjeT0iMTAyIiByeD0iOSIgcnk9IjciIGZpbGw9IndoaXRlIi8+CiAgPGVsbGlwc2UgY3g9IjExOCIgY3k9IjEwMiIgcng9IjkiIHJ5PSI3IiBmaWxsPSJ3aGl0ZSIvPgogIDxjaXJjbGUgY3g9IjgyIiBjeT0iMTAyIiByPSI1IiBmaWxsPSIjNGE2ZmE1Ii8+CiAgPGNpcmNsZSBjeD0iMTE4IiBjeT0iMTAyIiByPSI1IiBmaWxsPSIjNGE2ZmE1Ii8+CiAgPGNpcmNsZSBjeD0iODIiIGN5PSIxMDIiIHI9IjMiIGZpbGw9IiMxYTFhMmUiLz4KICA8Y2lyY2xlIGN4PSIxMTgiIGN5PSIxMDIiIHI9IjMiIGZpbGw9IiMxYTFhMmUiLz4KICA8IS0tIEV5ZSBoaWdobGlnaHRzIC0tPgogIDxjaXJjbGUgY3g9Ijg0IiBjeT0iMTAwIiByPSIxLjIiIGZpbGw9IndoaXRlIi8+CiAgPGNpcmNsZSBjeD0iMTIwIiBjeT0iMTAwIiByPSIxLjIiIGZpbGw9IndoaXRlIi8+CiAgPCEtLSBDcm93J3MgZmVldCB3cmlua2xlcyAtLT4KICA8cGF0aCBkPSJNOTEgOTggUTk1IDk2IDk2IDk5IiBzdHJva2U9IiNjODk1NmMiIHN0cm9rZS13aWR0aD0iMC44IiBmaWxsPSJub25lIi8+CiAgPHBhdGggZD0iTTkxIDEwNiBROTUgMTA4IDk2IDEwNSIgc3Ryb2tlPSIjYzg5NTZjIiBzdHJva2Utd2lkdGg9IjAuOCIgZmlsbD0ibm9uZSIvPgogIDxwYXRoIGQ9Ik0xMDQgOTkgUTEwNSA5NiAxMDkgOTgiIHN0cm9rZT0iI2M4OTU2YyIgc3Ryb2tlLXdpZHRoPSIwLjgiIGZpbGw9Im5vbmUiLz4KICA8cGF0aCBkPSJNMTA0IDEwNSBRMTA1IDEwOCAxMDkgMTA2IiBzdHJva2U9IiNjODk1NmMiIHN0cm9rZS13aWR0aD0iMC44IiBmaWxsPSJub25lIi8+CgogIDwhLS0gR2xhc3NlcyAtLT4KICA8cmVjdCB4PSI3MCIgeT0iOTUiIHdpZHRoPSIyNCIgaGVpZ2h0PSIxNiIgcng9IjUiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzU1NTU1NSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHJlY3QgeD0iMTA2IiB5PSI5NSIgd2lkdGg9IjI0IiBoZWlnaHQ9IjE2IiByeD0iNSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNTU1NTU1IiBzdHJva2Utd2lkdGg9IjIiLz4KICA8cGF0aCBkPSJNOTQgMTAzIEwxMDYgMTAzIiBzdHJva2U9IiM1NTU1NTUiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxwYXRoIGQ9Ik01NiAxMDAgTDcwIDEwMCIgc3Ryb2tlPSIjNTU1NTU1IiBzdHJva2Utd2lkdGg9IjIiLz4KICA8cGF0aCBkPSJNMTMwIDEwMCBMMTQ0IDEwMCIgc3Ryb2tlPSIjNTU1NTU1IiBzdHJva2Utd2lkdGg9IjIiLz4KCiAgPCEtLSBOb3NlIC0tPgogIDxwYXRoIGQ9Ik05NyAxMDUgUTk0IDExOCA4OCAxMjIgUTk2IDEyNSAxMDAgMTI0IFExMDQgMTI1IDExMiAxMjIgUTEwNiAxMTggMTAzIDEwNSIgZmlsbD0iI2U4YTg3YyIgc3Ryb2tlPSIjZDQ5MTVhIiBzdHJva2Utd2lkdGg9IjAuNSIvPgoKICA8IS0tIFNtaWxlIHdyaW5rbGVzIChuYXNvbGFiaWFsIGZvbGRzKSAtLT4KICA8cGF0aCBkPSJNODYgMTIyIFE4MiAxMzAgODQgMTM4IiBzdHJva2U9IiNkNDkxNWEiIHN0cm9rZS13aWR0aD0iMS4yIiBmaWxsPSJub25lIiBvcGFjaXR5PSIwLjciLz4KICA8cGF0aCBkPSJNMTE0IDEyMiBRMTE4IDEzMCAxMTYgMTM4IiBzdHJva2U9IiNkNDkxNWEiIHN0cm9rZS13aWR0aD0iMS4yIiBmaWxsPSJub25lIiBvcGFjaXR5PSIwLjciLz4KCiAgPCEtLSBGb3JlaGVhZCB3cmlua2xlcyAtLT4KICA8cGF0aCBkPSJNNzggODUgUTEwMCA4MiAxMjIgODUiIHN0cm9rZT0iI2Q0OTE1YSIgc3Ryb2tlLXdpZHRoPSIwLjgiIGZpbGw9Im5vbmUiIG9wYWNpdHk9IjAuNSIvPgogIDxwYXRoIGQ9Ik04MiA3OSBRMTAwIDc2IDExOCA3OSIgc3Ryb2tlPSIjZDQ5MTVhIiBzdHJva2Utd2lkdGg9IjAuOCIgZmlsbD0ibm9uZSIgb3BhY2l0eT0iMC40Ii8+CgogIDwhLS0gTW91dGgg4oCUIGdlbnRsZSBzbWlsZSAtLT4KICA8cGF0aCBkPSJNODcgMTMyIFExMDAgMTQxIDExMyAxMzIiIHN0cm9rZT0iI2MwNzA1MCIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICA8cGF0aCBkPSJNODcgMTMyIFExMDAgMTM2IDExMyAxMzIiIGZpbGw9IiNkNDgwNmEiIG9wYWNpdHk9IjAuNSIvPgoKICA8IS0tIENoaW4gZGVmaW5pdGlvbiAtLT4KICA8cGF0aCBkPSJNODggMTQ4IFExMDAgMTU1IDExMiAxNDgiIHN0cm9rZT0iI2Q0OTE1YSIgc3Ryb2tlLXdpZHRoPSIwLjgiIGZpbGw9Im5vbmUiIG9wYWNpdHk9IjAuNCIvPgo8L3N2Zz4K";
 
-const PATIENT_PHOTOS: Record<string, string> = {
-  "Frank Larson": FRANK_AVATAR,
-};
+function generateAvatar(name: string, gender: string, age: number): string {
+  // Multi-pass hash — each attribute gets a completely independent value
+  const hashAttr = (str: string, attr: string) => {
+    const key = attr + "|" + str;
+    let h = 0x811c9dc5 >>> 0;
+    for (let i = 0; i < key.length; i++) {
+      h ^= key.charCodeAt(i);
+      h = Math.imul(h, 0x01000193) >>> 0;
+      h ^= h >>> 16;
+    }
+    return h >>> 0;
+  };
+  const h1 = hashAttr(name, "hair");
+  const h2 = hashAttr(name, "eyes");
+  const h3 = hashAttr(name, "shirt");
+  const h4 = hashAttr(name, "skin");
+  const h5 = hashAttr(name, "glasses");
+  const h6 = hashAttr(name, "beard");
+  const h7 = hashAttr(name, "hairstyle");
+
+  const bg = "#dbeafe";
+  const isFemale = gender?.toLowerCase() === "female";
+
+  // Hair: gray/white for 65+, salt-and-pepper for 50-64, natural for under 50
+  const youngHairs = ["#4a3728","#8B4513","#d4a017","#2c1810","#a0522d","#c8960c","#1a1a1a","#6b3a2a","#3d1f00","#7a4f00","#c0392b","#5d4037","#bf8040","#000000","#5c3317","#e8b84b"];
+  const midHairs   = ["#8a7060","#9e8070","#7a6858","#b09080","#6a6060","#909090","#787060","#a09088","#706860","#c0a898","#585050","#b8a090"];
+  const oldHairs   = ["#c8c8c8","#d8d8d8","#b8b8b8","#e0e0e0","#a8a8a8","#f0f0f0","#d0c8c0","#e8e0d8","#c0b8b0","#ddd8d0"];
+  const hairPalette = age >= 65 ? oldHairs : age >= 50 ? midHairs : youngHairs;
+  const hair = hairPalette[h1 % hairPalette.length];
+  const hairDark = hair + "cc";
+
+  // Eye color: fully independent — wider variety
+  const eyeColors = ["#4a6fa5","#5c8a3c","#7b5ea7","#4a7a6a","#8a6040","#3a6a8a","#6a4a30","#2a6a5a","#5a3a8a","#3a8a5a","#8a5a3a","#4a4a8a","#6a8a3a","#8a3a4a","#3a4a6a","#7a6a2a"];
+  const eyeColor = eyeColors[h2 % eyeColors.length];
+
+  // Shirt color: independent — wider variety
+  const shirtColors = ["#1e3a5f","#7c3aed","#0f766e","#b45309","#be123c","#1d4ed8","#065f46","#92400e","#4c1d95","#134e4a","#7f1d1d","#1e40af","#166534","#854d0e","#6b21a8","#0e7490","#9a3412","#1e3a5f","#365314","#831843"];
+  const shirt = shirtColors[h3 % shirtColors.length];
+
+  // Skin tone: independent — wider variety
+  const skinTones = ["#f5cba7","#f0b88a","#e8a87c","#daa06d","#c68642","#f7d9b5","#d4956a","#ebb98a","#a0522d","#cd853f","#d2691e","#f4a460","#8b4513","#deb887","#c8956c","#fddbb4"];
+  const skin = name === "Frank Larson" ? "#f7d9b5" : skinTones[h4 % skinTones.length];
+  const skinDark = skin.replace(/[89a-f]/gi, c => (parseInt(c,16) - 2).toString(16));
+
+  // Wrinkles for older patients
+  const wrinkles = age >= 60 ? `
+    <path d="M78 85 Q100 82 122 85" stroke="${skinDark}" stroke-width="0.8" fill="none" opacity="0.5"/>
+    <path d="M82 79 Q100 76 118 79" stroke="${skinDark}" stroke-width="0.8" fill="none" opacity="0.4"/>
+    <path d="M91 98 Q95 96 96 99" stroke="${skinDark}" stroke-width="0.8" fill="none"/>
+    <path d="M91 106 Q95 108 96 105" stroke="${skinDark}" stroke-width="0.8" fill="none"/>
+    <path d="M104 99 Q105 96 109 98" stroke="${skinDark}" stroke-width="0.8" fill="none"/>
+    <path d="M104 105 Q105 108 109 106" stroke="${skinDark}" stroke-width="0.8" fill="none"/>
+    <path d="M86 122 Q82 130 84 138" stroke="${skinDark}" stroke-width="1.2" fill="none" opacity="0.7"/>
+    <path d="M114 122 Q118 130 116 138" stroke="${skinDark}" stroke-width="1.2" fill="none" opacity="0.7"/>` : "";
+
+  // Glasses: independent hash
+  const hasGlasses = age >= 50 && (h5 % 2 === 0);
+  const glasses = hasGlasses ? `
+    <rect x="70" y="95" width="24" height="16" rx="5" fill="none" stroke="#555" stroke-width="2"/>
+    <rect x="106" y="95" width="24" height="16" rx="5" fill="none" stroke="#555" stroke-width="2"/>
+    <path d="M94 103 L106 103" stroke="#555" stroke-width="2"/>
+    <path d="M56 100 L70 100" stroke="#555" stroke-width="2"/>
+    <path d="M130 100 L144 100" stroke="#555" stroke-width="2"/>` : "";
+
+  // Bald: independent hash
+  const isBald = !isFemale && age >= 60 && (hashAttr(name, "bald") % 3 === 0);
+
+  // Beard: males only, random based on h6
+  const beardStyle = !isFemale ? h6 % 4 : -1; // 0=none,1=stubble,2=full,3=goatee
+  const beard = beardStyle === 1
+    ? `<path d="M80 130 Q100 138 120 130 Q118 145 100 148 Q82 145 80 130Z" fill="${hair}" opacity="0.35"/>`
+    : beardStyle === 2
+    ? `<path d="M76 126 Q100 142 124 126 Q122 152 100 156 Q78 152 76 126Z" fill="${hair}" opacity="0.5"/>`
+    : beardStyle === 3
+    ? `<path d="M90 128 Q100 138 110 128 Q108 146 100 148 Q92 146 90 128Z" fill="${hair}" opacity="0.5"/>`
+    : "";
+
+  // Hair style variant for females: 0=long, 1=medium bob
+  const femaleHairStyle = h7 % 2;
+  const femaleHair = femaleHairStyle === 0 ? `
+    <path d="M54 90 Q52 60 70 50 Q100 38 130 50 Q148 60 146 90" fill="${hair}"/>
+    <path d="M54 90 Q48 120 52 145" fill="${hair}" stroke="${hair}" stroke-width="12" stroke-linecap="round"/>
+    <path d="M146 90 Q152 120 148 145" fill="${hair}" stroke="${hair}" stroke-width="12" stroke-linecap="round"/>
+    <path d="M56 75 Q58 55 75 50 Q100 42 125 50 Q142 55 144 75" fill="${hairDark}"/>` : `
+    <path d="M54 90 Q52 65 70 52 Q100 40 130 52 Q148 65 146 90" fill="${hair}"/>
+    <path d="M54 90 Q50 110 55 125" fill="${hair}" stroke="${hair}" stroke-width="10" stroke-linecap="round"/>
+    <path d="M146 90 Q150 110 145 125" fill="${hair}" stroke="${hair}" stroke-width="10" stroke-linecap="round"/>
+    <path d="M56 75 Q58 55 75 50 Q100 42 125 50 Q142 55 144 75" fill="${hairDark}"/>`;
+
+  const maleHairFull = `
+    <ellipse cx="100" cy="68" rx="46" ry="22" fill="${hair}"/>
+    <path d="M56 75 Q58 55 75 50 Q100 42 125 50 Q142 55 144 75" fill="${hairDark}"/>
+    <path d="M56 80 Q52 90 54 105" stroke="${hair}" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <path d="M144 80 Q148 90 146 105" stroke="${hair}" stroke-width="5" fill="none" stroke-linecap="round"/>`;
+
+  const maleHairBald = `
+    <path d="M56 80 Q52 90 54 105" stroke="${hair}" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <path d="M144 80 Q148 90 146 105" stroke="${hair}" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <path d="M60 72 Q70 62 100 60 Q130 62 140 72" stroke="${hair}" stroke-width="3" fill="none" opacity="0.5"/>`;
+
+  const hairSvg = isFemale ? femaleHair : (isBald ? maleHairBald : maleHairFull);
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <circle cx="100" cy="100" r="100" fill="${bg}"/>
+  <rect x="78" y="138" width="44" height="35" rx="8" fill="${skin}"/>
+  <path d="M68 165 Q100 185 132 165 L145 200 H55 Z" fill="${shirt}"/>
+  <path d="M100 175 L88 165 L100 155 L112 165 Z" fill="#ffffff" opacity="0.9"/>
+  <ellipse cx="100" cy="105" rx="46" ry="52" fill="${skin}"/>
+  <ellipse cx="54" cy="110" rx="8" ry="11" fill="${skin}"/>
+  <ellipse cx="146" cy="110" rx="8" ry="11" fill="${skin}"/>
+  ${hairSvg}
+  ${wrinkles}
+  <path d="M72 95 Q82 91 92 93" stroke="#777" stroke-width="${age >= 60 ? 2 : 2.5}" fill="none" stroke-linecap="round"/>
+  <path d="M108 93 Q118 91 128 95" stroke="#777" stroke-width="${age >= 60 ? 2 : 2.5}" fill="none" stroke-linecap="round"/>
+  <ellipse cx="82" cy="102" rx="9" ry="7" fill="white"/>
+  <ellipse cx="118" cy="102" rx="9" ry="7" fill="white"/>
+  <circle cx="82" cy="102" r="5" fill="${eyeColor}"/>
+  <circle cx="118" cy="102" r="5" fill="${eyeColor}"/>
+  <circle cx="82" cy="102" r="3" fill="#1a1a2e"/>
+  <circle cx="118" cy="102" r="3" fill="#1a1a2e"/>
+  <circle cx="84" cy="100" r="1.2" fill="white"/>
+  <circle cx="120" cy="100" r="1.2" fill="white"/>
+  <path d="M97 105 Q94 118 88 122 Q96 125 100 124 Q104 125 112 122 Q106 118 103 105" fill="${skin}" stroke="${skinDark}" stroke-width="0.5"/>
+  <path d="M87 132 Q100 141 113 132" stroke="#c07050" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path d="M87 132 Q100 136 113 132" fill="#d4806a" opacity="0.5"/>
+  ${beard}
+  ${glasses}
+</svg>`;
+
+  return "data:image/svg+xml;base64," + btoa(svg);
+}
+
+function getPatientAvatar(name: string, gender: string, birthDate?: string): string {
+  const age = birthDate
+    ? Math.floor((Date.now() - new Date(birthDate).getTime()) / (1000 * 60 * 60 * 24 * 365.25))
+    : 50;
+  return generateAvatar(name, gender, age);
+}
 
 type FhirPatient  = { id: string; name: string; birthDate: string; gender: string; mrn: string | null; address: { line?: string[]; city?: string; state?: string } };
 type Condition    = { display: string; code: string; status: string; onset: string };
@@ -197,22 +331,15 @@ function PatientBanner({ patient, onClick }: { patient: FhirPatient; onClick: ()
   const age = patient.birthDate
     ? Math.floor((Date.now() - new Date(patient.birthDate).getTime()) / (1000 * 60 * 60 * 24 * 365.25))
     : null;
-  const initials = patient.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
   return (
     <Card className="cursor-pointer hover:shadow-md transition-shadow border-l-4 border-l-blue-400" onClick={onClick}>
       <CardContent className="p-4">
         <div className="flex items-center gap-4">
-          {PATIENT_PHOTOS[patient.name] ? (
-            <img
-              src={PATIENT_PHOTOS[patient.name]}
-              alt={patient.name}
-              className="h-12 w-12 flex-shrink-0 rounded-full object-cover border-2 border-blue-100"
-            />
-          ) : (
-            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 text-base font-bold text-blue-700">
-              {initials}
-            </div>
-          )}
+          <img
+            src={getPatientAvatar(patient.name, patient.gender, patient.birthDate)}
+            alt={patient.name}
+            className="h-12 w-12 flex-shrink-0 rounded-full object-cover border-2 border-blue-100"
+          />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-3 flex-wrap">
               <span className="text-base font-semibold text-foreground">{patient.name}</span>
@@ -355,7 +482,10 @@ const PhysicianView = () => {
         `${API_BASE}/api/clinician_summary/generate?patient_id=${selectedId}`,
         { method: "POST" }
       );
-      if (!r.ok) throw new Error("Failed to generate summary");
+      if (!r.ok) {
+        const detail = await r.json().then(j => j.detail).catch(() => null);
+        throw new Error(detail ?? "Failed to generate summary");
+      }
       const text = await r.text();
       const clean = text.replace(/\\n/g, '\n').replace(/^"|"$/g, '');
       setSummary(clean);
@@ -471,24 +601,11 @@ const PhysicianView = () => {
               <p className="text-sm text-destructive">{error} — ensure the FHIR server is running and patient data is loaded.</p>
             ) : patient ? (
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-                {PATIENT_PHOTOS[patient.name] ? (
-                  <img
-                    src={PATIENT_PHOTOS[patient.name]}
-                    alt={patient.name}
-                    className="h-16 w-16 flex-shrink-0 rounded-full object-cover border-2 border-blue-100"
-                    onError={e => {
-                      const el = e.currentTarget;
-                      el.style.display = "none";
-                      el.nextElementSibling?.removeAttribute("style");
-                    }}
-                  />
-                ) : null}
-                <div
-                  className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 text-xl font-bold text-blue-700"
-                  style={PATIENT_PHOTOS[patient.name] ? { display: "none" } : {}}
-                >
-                  {patient.name.split(" ").map(n => n[0]).join("").slice(0, 2)}
-                </div>
+                <img
+                  src={getPatientAvatar(patient.name, patient.gender, patient.birthDate)}
+                  alt={patient.name}
+                  className="h-16 w-16 flex-shrink-0 rounded-full object-cover border-2 border-blue-100"
+                />
                 <div className="flex-1 min-w-0">
                   <h2 className="text-2xl font-display font-bold text-foreground">{patient.name}</h2>
                   <div className="mt-1 flex flex-wrap gap-x-5 gap-y-1 text-body-sm text-muted-foreground">

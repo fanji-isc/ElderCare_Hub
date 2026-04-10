@@ -10,6 +10,7 @@ import requests as _requests
 import numpy as np
 from scipy.signal import find_peaks
 from datetime import datetime, timezone, timedelta
+import openai
 from openai import OpenAI
 from backend.config import IRIS_HOST, IRIS_PORT, IRIS_NAMESPACE, IRIS_USERNAME, IRIS_PASSWORD
 FHIR_BASE = "http://localhost:52773/csp/healthshare/demo/fhir/r4"
@@ -1522,17 +1523,24 @@ def generate_clinician_summary(patient_id: str = Query(...)):
     Be clear, concise, and clinically grounded. Write as a clinician-to-clinician summary. Focus only on high-impact risks and actionable insights. Avoid unnecessary detail or exhaustive condition lists.
     """
 
-    response = client.responses.create(
-        model="gpt-5-nano",
-        instructions = medical_analyst,
-        input = f"""Analyze this FHIR bundle and provide a short summary of their clinical risks:
-        
+    try:
+        response = client.responses.create(
+            model="gpt-5-nano",
+            instructions=medical_analyst,
+            input=f"""Analyze this FHIR bundle and provide a short summary of their clinical risks:
+
                     {patient_fhir}
 
                     And their home data insights (gait, hydration, sleep, etc):
                     {get_resident_context(patient_id) if patient_id == "1" else "- No home data available for this patient."}
                     """
-    )
+        )
+    except openai.RateLimitError:
+        raise HTTPException(status_code=429, detail="OpenAI rate limit reached. Please try again in a moment.")
+    except openai.InternalServerError as e:
+        raise HTTPException(status_code=503, detail=f"OpenAI service temporarily unavailable: {e.message}")
+    except openai.APIError as e:
+        raise HTTPException(status_code=502, detail=f"OpenAI API error: {e.message}")
     summary_text = response.output_text
 
     conn = get_iris()
@@ -1991,9 +1999,19 @@ def get_system_prompt(patient_id: str = "", first_name: str = "", last_name: str
     {companion_offers}
 
     # NEIGHBOR CONNECT INSTRUCTION:
-    If Frank asks for a ride/transport or companionship, follow this logic:
-    1. First mention any neighbors who have offered (from the list above).
-    2. If Frank wants to connect with a specific neighbor (e.g. "connect me with Barbara"), confirm warmly and on a brand new line at the very end append exactly: [[CONNECT_NEIGHBOR:Name]] where Name is the neighbor's first name (e.g. [[CONNECT_NEIGHBOR:Barbara]]).
+    If Frank asks how to get to the doctor's office (or any appointment), always offer exactly these three options and nothing else:
+    1. His son David — "Your son David could take you."
+    2. His neighbor Barbara — "Your neighbor Barbara could give you a ride."
+    3. Lyft — "Or I can help you book a Lyft."
+    Wait for Frank to choose. Then:
+    - If Frank chooses David → simply say something like "Great, you can give David a call — he'll be happy to help."
+    - If Frank chooses Barbara → confirm warmly (e.g. "I'll connect you with Barbara now!") and on a brand new line at the very end append exactly: [[CONNECT_NEIGHBOR:Barbara]]
+      IMPORTANT: Only append [[CONNECT_NEIGHBOR:Barbara]] after Frank has explicitly chosen Barbara. Never connect proactively.
+    - If Frank chooses Lyft → tell him Lyft is a great option and he can open the Lyft app or ask someone to help book it.
+
+    For any other ride/transport or companionship request (not doctor-related):
+    1. First mention any neighbors who have offered (from the lists above).
+    2. If Frank wants to connect with a specific neighbor, confirm warmly and on a brand new line at the very end append exactly: [[CONNECT_NEIGHBOR:Name]] where Name is the neighbor's first name (e.g. [[CONNECT_NEIGHBOR:Barbara]]).
     3. If no neighbor ride fits, suggest Lyft as a convenient option. If no companionship offers fit, suggest joining a neighborhood activity as a way to meet people or to contact his family.
     [[CONNECT_NEIGHBOR:Name]] is a silent machine code — never speak or mention it.
 
