@@ -672,7 +672,7 @@ def interprete_home_data(patient_id: str = "") -> dict:
     2. **The "Flush" Trend:** 
     - Look for a downward trend in `colorLevel` throughout the day. If the level stays at 6-8 all day, flag this as a "Chronic Dehydration" risk that will negatively impact the user's Garmin HRV.
     3. **Recovery Link:** 
-    - When `morning_status` is "Dehydrated," advise the user to drink 500ml of water before checking their Garmin Body Battery or taking an ECG, as dehydration can cause "false-positive" stress readings.
+    - When `morning_status` is "Dehydrated," advise the user to drink some water before checking their Garmin Body Battery or taking an ECG, as dehydration can cause "false-positive" stress readings.
     4. **Data Gaps:** 
     - If `is_incomplete_data` is True, remind the user that hydration tracking requires consistency to map against their HR trends.
 
@@ -694,7 +694,7 @@ def interprete_home_data(patient_id: str = "") -> dict:
     2. **Protein & Sarcopenia:** 
     - If protein drops below 60g, advise incorporating whatever high protein items are currently in the inventory to support muscle retention.
     3. **Hydration & Fall Prevention:** 
-    - If water is <1.8L, flag that this needs to be compared to the Smart Toilet `colorLevel`. If color is >5, flag a "High Fall Risk" due to potential orthostatic hypotension (dizziness when standing).
+    - If water is <2L, flag that this needs to be compared to the Smart Toilet `colorLevel`. If color is >5, flag a "High Fall Risk" due to potential orthostatic hypotension (dizziness when standing).
     4. **Cognitive Support:** 
     - If the fridge flags many "Expiring soon" items, suggest a simple "Meal of the Day" using those specific items to reduce the user's cognitive load.
 
@@ -707,8 +707,6 @@ def interprete_home_data(patient_id: str = "") -> dict:
     
     conn = get_iris()
     client = get_openai_client()
-    if client is None:
-        raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
     
     try:
         irispy = iris.createIRIS(conn)
@@ -1410,7 +1408,7 @@ def get_patient_context(patient_id: str = ""):
 # Patient summary could be generated via the UI during account creation in order to provide more details?
 def get_patient_desc(patient_id: str = ""):
     return """
-           **Frank Larson**, 74-year-old man — retired civil engineer, widowed, living alone at home in Medfield, MA. He has:
+           **Frank Larson**, 83-year-old man — retired civil engineer, widowed, living alone at home in Medfield, MA. He has:
             - hypertension,
             - hyperlipidemia,
             - type 2 diabetes,
@@ -1423,9 +1421,9 @@ def get_patient_desc(patient_id: str = ""):
             His son **David** is his primary contact. His primary care provider is **Dr. Sarah Mitchell** (Medfield Family Health Center).
 
             Upcoming Appointments:
-            - Cardiology follow-up: 2026-05-01 (Dr. Sarah Chen)
-            - Primary care check-up: 2026-05-08 (Dr. James Patel)
-            - Lab work (blood panel): 2026-05-15 (Quest Diagnostics, Medfield)
+            - Primary care check-up: Friday 01 May 2026, 10:00 AM (Dr. James Patel) at Medfield Family Practice
+            - Cardiology follow-up: Friday 08 May 2026, 11:00 AM (Dr. Sarah Chen) at Medfield Cardiology Clinic
+            - Lab work (blood panel): Friday 15 May 2026, 9:00 AM at Quest Diagnostics - Medfield
 
             Active Medications:
             - Sertraline 50 mg each morning
@@ -1467,7 +1465,7 @@ def get_patient_desc(patient_id: str = ""):
                         She uses a walking stick, and has home safety rails installed. 
 
                         Upcoming Appointments:
-                        - Endocrinology (Diabetes review): Apr 2025
+                        - Endocrinology (Diabetes review): Saturday 19 April 2025, 10:00 AM (NP Davis) at Medfield Family Health Center
 
                         Active Medications:
                         - Levodopa/Carbidopa 25/100 mg, 1 tablet TID (for Parkinson's)
@@ -1513,13 +1511,13 @@ def generate_clinician_summary(patient_id: str = Query(...)):
     Format your response exactly like this example — a titled header line, then dash-prefixed bullets (no more than 5 bullets in each section):
 
     Summary (based on medical record):
-    [A concise but data-rich clinical narrative in 1-2 bullet points. Synthesize the patient's history, current risks, medications, and contributing factors. Emphasize causality, time course, and interactions.]
+    [A concise but data-rich clinical narrative in 1-2 bullet points. Synthesize the patient's history, current risks, medications, and contributing factors. Emphasize causality, time course, and interactions. **DO NOT USE THE GARMIN OR HOME DATA IN THIS SECTION** — ONLY THE FHIR MEDICAL RECORD.]
 
     Suggested actions:
-    [Provide a short list of clear, clinically appropriate next steps. Each action should be on its own bullet-point, concise, practical, and directly linked to the patient's risks and care gaps. Format in the style 'Physical therapy referral: urgent gait reassessment; right-leg compensation has persisted beyond expected post-op recovery window']
+    [Provide a short list of clear, clinically appropriate next steps based on the summary. Each action should be on its own bullet-point, concise, practical, and directly linked to the patient's risks and care gaps. Format in the style 'Physical therapy referral: urgent gait reassessment; right-leg compensation has persisted beyond expected post-op recovery window']
 
     Home data insights:
-    [If the patient's home data (e.g., gait metrics, hydration patterns) reveals any insights that are not already captured in the medical record but are relevant to their clinical risks, include them here in 1-2 bullet points. Include the source of this data (Hydration: Smart Toilet, Nutrition: Smart Fridge, Everything else: Garmin device).]
+    [If the patient's home data (e.g., gait metrics, hydration patterns) reveals any insights that are not already captured in the medical record but are relevant to their clinical risks, include them here in 1-2 bullet points. Include the source of this data (Smart Toilet, Smart Fridge, or Garmin device).]
 
     # TONE:
     Be clear, concise, and clinically grounded. Write as a clinician-to-clinician summary. Focus only on high-impact risks and actionable insights. Avoid unnecessary detail or exhaustive condition lists.
@@ -1576,66 +1574,54 @@ def clinician_overview(patient_id: str = Query(...)):
 
 def get_resident_context(patient_id: str = ""):
     return """
-    ### ⚠️ OVERALL RISK LEVEL: CRITICAL
-    **Primary Driver:** Mobility/Gait instability (Geriatric Gait Summary) with dehydration exacerbation (Hydration)
+    ---
+    ### ⚠️ OVERALL RISK LEVEL: **CRITICAL**
+    **Primary Driver:** The combination of **skipped/very low-protein dinner** plus **morning dehydration** is most likely worsening **right-sided weakness/limp**, which aligns with **high fall-risk gait** and may also be contributing to **incomplete physiological recovery** on sleep/HRV.
 
-    #### 1. THE "WHY" (Unified Insight)
-    The patient shows a constellation of high fall-risk features that are interlinked across systems. Gait metrics reveal frailty physiology: latest speed 0.77 m/s (below the 0.8 m/s frailty threshold), gait variability modestly elevated at 10.5%, and a pronounced right-side limp with a 80 ms ground-contact time delta and 13 cm shorter right stride. This mobility impairment is occurring in the context of dehydration on most mornings (Hydration), which can worsen muscle function and balance. Nutrition shows appetite loss with protein intake at 58 g (below the 60 g target), potentially limiting muscle maintenance fueling. Sleep is generally restorative on good nights but exhibits episodes of high sleep stress and reduced deep sleep on certain nights, indicating circadian disruption that can impair emotional regulation and recovery. Taken together, this creates an imminent safety risk (CRITICAL physical) with the right-limb guarding and dehydration amplifying fall risk and potential deconditioning.    
+    #### I. ACUTE SAFETY & FALL RISK
+    * **Finding:** High fall risk.
+    * **Gait speed:** **0.77 m/s** (frailty-range; below 0.8 m/s threshold)
+    * **Variability:** **10.5%** (slightly above historical 10.2% → more instability)
+    * **Asymmetry/limp:** **GCT delta 80 ms (>60 ms)** with **right side guarded** (right leg likely painful/weak)
+    * **Systemic Cause:** Home nutrition flags show **only 2 meals detected** with **dinner skipped** and **very low calories**, plus **protein at ~45 g (<60 g target)**. Under-fueling commonly reduces strength/endurance and increases compensatory movement—matching today's **frailty-speed + limp/asymmetry + higher variability** pattern.  
+    Hydration is also concerning: hydration starts the day **“Dehydrated”** on several days, and today's later status remains problematic on **2026-04-29** (ends at **colorLevel 6**), which can worsen balance and dizziness risk.
 
-    Key contextual points:
-    - Cardiac/ECG at rest shows healthy autonomic tone (SINUS_NORMAL; resting HR ~65 bpm; SDNN ~35 ms; RMSSD ~34 ms), with no acute rhythm disturbance.
-    - Recovery in Sleep is highly variable across nights; one night shows peak recovery ( Recovery 100; very low sleep stress) while another shows significant sleep stress and reduced deep sleep, highlighting inconsistent circadian restoration.
-    - Gait asymmetry and guarding are clinically meaningful and align with frailty markers, signaling a need for immediate safety measures and targeted rehabilitation.
+    #### II. METABOLIC & AUTONOMIC LOAD
+    * **Status:** Mixed—**nutrition load is low**, **hydration is less than optimal**, vitamins not provided.
+    * **Protein:** **~45 g (below target)**
+    * **Water:** reported **1.9 L (<2 L)**
+    * **Hydration pattern:** mornings often dehydrated; **2026-04-29 ends dehydrated (6)**
+    * **Cardiac Impact:** Garmin shows **stable sinus rhythm** and measurable HRV:
+    * **ECG rhythm:** **SINUS_NORMAL**
+    * **SDNN:** **~35 ms** (modest beat-to-beat variation)
+    * **Resting HR:** ~**65 bpm**
+    
+    However, the sleep section indicates **recovery is limited** (HRV/physiology-based “Recovery” bottleneck), which fits a scenario where **dehydration + low fueling** reduces the nervous system's “reset” capacity. Evening perceived stress is present but **not strongly driven by heart rate**, suggesting the strain may be more **recovery/hydration/nutrition related** than exertion-related.
 
-    #### 2. CROSS-SYSTEM CORRELATIONS
-    * **[Link 1]: Slowing Syndrome (Gait + Nutrition + Sleep)**
-    - Gait: speed 0.77 m/s (frailty threshold met)
-    - Nutrition: protein intake 58 g (below target 60 g)
-    - Sleep: episodes of elevated sleep stress and reduced deep sleep on weaker nights
-    - Interpretation: When movement slows, and fueling is suboptimal alongside imperfect sleep, the risk of frailty progression and depressive/social withdrawal increases. Clinically, this mirrors a frailty/slowing phenotype with potential mood impact.
+    #### III. MENTAL HEALTH & COGNITIVE VIGILANCE
+    * **Markers:**
+    * **Appetite/behavioral decline proxy:** **Dinner skipped + very low calories**
+    * **Inventory/executive-function proxy:** **Expiring items** (milk, spinach, turkey slices, salmon fillet) indicate potential planning burden; the home plan attempts to reduce cognitive load via a “Meal of the Day,” which suggests these lapses are meaningful.
+    * **Sleep stress:** Sleep shows **short total sleep (2h50m)** with **Recovery bottleneck (Recovery=71)** and **sleep stress ~19.35**.
+    
+    Taken together: low intake + expiring-item pressure/possible planning difficulty aligns with **reduced recovery** and higher cognitive vulnerability the next day (grogginess, less resilience), increasing real-world fall risk—especially with today's limp.
 
-    * **[Link 2]: Autonomic Dissonance (Heart Rate/HRV vs Gait Activity)**
-    - ECG HRV at rest appears healthy (SDNN ~35 ms; RMSSD ~34 ms) with resting HR ~65 bpm.
-    - Gait shows active instability (low speed, limp, asymmetry) but with no sustained tachycardia or HRV suppression at rest.
-    - Interpretation: No clear autonomic overload at rest, but the combination of poor gait quality and ongoing discomfort/pain risk could drive episodic internal load (pain/anxiety) during movement; watch for mismatch between effort and autonomic response during activities.
+    #### IV. PRIORITY INTERVENTIONS (THE "GOLDEN THREE")
+    1. **Immediate Safety:**  
+    Implement **assisted mobility now** (use a cane/walker or have supervision for ambulation/turning). Do a quick **trip-hazard + lighting** check (especially where the patient pivots due to the limp).
 
-    * [Link 3]: Circadian & Recovery Routine (Sleep vs Nutrition)*
-    - Sleep: overall solid night recovery is possible, but a night with high sleep stress and reduced deep sleep undermines emotional regulation and daytime balance.
-    - Nutrition: appetite loss and skipped meals can exacerbate sleep disruption and reduce metabolic fuel for recovery.
-    - Interpretation: Irregular meals coupled with inconsistent sleep quality can perpetuate daytime confusion, fatigue, and balance impairment.
+    2. **Targeted Input (today's highest-yield fix):**  
+    **Protein + hydration repletion within hours.**  
+    * Protein goal: move toward **≥60 g today**, using available items (e.g., **eggs + Greek yogurt**, **turkey slices + cottage cheese**, and/or **salmon** if feasible).  
+    * Hydration goal: raise from **1.9 L to ~2.0-2.5 L** (small scheduled sips through the afternoon). Because **colorLevel ends high (6)** on 2026-04-29, prioritize consistent drinking and monitor dizziness on standing.
 
-    * [Link 4]: Homeostatic Safety Flags (Dehydration + Asymmetry)*
-    - Hydration: repeated morning dehydration across several days; end-of-day hydration readings generally 2-4 (not chronic dehydration), but dehydration is present on multiple days.
-    - Gait: pronounced asymmetry (80 ms GCT delta) with right-side guarding.
-    - Safety flag: Dehydration + High Asymmetry meets the framework's CRITICAL physical threshold, signaling imminent fall risk without rapid mitigation.
+    3. **Recovery/Clinical:**  
+    Focus on **sleep recovery quality and nervous-system “reset.”**  
+    Tonight: set **lights-out ~45 minutes earlier** (target a longer sleep window), and keep a **screen-free wind-down** to reduce sleep stress. Clinically/observationally: watch for whether the **right-sided guarding** improves after nutrition/hydration correction; if not, expedite evaluation.
 
-    * [Link 5]: Daily Routine Integrity (Meal Timing, Hydration, Deep Sleep)*
-    - Last-meal timing not explicitly provided; but nutrition shows irregular intake with skipped meals today and appetite challenges.
-    - Deep sleep on weaker nights is reduced, which can lower emotional regulation and balance confidence.
-    - Interpretation: Disrupted daily routines (irregular meals, inconsistent hydration) undermine deep sleep and recovery, compounding mood and balance concerns.
-
-    #### 3. GUARDIAN ACTION ITEMS
-    - **Immediate:**
-    - Conduct a rapid in-home safety check: remove trip hazards (rugs, cords), ensure adequate lighting, place a stable mobility aid (cane/walker) within easy reach, and consider close-guardian supervision during transfers or standing from seated positions.
-    - Provide immediate hydration: offer 500 ml water or fluids now to address morning dehydration, and confirm access to electrolytes if indicated.
-    - Pain/gait evaluation: assess for right-limb pain or weakness and secure prompt clinical evaluation (possible musculoskeletal screening) to address guarding and improve symmetry.
-    - Reinforce safety during mobility: avoid stairs or unsupervised ambulation; if assistance is unavailable, use a support person or device.
-
-    - **Daily Goal:**
-    - Raise protein intake to ≥60-70 g/day and sustain hydration around 2.0 L/day.
-    - Stabilize sleep routine: implement fixed bedtime and a brief wind-down (e.g., dim lights, 15-minute quiet activity) to support deeper sleep and circadian alignment.
-    - Start targeted mobility rehab focusing on right-limb strengthening (hip abductors, knee extensors, ankle dorsiflexors) and gait symmetry; consider initiation of a supervised physical therapy or home exercise program.
-    - Re-evaluate hydration strategy in the morning and across the day to minimize dehydration episodes and monitor impact on HRV and gait.
-
-    - **Watch For:**
-    - Dizziness or fainting upon standing, new/worsening right-limb pain, increased gait asymmetry, or any falls.
-    - Sudden mood changes, confusion, or withdrawal from activity; signs of delirium or systemic decline.
-    - Any deterioration in sleep quality or unresponsiveness to hydration and nutrition adjustments.
-    - Appetite decline persisting > a few days despite nutrition efforts; consider clinician discussion about appetite support.
+    ---
     """
     client = get_openai_client()
-    if client is None:
-        raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
     
     garmin_dict = interprete_garmin(patient_id)
     home_dict = interprete_home_data(patient_id)
@@ -1646,13 +1632,13 @@ def get_resident_context(patient_id: str = ""):
         garmin_data = garmin_dict.get("data")
         home_data = home_dict.get("data")
 
-    triage_desc = f"""
+    old_triage_desc = f"""
     ### ROLE: ELDERLY SYSTEMIC RISK ANALYST
 
     # CONTEXT:
-    You are a Senior Clinical Data Scientist specializing in Geriatric Health. You analyze data from five distinct health monitoring systems (ECG, HR, Sleep, Hydration, and Nutrition) to create a unified safety and recovery profile for an elderly user.
-    Your goal is to generate a summary of the patient's Garmin and Home Appliance data for their clinician to interprete.
- 
+    You are a Senior Clinical Data Scientist specializing in Geriatric Health. You analyze data from six distinct health monitoring systems (ECG, HR, Sleep, Gait, Hydration, and Nutrition) to create a unified safety and recovery profile for an elderly user.
+    Your goal is to generate a summary of the patient's Garmin and Home Appliance data for an orchestrator agent to interprete as part of a wider health monitoring system. Therefore, avoid medical jargon unless accompanied by a brief explanation. Refer to the patient in the third person. 
+
     # INTERPRETATION FRAMEWORK: 
     You must cross-reference data across all six systems to identify patterns of "Biological Resilience," "Mental Wellbeing," and "Acute Safety Risks." Use the following holistic logic:
     1. **Neuromotor Stability (The Brain-Body Link):**
@@ -1688,9 +1674,10 @@ def get_resident_context(patient_id: str = ""):
     #### 2. CROSS-SYSTEM CORRELATIONS
     * **[Link 1]:** (e.g., Nutrition vs. Sleep)
     * **[Link 2]:** (e.g., Hydration vs. Cardiac)
+    * **[Link 3]:** etc.
 
     #### 3. GUARDIAN ACTION ITEMS
-    * **Immediate:** [Action to take now, e.g., Drink 500ml water]
+    * **Immediate:** [Actions the patient should take now, e.g., Drink 500ml water]
     * **Daily Goal:** [Nutritional or activity adjustment]
     * **Watch For:** [Clinical symptom to observe, e.g., Dizziness, gait changes]
     ---
@@ -1702,15 +1689,66 @@ def get_resident_context(patient_id: str = ""):
     2. The patient's Home data is: 
     {home_data}
     """
+    triage_desc = f"""
+    # ROLE: SYSTEMIC TRIAGE AGENT (GERIATRIC CLINICAL SPECIALIST)
+
+    ## 1. MISSION
+    You are a specialized AI health analyst. Your task is to ingest two dictionaries — **Garmin Data** (Biological Outputs) and **Home Data** (Environmental Inputs) — and synthesize them into a single, high-level **Clinician's Brief**. You must identify how physical inputs (food/water) are directly impacting physiological outputs (HRV/Gait/Sleep).
+
+    ## 2. INTERPRETATION & RELATIONAL LOGIC
+    Do not summarize the dictionaries in isolation. You must "connect the dots" using these geriatric-specific rules:
+
+    * **The Fueling-Stability Chain:** If Nutrition/Fridge flags "Skipped Meals" or "Low Protein," cross-reference with **Gait Speed** and **Variability**. 
+        * *Logic:* Under-fueling leads to muscle weakness, which manifests as a drop in speed and a spike in tripping risk.
+    * **The Dehydration-Cardiac Loop:** Correlate **Toilet ColorLevel** with **ECG SDNN/HRV**. 
+        * *Logic:* High dehydration (Level 5+) thickens blood and reduces HRV. If the heart shows low "reserve" or "modest variation," check if the hydration levels were "Dehydrated" in the morning.
+    * **The Pain-Sleep Correlation:** Look at **Gait Asymmetry** (GCT Delta > 60ms) and compare it to **Sleep Recovery Scores**. 
+        * *Logic:* A pronounced limp (guarding) often indicates pain, which is a primary driver of "Unbalanced Recovery" or high "Sleep Stress" in the elderly.
+    * **Cognitive-Behavioral Flags:** Connect "Expiring Items" (Fridge) and "Skipped Meals" with "Sleep Stress."
+        * *Logic:* Forgetting to eat or failing to manage inventory are markers of executive dysfunction or depressive withdrawal, often preceded by poor deep sleep architecture.
+
+    ## 3. REPORT STRUCTURE (MANDATORY)
+    Your goal is to generate a summary of the patient's Garmin and Home Appliance data for an orchestrator agent to interprete as part of a wider health monitoring system. Therefore, avoid medical jargon unless accompanied by a brief explanation. Refer to the patient in the third person. Your final output must follow this exact template:
+
+    ---
+    ### ⚠️ OVERALL RISK LEVEL: [LOW | ELEVATED | CRITICAL]
+    **Primary Driver:** [A one-sentence summary identifying the single most dangerous pattern connecting the sensors today.]
+
+    #### I. ACUTE SAFETY & FALL RISK
+    * **Finding:** [Combine Gait Speed, Symmetry, and Variability stats.]
+    * **Systemic Cause:** [Explain how Nutrition or Hydration data from the Home dictionary is driving this physical state.]
+
+    #### II. METABOLIC & AUTONOMIC LOAD
+    * **Status:** [Synthesize Protein, Vitamin C, and Water levels.]
+    * **Cardiac Impact:** [Explain how these inputs are affecting the ECG/HR results (e.g., "Cardiac reserve is limited by chronic dehydration").]
+
+    #### III. MENTAL HEALTH & COGNITIVE VIGILANCE
+    * **Markers:** [Analyze Appetite Loss, Sleep Stress, and Inventory Management (Expiring Items) as proxies for mood and cognitive load.]
+
+    #### IV. PRIORITY INTERVENTIONS (THE "GOLDEN THREE")
+    1.  **Immediate Safety:** [Non-medical physical intervention, e.g., assisted walking.]
+    2.  **Targeted Input:** [Specific meal/hydration goal using available fridge inventory.]
+    3.  **Recovery/Clinical:** [Specific sleep or clinical observation goal.]
+    ---
+
+    # INPUT:    
+    1. The patient's Garmin data is: 
+    {garmin_data}
+
+    2. The patient's Home data is: 
+    {home_data}
+    """
     response = client.responses.create(
-        model="gpt-5-nano",
+        model="gpt-5.4-nano",
         instructions = triage_desc,
-        input = "Generate a summary of the patient's Garmin and Home Appliance data for their clinician to interprete."
+        input = "Generate a summary of the patient's Garmin and Home Appliance data for the orchestrator agent to utilise in future decision-making."
     )
     
-    return response.output_text
+    triage_answer = response.output_text
+    return triage_answer
 
-def old_system_prompt(patient_id: str = "") -> str:
+@app.get("/api/system-prompt")
+def get_system_prompt(patient_id: str = "") -> str:
     neighborhoodJson = get_neighborhood(patient_id)
 
     latest_dict = neighborhoodJson[0] if neighborhoodJson else None
@@ -1749,8 +1787,6 @@ def old_system_prompt(patient_id: str = "") -> str:
     companion_offers = "\n".join(companion_lines) if companion_lines else "None posted right now."
 
     fridge = extract_fridge(patient_id)
-    fridge_data = f"""Expiring items: {"\n".join(fridge.get("expiringItems", [])) if fridge.get("expiringItems") else "None expiring soon." }\n
-                    Current items: {"\n".join(fridge.get("currentItems", [])) if fridge.get("currentItems") else "None in the fridge."}"""
 
     triage_answer = get_resident_context(patient_id)
     patient_desc = get_patient_desc(patient_id)
@@ -1764,7 +1800,7 @@ def old_system_prompt(patient_id: str = "") -> str:
     {patient_desc}
  
     # TONE:
-    Speak clearly and briefly. Don't patronise them. Prioritise conciseness, your reply should keep to 4-5 sentences.
+    Speak clearly and briefly. Don't patronise them. Prioritise conciseness, your reply should keep to 4-5 sentences. Only ever reply in plain text, don't use any markdown or formatting.
 
     # RESTRICTIONS:
     DO NOT give medical diagnoses. 
@@ -1775,7 +1811,7 @@ def old_system_prompt(patient_id: str = "") -> str:
     {triage_answer}
 
     # APPOINTMENT INSTRUCTION:
-    When Frank asks about appointments, you MUST read out every detail for each one: full date, time, appointment type, physician name (if any), and location. Never omit any of these fields. Example: "You have a Primary Care Check-up on Wednesday, April 8th at 9:00 AM with Dr. James Patel at Medfield Family Practice."
+    When the user asks about appointments, you MUST read out every detail for each one: full date, time, appointment type, physician name (if any), and location. Never omit any of these fields. Example: "You have a Primary Care Check-up on Wednesday, April 8th at 9:00 AM with Dr. James Patel at Medfield Family Practice." Unless they ask, just mention the next upcoming appointment, not the full list.
 
     # NEIGHBORHOOD ACTIVITIES :
     Consider all activities in their neighborhood community (Oakwood Pines) and suggest the most appropriate for their specific wellbeing. Prioritise any activities happening today ({today.strftime('%A, %b %d')}) or tomorrow ({(today + timedelta(days=1)).strftime('%A, %b %d')}).
@@ -1783,7 +1819,7 @@ def old_system_prompt(patient_id: str = "") -> str:
     {activities}
 
     # NEIGHBORHOOD HELP BOARD:
-    If they are looking for rides, companionship, or other help, consider the following neighbor offers in their community fromt the help board.
+    If they are looking for rides, companionship, or other help, consider the following neighbor offers in their community from the help board. DO NOT suggest these offers unless the user explicitly asks for a ride or companionship. If they do ask, follow the instructions in the "NEIGHBOR CONNECT INSTRUCTION" section below.
 
     - Rides:
     {ride_offers}
@@ -1799,13 +1835,15 @@ def old_system_prompt(patient_id: str = "") -> str:
 
     # NEIGHBOR CONNECT INSTRUCTION:
     If the user asks for a ride/transport or companionship, follow this logic:
-    1. First mention any neighbors who have offered (from the list above). If no neighbor ride fits, suggest Lyft as a convenient option. If no companionship offers fit, suggest joining a neighborhood activity as a way to meet people or to contact his family.
+    1. First mention any neighbors who have offered (from the list above). 
+    - If no neighbor ride fits, suggest Lyft as a convenient option. 
+    - If no companionship offers fit, suggest joining a neighborhood activity as a way to meet people or to contact his family.
     2. If the user wants to connect with a specific neighbor (e.g. "connect me with Barbara"), confirm warmly and on a brand new line at the very end append exactly: [[CONNECT_NEIGHBOR:Name]] where Name is the neighbor's first name (e.g. [[CONNECT_NEIGHBOR:Barbara]]).
 
     [[CONNECT_NEIGHBOR:Name]] is a silent machine code — never speak or mention it.
     
     # CALL INSTRUCTION: 
-    If they ask to call or talk to their family, then confirm warmly in your normal response that you will help achieve this. 
+    If they ask to call or talk to their family, reply exactly with this format: "I will connect you to [Name] now."
     
     Then, on a brand new line at the very end, append exactly: [[CALL_FAMILY]] — this is a silent machine code, never speak or mention it.
 
@@ -1822,233 +1860,30 @@ def old_system_prompt(patient_id: str = "") -> str:
 
     return nhh_desc
 
-@app.get("/api/system-prompt")
-def get_system_prompt(patient_id: str = "", first_name: str = "", last_name: str = "") -> str:
-    # ── Real-time health data ──────────────────────────────────────────────────
-    hoursAsleep = extract_sleep(patient_id)
-    fridge = extract_fridge(patient_id)
-    hydrationNote, hydrationColorLevel, dehydrated = extract_hydration(patient_id)
-    gaitNote, gaitConcern, _ = extract_gait(patient_id)
-
-    dailyJson = get_dailySummary(patient_id)
-    latest_daily = max(dailyJson, key=lambda x: x.get("calendarDate"), default={})
-    steps = latest_daily.get("totalSteps") or 0
-    heartRate = latest_daily.get("currentDayRestingHeartRate") or latest_daily.get("restingHeartRate") or 0
-    aggregator_list = latest_daily.get("allDayStress", {}).get("aggregatorList", [])
-    awake = next((a for a in aggregator_list if a.get("type") == "AWAKE"), {})
-    stressLevel = round(awake.get("averageStressLevel", 0))
-
-    data_lines = []
-    if hoursAsleep:                          data_lines.append(f"- Sleep last night: {round(hoursAsleep, 1)} hours")
-    if heartRate:                            data_lines.append(f"- Resting heart rate: {heartRate} BPM")
-    if steps:                                data_lines.append(f"- Steps today: {steps}")
-    if stressLevel:                          data_lines.append(f"- Stress level: {stressLevel}/100 (0 = very calm, 100 = very stressed)")
-    if hydrationNote and hydrationColorLevel > 0:
-                                             data_lines.append(f"- Hydration (smart toilet): level {hydrationColorLevel}/8 — {hydrationNote}")
-    if gaitNote:                             data_lines.append(f"- Gait / walking analysis: {gaitNote}")
-    if dehydrated and gaitConcern:           data_lines.append("- Combined fall risk alert: YES — gait irregularities combined with dehydration")
-    meals = fridge.get("mealsCount")
-    if meals is not None:                    data_lines.append(f"- Meals detected today (smart fridge): {meals}")
-    current_items = fridge.get("currentItems", [])
-    if current_items:                        data_lines.append(f"- Current fridge inventory: {', '.join(current_items)}")
-    expiring_items = fridge.get("expiringItems", [])
-    if expiring_items:                       data_lines.append(f"- Fridge items expiring soon: {', '.join(expiring_items)}")
-    
-    # TODO: get patient name from the patient id or make it a parameter
-    fall_risk_meds = extract_fall_risk_medications(first_name, last_name)
-    if fall_risk_meds:                       data_lines.append(f"- Medications that may cause dizziness or dehydration:\n  " + "\n  ".join(fall_risk_meds))
-
-    # TODO: get patient name from the patient id or make it a parameter
-    medications = get_patient_medications(first_name, last_name)
-    active_meds = [m for m in medications if m['status'] == 'active']
-    if active_meds:
-        med_lines = [f"  • {m['drug']}: {m['dosage']}" for m in active_meds]
-        data_lines.append("- Active prescriptions:\n" + "\n".join(med_lines))
-
-    # TODO: get patient name from the patient id or make it a parameter
-    appts = get_patient_appointments(first_name, last_name)
-    appts.sort(key=lambda x: x["start"])
-    if appts:
-        appt_lines = []
-        for a in appts:
-            try:
-                dt = datetime.strptime(a["start"], "%Y-%m-%dT%H:%M:%SZ")
-                date_str = dt.strftime("%A, %B %d")
-                time_str = dt.strftime("%I:%M %p").lstrip("0")
-            except Exception:
-                date_str = a["start"][:10]
-                time_str = ""
-            parts = [f"{date_str} at {time_str}", a["type"]]
-            if a["practitioner"]: parts.append(f"with {a['practitioner']}")
-            if a["location"]: parts.append(f"at {a['location']}")
-            appt_lines.append("  • " + " — ".join(parts))
-        data_lines.append("- Upcoming appointments:\n" + "\n".join(appt_lines))
-
-    data_summary = "\n".join(data_lines)
-
-    # ── Neighborhood — all upcoming activities ─────────────────────────────────
-    neighborhoodJson = get_neighborhood(patient_id)
-    latest_dict = neighborhoodJson[0] if neighborhoodJson else None
-
-    act_lines = []
-    if latest_dict:
-        today = datetime.strptime(latest_dict.get('date'), '%Y-%m-%d')
-        sorted_activities = sorted(
-            latest_dict.get("activities", []),
-            key=lambda x: (lambda d: datetime.strptime(d, "%A, %b %d %Y"))(f"{x.get('date')} {today.year}")
-        )
-        day_abbr = {"Mon,": "Monday,", "Tue,": "Tuesday,", "Wed,": "Wednesday,", "Thu,": "Thursday,", "Fri,": "Friday,", "Sat,": "Saturday,", "Sun,": "Sunday,"}
-        for a in sorted_activities:
-            attendeeNames = ", ".join([x.get("name", "") for x in a.get("attendees", [])])
-            suffix = ""
-            if attendeeNames:
-                extra = f" +{a.get('extraCount')} more" if a.get('extraCount', 0) > 0 else ""
-                suffix = f" — attending: {attendeeNames}{extra}"
-            date_str = a.get('date', '')
-            for abbr, full in day_abbr.items():
-                date_str = date_str.replace(abbr, full)
-            act_lines.append(f" • [ID: {a.get('id', 0)}] {a.get('title', '')}: {date_str} at {a.get('time', '')}, {a.get('location', '')} ({a.get('duration', '')}) {suffix}")
-    activities = "\n".join(act_lines)
-
-    # ── Neighbor ride offers from help board ───────────────────────────────────
-    ride_lines = []
-    if latest_dict:
-        for p in latest_dict.get("helpPosts", []):
-            if p.get("type") == "offer" and p.get("category", "").lower() == "ride":
-                ride_lines.append(f" • {p.get('name')}: {p.get('message')}")
-    ride_offers = "\n".join(ride_lines) if ride_lines else "None posted right now."
-
-    # ── Neighbor companionship offers from help board ─────────────────────────
-    companion_lines = []
-    if latest_dict:
-        for p in latest_dict.get("helpPosts", []):
-            if p.get("category", "").lower() == "companionship":
-                companion_lines.append(f" • {p.get('name')}: {p.get('message')}")
-    companion_offers = "\n".join(companion_lines) if companion_lines else "None posted right now."
-
-    patient_desc = get_patient_desc(patient_id)
-
-    return f"""
-    ### ROLE: Elder-care assistant
-
-    # CONTEXT:
-    You are Joy, a warm and caring AI health companion. You are speaking directly to the following patient:
-
-    {patient_desc}
-
-    # TONE:
-    Speak clearly and briefly. Don't patronise them. Prioritise conciseness, your reply should keep to 4-5 sentences.
-
-    # RESTRICTIONS:
-    DO NOT give medical diagnoses.
-    If unsure, suggest contacting their healthcare professional.
-
-    # FRANK'S CURRENT HEALTH DATA (real-time from wearable and smart home sensors):
-    {data_summary}
-
-    # APPOINTMENT INSTRUCTION:
-    When Frank asks about appointments, you MUST read out every detail for each one: full date, time, appointment type, physician name (if any), and location. Never omit any of these fields. Example: "You have a Primary Care Check-up on Wednesday, April 8th at 9:00 AM with Dr. James Patel at Medfield Family Practice."
-
-    # NEIGHBORHOOD ACTIVITIES (Oakwood Pines — all upcoming):
-    Consider all activities and suggest the most appropriate for Frank's wellbeing. Prioritise any happening today ({today.strftime('%A, %b %d')}) or tomorrow ({(today + timedelta(days=1)).strftime('%A, %b %d')}).
-
-    {activities}
-
-    # NEIGHBOR RIDE OFFERS:
-    Neighbors who have offered rides in the community help board:
-    {ride_offers}
-
-    # NEIGHBOR COMPANIONSHIP OFFERS:
-    Neighbors who have offered companionship in the community help board:
-    {companion_offers}
-
-    # NEIGHBOR CONNECT INSTRUCTION:
-    If Frank asks how to get to the doctor's office (or any appointment), always offer exactly these three options and nothing else:
-    1. His son David — "Your son David could take you."
-    2. His neighbor Barbara — "Your neighbor Barbara could give you a ride."
-    3. Lyft — "Or I can help you book a Lyft."
-    Wait for Frank to choose. Then:
-    - If Frank chooses David → simply say something like "Great, you can give David a call — he'll be happy to help."
-    - If Frank chooses Barbara → confirm warmly (e.g. "I'll connect you with Barbara now!") and on a brand new line at the very end append exactly: [[CONNECT_NEIGHBOR:Barbara]]
-      IMPORTANT: Only append [[CONNECT_NEIGHBOR:Barbara]] after Frank has explicitly chosen Barbara. Never connect proactively.
-    - If Frank chooses Lyft → tell him Lyft is a great option and he can open the Lyft app or ask someone to help book it.
-
-    For any other ride/transport or companionship request (not doctor-related):
-    1. First mention any neighbors who have offered (from the lists above).
-    2. If Frank wants to connect with a specific neighbor, confirm warmly and on a brand new line at the very end append exactly: [[CONNECT_NEIGHBOR:Name]] where Name is the neighbor's first name (e.g. [[CONNECT_NEIGHBOR:Barbara]]).
-    3. If no neighbor ride fits, suggest Lyft as a convenient option. If no companionship offers fit, suggest joining a neighborhood activity as a way to meet people or to contact his family.
-    [[CONNECT_NEIGHBOR:Name]] is a silent machine code — never speak or mention it.
-
-    # FOOD & ACTIVITY CONNECTION:
-    If Frank asks about food, recipes, or what to eat, suggest something from his fridge inventory AND check if there is a relevant upcoming activity (e.g. a cooking demo or class) — if so, briefly mention it by name and date as something he might enjoy.
-
-    # BOOKING INSTRUCTION:
-    When mentioning activities to Frank, only say the name, date, and start time — nothing else (no duration, no location, no description).
-    If Frank confirms they would like to join any activity, confirm enthusiastically and explicitly name the activity (e.g. "I've signed you up for the Neighborhood Walk on Thursday!").
-    Then, on a brand new line at the very end, append exactly: [[JOIN:ID]] where ID is that activity's booking ID number from the list above.
-    Do NOT speak or mention [[JOIN:ID]] — it is a silent machine code only, never part of the conversation. DO NOT sign them up without them explicitly asking.
-
-    # CALL INSTRUCTION:
-    There are exactly two cases:
-    1. Frank explicitly asks to call (e.g. "call David", "I want to talk to my son") → immediately say something like "Calling David now!" and append [[CALL_FAMILY]] on a brand new line at the very end. No questions, no alternatives.
-    2. Frank mentions a family member or says he misses them but does NOT ask to call → ask ONE simple question only: "Would you like me to call David?" — nothing else, no alternatives, no drafting messages. Wait for his response. Only append [[CALL_FAMILY]] after he confirms.
-    [[CALL_FAMILY]] is a silent machine code — never say it out loud.
-    """
-
-# @app.get("/api/checkin-prompt")
-# def get_check_in_prompt(mode: str = ""):
-#     if mode == "fall":
-#         return f"""
-#         # TASK
-#         Provide a good morning message including a gentle summary of what the system has noticed regarding their current fall-risk based on their garmin and household data, and some advice for how best to behave today. 
-#         Avoid returning too long of a message, your response should not require bullet points. Keep to 4-5 sentences.
-#         Avoid giving too much technical detail, this summary should act as a higher level overview of their health.
-#         Based on your summary, suggest something within their neighborhood that they might enjoy which could help them achieve your advised behaviour. 
-#         """
-#     elif mode == "mental":
-#         return f"""
-#         # TASK
-#         Provide a good morning message including a gentle summary of what the system has noticed based on their garmin and household data with a focus on their mental health, and some advice for how best to behave today.
-#         DO NOT TALK ABOUT FALL RISK. Your summary has to be about how they can improve their mental wellbeing.
-#         Remind them they have an appointment today.
-#         Avoid returning too long of a message, your response should not require bullet points. Keep to 4-5 sentences.
-#         Avoid giving too much technical detail, this summary should act as a higher level overview of their health.
-#         Based on your summary, suggest something within their neighborhood happening tomorrow that they might enjoy which could help them achieve your advised behaviour. 
-#         """
-#     return ""
-
-
 @app.get("/api/checkin-prompt")
 def get_check_in_prompt(mode: str = ""):
     if mode == "fall":
         return f"""
         # TASK
-        Check in on Frank's fall risk this morning. You already have his real health data in your context — use it directly. Do NOT mention meals or nutrition.
-        Focus only on these three signals:
-        - Gait: comment on his balance or symmetry if concerning — do NOT mention specific numbers or speeds.
-        - Hydration (smart toilet): if dehydrated, mention it increases dizziness and fall risk.
-        - Medications: some of his medications can cause dizziness as a side effect — warn him to stand up slowly and take his time, especially right after waking up or getting out of bed.
+        Provide a good morning message gently summarising their current fall-risk status based on their garmin and household data. 
+        DO NOT mention meals or nutrition. Focus on gait, hydration, and medications that may cause dizziness. If you are concerned they are a fall-risk, warn them to take it slow when getting up and moving around today. 
+        
+        Avoid returning too long of a message, your response should not require bullet points. Keep to 3-4 sentences.
+        Avoid giving too much technical detail, this summary should act as a higher level overview of their health. Do not use actual numbers, talk around the data in a more general way (e.g. "I noticed your walking has been unsteady" not "Your GCT delta is above 60ms").
 
-        Keep to 4-5 sentences. No bullet points. Speak like a caring friend, not a health report.
-        Do NOT suggest calling Dr. Mitchell unless the data shows a truly severe condition. Suggesting calling family (David) is fine if the situation warrants it.
+        Based on your summary, suggest some advice for how best to behave today. Do NOT suggest getting medical assistance unless the data shows a truly severe condition. Suggesting calling their family or primary contact is fine if the situation warrants it.
         """
     elif mode == "mental":
         return f"""
         # TASK
-        Check in on Frank's mental wellbeing this evening. You already have his real health data in your context — do not use actual numbers. Do NOT ask how he slept or how he's feeling. You know.
-        Open with "Good evening, Frank" — not "Good morning".
-        DO NOT mention fall risk, gait, dehydration, or physical safety. DO NOT use bullet points.
-
-        Open warmly by acknowledging what you see in his data:
-        - His actual sleep hours from last night: if under 7h, say you noticed he didn't get much rest.
-        - His actual step count: if very low (under 1000), say you've noticed he's barely been leaving home lately — it sounds like he's been keeping to himself. If under 3000, say he's been moving much less than usual.
-        - His actual meals count from the smart fridge: if 0 or 1, gently note you noticed he hasn't been eating much.
-
-        End with a brief, gentle nudge that getting out with neighbors might help lift his spirits — but do NOT name or detail any specific activities. Keep it vague and warm, like "your neighbors would love to see you."
-
-        Keep the whole message to 5-6 sentences. No lists. Speak like a warm friend who noticed and cares, not a health report.
-
-        If he later asks about activities, suggest things happening tomorrow or later in the week, not today. It is the evening already.
+        Provide a good evening message to check in on their mental wellbeing based on their garmin and household data. DO NOT say you are checking in on their mental health, just provide a warm message that acknowledges the data and offers gentle encouragement.
+        DO NOT mention fall risk, gait, dehydration, or physical safety. Focus on sleep, activity levels, and meals as the main pillars of mental health. 
+        If you see signs of low activity, poor sleep, or low meal counts, gently acknowledge this and suggest that getting out with neighbors tomorrow might help lift their spirits. Do NOT name or detail any specific activities, keep it vague and warm like "your neighbors would love to see you."
+        
+        Avoid returning too long of a message, your response should not require bullet points. Keep to 3-4 sentences. Open with "Good evening, Frank".
+        Avoid giving too much technical detail, this summary should act as a higher level overview of their health. Do not use actual numbers, talk around the data in a more general way (e.g. "I noticed you didn't get much rest last night" instead of "You got 5.6 hours of sleep last night").
+        
+        If they later ask about activities, suggest things happening tomorrow or later in the week, **NOT TODAY**. It is the evening already.
         """
     return ""
 

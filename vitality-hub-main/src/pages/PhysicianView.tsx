@@ -33,8 +33,7 @@ function generateAvatar(name: string, gender: string, age: number): string {
   const h3 = hashAttr(name, "shirt");
   const h4 = hashAttr(name, "skin");
   const h5 = hashAttr(name, "glasses");
-  const h6 = hashAttr(name, "beard");
-  const h7 = hashAttr(name, "hairstyle");
+  const h6 = hashAttr(name, "hairstyle");
 
   const bg = "#dbeafe";
   const isFemale = gender?.toLowerCase() === "female";
@@ -48,7 +47,7 @@ function generateAvatar(name: string, gender: string, age: number): string {
   const hairDark = hair + "cc";
 
   // Eye color: fully independent — wider variety
-  const eyeColors = ["#4a6fa5","#5c8a3c","#7b5ea7","#4a7a6a","#8a6040","#3a6a8a","#6a4a30","#2a6a5a","#5a3a8a","#3a8a5a","#8a5a3a","#4a4a8a","#6a8a3a","#8a3a4a","#3a4a6a","#7a6a2a"];
+  const eyeColors = ["#4a6fa5","#5c8a3c","#4a7a6a","#8a6040","#3a6a8a","#6a4a30","#2a6a5a","#3a8a5a","#8a5a3a","#4a4a8a","#6a8a3a","#8a3a4a","#3a4a6a","#7a6a2a"];
   const eyeColor = eyeColors[h2 % eyeColors.length];
 
   // Shirt color: independent — wider variety
@@ -64,10 +63,6 @@ function generateAvatar(name: string, gender: string, age: number): string {
   const wrinkles = age >= 60 ? `
     <path d="M78 85 Q100 82 122 85" stroke="${skinDark}" stroke-width="0.8" fill="none" opacity="0.5"/>
     <path d="M82 79 Q100 76 118 79" stroke="${skinDark}" stroke-width="0.8" fill="none" opacity="0.4"/>
-    <path d="M91 98 Q95 96 96 99" stroke="${skinDark}" stroke-width="0.8" fill="none"/>
-    <path d="M91 106 Q95 108 96 105" stroke="${skinDark}" stroke-width="0.8" fill="none"/>
-    <path d="M104 99 Q105 96 109 98" stroke="${skinDark}" stroke-width="0.8" fill="none"/>
-    <path d="M104 105 Q105 108 109 106" stroke="${skinDark}" stroke-width="0.8" fill="none"/>
     <path d="M86 122 Q82 130 84 138" stroke="${skinDark}" stroke-width="1.2" fill="none" opacity="0.7"/>
     <path d="M114 122 Q118 130 116 138" stroke="${skinDark}" stroke-width="1.2" fill="none" opacity="0.7"/>` : "";
 
@@ -83,18 +78,8 @@ function generateAvatar(name: string, gender: string, age: number): string {
   // Bald: independent hash
   const isBald = !isFemale && age >= 60 && (hashAttr(name, "bald") % 3 === 0);
 
-  // Beard: males only, random based on h6
-  const beardStyle = !isFemale ? h6 % 4 : -1; // 0=none,1=stubble,2=full,3=goatee
-  const beard = beardStyle === 1
-    ? `<path d="M80 130 Q100 138 120 130 Q118 145 100 148 Q82 145 80 130Z" fill="${hair}" opacity="0.35"/>`
-    : beardStyle === 2
-    ? `<path d="M76 126 Q100 142 124 126 Q122 152 100 156 Q78 152 76 126Z" fill="${hair}" opacity="0.5"/>`
-    : beardStyle === 3
-    ? `<path d="M90 128 Q100 138 110 128 Q108 146 100 148 Q92 146 90 128Z" fill="${hair}" opacity="0.5"/>`
-    : "";
-
   // Hair style variant for females: 0=long, 1=medium bob
-  const femaleHairStyle = h7 % 2;
+  const femaleHairStyle = h6 % 2;
   const femaleHair = femaleHairStyle === 0 ? `
     <path d="M54 90 Q52 60 70 50 Q100 38 130 50 Q148 60 146 90" fill="${hair}"/>
     <path d="M54 90 Q48 120 52 145" fill="${hair}" stroke="${hair}" stroke-width="12" stroke-linecap="round"/>
@@ -122,7 +107,6 @@ function generateAvatar(name: string, gender: string, age: number): string {
   <circle cx="100" cy="100" r="100" fill="${bg}"/>
   <rect x="78" y="138" width="44" height="35" rx="8" fill="${skin}"/>
   <path d="M68 165 Q100 185 132 165 L145 200 H55 Z" fill="${shirt}"/>
-  <path d="M100 175 L88 165 L100 155 L112 165 Z" fill="#ffffff" opacity="0.9"/>
   <ellipse cx="100" cy="105" rx="46" ry="52" fill="${skin}"/>
   <ellipse cx="54" cy="110" rx="8" ry="11" fill="${skin}"/>
   <ellipse cx="146" cy="110" rx="8" ry="11" fill="${skin}"/>
@@ -138,10 +122,8 @@ function generateAvatar(name: string, gender: string, age: number): string {
   <circle cx="118" cy="102" r="3" fill="#1a1a2e"/>
   <circle cx="84" cy="100" r="1.2" fill="white"/>
   <circle cx="120" cy="100" r="1.2" fill="white"/>
-  <path d="M97 105 Q94 118 88 122 Q96 125 100 124 Q104 125 112 122 Q106 118 103 105" fill="${skin}" stroke="${skinDark}" stroke-width="0.5"/>
+  <path d="M94 120 Q100 125 106 120" stroke="${skinDark}" stroke-width="1.5" fill="none" stroke-linecap="round"/>
   <path d="M87 132 Q100 141 113 132" stroke="#c07050" stroke-width="2" fill="none" stroke-linecap="round"/>
-  <path d="M87 132 Q100 136 113 132" fill="#d4806a" opacity="0.5"/>
-  ${beard}
   ${glasses}
 </svg>`;
 
