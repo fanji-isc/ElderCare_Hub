@@ -1408,7 +1408,7 @@ def get_patient_context(patient_id: str = ""):
 # Patient summary could be generated via the UI during account creation in order to provide more details?
 def get_patient_desc(patient_id: str = ""):
     return """
-           **Frank Larson**, 74-year-old man — retired civil engineer, widowed, living alone at home in Medfield, MA. He has:
+           **Frank Larson**, 83-year-old man — retired civil engineer, widowed, living alone at home in Medfield, MA. He has:
             - hypertension,
             - hyperlipidemia,
             - type 2 diabetes,
@@ -1511,13 +1511,13 @@ def generate_clinician_summary(patient_id: str = Query(...)):
     Format your response exactly like this example — a titled header line, then dash-prefixed bullets (no more than 5 bullets in each section):
 
     Summary (based on medical record):
-    [A concise but data-rich clinical narrative in 1-2 bullet points. Synthesize the patient's history, current risks, medications, and contributing factors. Emphasize causality, time course, and interactions.]
+    [A concise but data-rich clinical narrative in 1-2 bullet points. Synthesize the patient's history, current risks, medications, and contributing factors. Emphasize causality, time course, and interactions. **DO NOT USE THE GARMIN OR HOME DATA IN THIS SECTION** — ONLY THE FHIR MEDICAL RECORD.]
 
     Suggested actions:
-    [Provide a short list of clear, clinically appropriate next steps. Each action should be on its own bullet-point, concise, practical, and directly linked to the patient's risks and care gaps. Format in the style 'Physical therapy referral: urgent gait reassessment; right-leg compensation has persisted beyond expected post-op recovery window']
+    [Provide a short list of clear, clinically appropriate next steps based on the summary. Each action should be on its own bullet-point, concise, practical, and directly linked to the patient's risks and care gaps. Format in the style 'Physical therapy referral: urgent gait reassessment; right-leg compensation has persisted beyond expected post-op recovery window']
 
     Home data insights:
-    [If the patient's home data (e.g., gait metrics, hydration patterns) reveals any insights that are not already captured in the medical record but are relevant to their clinical risks, include them here in 1-2 bullet points. Include the source of this data (Hydration: Smart Toilet, Nutrition: Smart Fridge, Everything else: Garmin device).]
+    [If the patient's home data (e.g., gait metrics, hydration patterns) reveals any insights that are not already captured in the medical record but are relevant to their clinical risks, include them here in 1-2 bullet points. Include the source of this data (Smart Toilet, Smart Fridge, or Garmin device).]
 
     # TONE:
     Be clear, concise, and clinically grounded. Write as a clinician-to-clinician summary. Focus only on high-impact risks and actionable insights. Avoid unnecessary detail or exhaustive condition lists.
