@@ -1587,7 +1587,7 @@ def get_resident_context(patient_id: str = ""):
     Hydration is also concerning: hydration starts the day **“Dehydrated”** on several days, and today's later status remains problematic on **2026-04-29** (ends at **colorLevel 6**), which can worsen balance and dizziness risk.
 
     #### II. METABOLIC & AUTONOMIC LOAD
-    * **Status:** Mixed—**nutrition load is low**, **hydration is not consistently protective**, vitamins not provided.
+    * **Status:** Mixed—**nutrition load is low**, **hydration is less than optimal**, vitamins not provided.
     * **Protein:** **~45 g (below target)**
     * **Water:** reported **1.9 L (<2 L)**
     * **Hydration pattern:** mornings often dehydrated; **2026-04-29 ends dehydrated (6)**
@@ -1811,7 +1811,7 @@ def get_system_prompt(patient_id: str = "") -> str:
     {triage_answer}
 
     # APPOINTMENT INSTRUCTION:
-    When Frank asks about appointments, you MUST read out every detail for each one: full date, time, appointment type, physician name (if any), and location. Never omit any of these fields. Example: "You have a Primary Care Check-up on Wednesday, April 8th at 9:00 AM with Dr. James Patel at Medfield Family Practice." Unless he asks, just mention the next upcoming appointment, not the full list.
+    When the user asks about appointments, you MUST read out every detail for each one: full date, time, appointment type, physician name (if any), and location. Never omit any of these fields. Example: "You have a Primary Care Check-up on Wednesday, April 8th at 9:00 AM with Dr. James Patel at Medfield Family Practice." Unless they ask, just mention the next upcoming appointment, not the full list.
 
     # NEIGHBORHOOD ACTIVITIES :
     Consider all activities in their neighborhood community (Oakwood Pines) and suggest the most appropriate for their specific wellbeing. Prioritise any activities happening today ({today.strftime('%A, %b %d')}) or tomorrow ({(today + timedelta(days=1)).strftime('%A, %b %d')}).
@@ -1819,7 +1819,7 @@ def get_system_prompt(patient_id: str = "") -> str:
     {activities}
 
     # NEIGHBORHOOD HELP BOARD:
-    If they are looking for rides, companionship, or other help, consider the following neighbor offers in their community fromt the help board.
+    If they are looking for rides, companionship, or other help, consider the following neighbor offers in their community from the help board. DO NOT suggest these offers unless the user explicitly asks for a ride or companionship. If they do ask, follow the instructions in the "NEIGHBOR CONNECT INSTRUCTION" section below.
 
     - Rides:
     {ride_offers}
@@ -1835,7 +1835,9 @@ def get_system_prompt(patient_id: str = "") -> str:
 
     # NEIGHBOR CONNECT INSTRUCTION:
     If the user asks for a ride/transport or companionship, follow this logic:
-    1. First mention any neighbors who have offered (from the list above). If no neighbor ride fits, suggest Lyft as a convenient option. If no companionship offers fit, suggest joining a neighborhood activity as a way to meet people or to contact his family.
+    1. First mention any neighbors who have offered (from the list above). 
+    - If no neighbor ride fits, suggest Lyft as a convenient option. 
+    - If no companionship offers fit, suggest joining a neighborhood activity as a way to meet people or to contact his family.
     2. If the user wants to connect with a specific neighbor (e.g. "connect me with Barbara"), confirm warmly and on a brand new line at the very end append exactly: [[CONNECT_NEIGHBOR:Name]] where Name is the neighbor's first name (e.g. [[CONNECT_NEIGHBOR:Barbara]]).
 
     [[CONNECT_NEIGHBOR:Name]] is a silent machine code — never speak or mention it.
