@@ -311,7 +311,7 @@ const ElderView = () => {
   useEffect(() => {
     const fetchSystemPrompt = async () => {
       try {
-        const response = await fetch(`${API_BASE}/api/system-prompt?patient_id=${HOME_ID}&first_name=${first_name}&last_name=${last_name}`);
+        const response = await fetch(`${API_BASE}/api/system-prompt?patient_id=${HOME_ID}`);
         
         if (!response.ok) {
           throw new Error("Network response was not ok");
