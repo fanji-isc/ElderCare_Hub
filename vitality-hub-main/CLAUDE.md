@@ -4,11 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Vitality Hub is a multi-view health monitoring dashboard for elderly care. It displays Garmin wearable data (heart rate, sleep, ECG, gait, daily activity, smart fridge/nutrition) alongside FHIR clinical records, with a voice-controlled AI assistant powered by OpenAI. Data is stored in InterSystems IRIS Health via ObjectScript.
+Vitality Hub is a multi-view health monitoring dashboard for elderly care. It displays Garmin wearable data (heart rate, sleep, ECG, gait, daily activity) and other smart household devices (smart toilet - hydration , smart fridge - nutrition) alongside FHIR clinical records, with a voice-controlled AI assistant powered by OpenAI. Data is stored in InterSystems IRIS Health via ObjectScript.
 
 **Three primary views:**
-- **Elder View** (`src/pages/ElderView.tsx`) — patient-facing dashboard with all health metrics
-- **Family View** (`src/pages/FamilyView.tsx`) — simplified caregiver overview of Frank Larson's vitals
+- **Elder View** (`src/pages/ElderView.tsx`) — patient-facing dashboard with all health metrics alonside data about their neighborhood
+- **Family View** (`src/pages/FamilyView.tsx`) — caregiver overview of the patient's vitals
 - **Physician View** (`src/pages/PhysicianView.tsx`) — clinical view with FHIR data (conditions, medications, labs, vitals, procedures)
 
 ## Running the Project
@@ -58,31 +58,35 @@ Browser (8080) → [Vite/React] → /api proxy → [FastAPI (3001)] → [IRIS He
 | `GET /api/iris_data?column=toilet` | Hydration / toilet events |
 | `GET /api/iris_data?column=neighborhood` | Community activity |
 | `GET /api/iris_data?column=phoneCalls` | Phone call log |
+| `GET /api/build-patient-dashboard` | Vitals data |
 | `GET /api/fhir/patients` | FHIR patient list |
 | `GET /api/fhir/patient` | Single patient demographics |
 | `GET /api/fhir/conditions` | Active conditions |
-| `GET /api/fhir/medications` | Medications |
+| `GET /api/fhir/medications` | Medications (called by patient ID) |
+| `GET /api/fhir/patient-medications` | Medications (called by patient name) |
 | `GET /api/fhir/vitals` | Vital signs |
 | `GET /api/fhir/labs` | Lab results |
 | `GET /api/fhir/procedures` | Procedures |
 | `GET /api/fhir/immunizations` | Immunizations |
 | `GET /api/fhir/encounters` | Encounters |
 | `GET /api/fhir/bp-trend` | Blood pressure trend |
-| `POST /api/transcribe` | Audio → Whisper transcription |
-| `POST /api/answer` | Text → GPT-4o-mini response |
-| `POST /api/answer/stream` | Streaming version of /answer |
-| `POST /api/speak` | Text → OpenAI TTS audio |
+| `GET /api/fhir/appointments` | Appointments |
+| `GET /api/fhir/patient-appointments` | Appointments (called by patient name) |
+| `POST /api/clinician_summary/generate` | Generate FHIR summary for clinician (including home data section) |
+| `GET /api/clinician_summary` | Retrieve FHIR summary for clinician (including home data section) |
+| `GET /api/system-prompt` | System prompt for ElderView agent |
+| `GET /api/checkin-prompt` | Assistant prompt for ElderView agent |
+| `POST /api/transcribe` | Audio → GPT-4o-mini transcription |
+| `POST /api/answer/stream` | Streaming Text → GPT-5.4-nano response |
+| `POST /api/speak` | Text → OpenAI TTS-1-HD audio with Nova voice |
 
-**Database**: InterSystems IRIS Health. `backend/iris_db.py` runs at startup to load `garmin/*.json` and `fhirdata/*.json` files into IRIS under patient key `PATIENT_001`.
+**Database**: InterSystems IRIS Health. `backend/iris_db.py` runs at startup to load `garmin/*.json` and `fhirdata/*.json` files into IRIS under patient key `PATIENT_001`, who is `Frank Larson`.
 
 ## Key Data Flow
 
 1. On startup, `iris_db.py` reads `garmin/` and `fhirdata/` JSON files and stores them in IRIS under patient key `PATIENT_001`.
-2. Frontend fetches health metrics and derives values:
-   - Sleep hours = `(deepSleepSeconds + lightSleepSeconds + remSleepSeconds) / 3600`
-   - Energy = `bodyBatteryStatList` MOSTRECENT/ENDOFDAY entry
-   - Stress = `allDayStress.aggregatorList` where `type === "AWAKE"`
-3. Voice assistant: hold VoiceButton → WebM/Opus audio → `/api/transcribe` → `/api/answer` → `/api/speak` → audio playback.
+2. Frontend fetches health metrics from the backend via the FastAPI endpoints
+3. Voice assistant: hold VoiceButton → WebM/Opus audio → `/api/transcribe` → `/api/answer/stream` → `/api/speak` → audio playback.
 
 ## Data Files
 
@@ -98,7 +102,7 @@ Browser (8080) → [Vite/React] → /api proxy → [FastAPI (3001)] → [IRIS He
 | Frontend | React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui, Recharts, TanStack Query |
 | Backend | Python 3.11, FastAPI, Uvicorn |
 | Database | InterSystems IRIS Health Community (ObjectScript) |
-| AI | OpenAI API (gpt-4o-mini, Whisper, TTS) |
+| AI | OpenAI API (gpt-5.4-nano, gpt-4o-mini-transcribe, tts-1-hd) |
 
 ## IRIS Database
 
