@@ -50,7 +50,7 @@ def get_iris_data(patient_id: str = "", column: str = ""):
         conn.close()
 
 # TODO: rewrite to be a tool the agent can call if Frank asks about his neighbourhood
-def build_neighbourhood_context(first_name: str, patient_id: str = ""):
+def build_neighbourhood_context(patient_id: str = ""):
     neighborhoodJson = get_iris_data(patient_id, "neighborhood")
 
     latest_dict = neighborhoodJson[0] if neighborhoodJson else None
@@ -85,10 +85,20 @@ def build_neighbourhood_context(first_name: str, patient_id: str = ""):
         lines.append("")
         
         instructions = f"""
-        BOOKING INSTRUCTION: If {first_name} asks to join, book, sign up for, register for, or asks you to pick and sign them up for an activity, then confirm enthusiastically in your normal response that you have successfully registered them. 
+        # ACTIVITY BOOKING INSTRUCTION: 
+        If the user asks to join, book, sign up for, register for, or asks you to pick and sign them up for an activity, then confirm enthusiastically in your normal response that you have successfully registered them. 
         Then, on a brand new line at the very end, append exactly: [[JOIN:ID]] where ID is that activity's booking ID number from the list above. 
         Do NOT speak or mention [[JOIN:ID]] — it is a silent machine code only, never part of the conversation. 
-        Always append it whenever {first_name} wants to be signed up. DO NOT sign them up without them explicitly asking to be.
+        Always append it whenever the user wants to be signed up. DO NOT sign them up without them explicitly asking to be.
+
+        # NEIGHBOR CONNECT INSTRUCTION:
+        If the user asks for a ride/transport or companionship, follow this logic:
+        1. First mention any neighbors who have offered (from the list above). 
+        - If no neighbor ride fits, suggest Lyft as a convenient option. 
+        - If no companionship offers fit, suggest joining a neighborhood activity as a way to meet people or to contact his family.
+        2. If the user wants to connect with a specific neighbor (e.g. "connect me with Barbara"), confirm warmly and on a brand new line at the very end append exactly: [[CONNECT_NEIGHBOR:Name]] where Name is the neighbor's first name (e.g. [[CONNECT_NEIGHBOR:Barbara]]).
+
+        [[CONNECT_NEIGHBOR:Name]] is a silent machine code — never speak or mention it. Always append it whenever the user wants to be connected. DO NOT connect them without them explicitly asking.
         """
         lines.append(instructions)
     return "\n".join(lines)
@@ -1527,8 +1537,13 @@ def generate_clinician_summary(patient_id: str = ""):
     [Provide a short list of clear, clinically appropriate next steps based on the summary. Each action should be on its own bullet-point, concise, practical, and directly linked to the patient's risks and care gaps. Format in the style 'Physical therapy referral: urgent gait reassessment; right-leg compensation has persisted beyond expected post-op recovery window']
 
     Home data insights:
-    [If the patient's home data (e.g., gait metrics, hydration patterns) reveals any insights that are not already captured in the medical record but are relevant to their clinical risks, include them here in 1-2 bullet points. Include the source of this data (Smart Toilet, Smart Fridge, or Garmin device).]
-
+    [If home data is available:]
+    - Smart Toilet: [If the patient's toilet data (e.g., hydration levels, bathroom visits) reveals any insights that are not already captured in the medical record but are relevant to their clinical risks, include them here in 1-2 short sentences. For example, "Toilet color level has been consistently at Level 4 (Dehydrated) for the past week, which may be contributing to orthostatic symptoms."]
+    - Smart Fridge: [If the patient's fridge data (e.g., inventory management, meal patterns) reveals any insights that are not already captured in the medical record but are relevant to their clinical risks, include them here in 1-2 short sentences. For example, "Fridge inventory shows multiple expired items and no fresh produce, which may indicate poor nutrition contributing to weakness."]
+    - Garmin Device: [If the patient's garmin data (e.g., gait metrics, sleep patterns, stress levels) reveals any insights that are not already captured in the medical record but are relevant to their clinical risks, include them here in 1-2 short sentences. For example, "Garmin data shows a significant decrease in gait speed and increased variability over the past month, which may indicate worsening fall risk."]
+    [Else:]
+    - No home data available for this patient.
+    
     # TONE:
     Be clear, concise, and clinically grounded. Write as a clinician-to-clinician summary. Focus only on high-impact risks and actionable insights. Avoid unnecessary detail or exhaustive condition lists.
     """
@@ -1675,7 +1690,7 @@ def get_system_prompt(patient_id: str = "") -> str:
     - If no companionship offers fit, suggest joining a neighborhood activity as a way to meet people or to contact his family.
     2. If the user wants to connect with a specific neighbor (e.g. "connect me with Barbara"), confirm warmly and on a brand new line at the very end append exactly: [[CONNECT_NEIGHBOR:Name]] where Name is the neighbor's first name (e.g. [[CONNECT_NEIGHBOR:Barbara]]).
 
-    [[CONNECT_NEIGHBOR:Name]] is a silent machine code — never speak or mention it.
+    [[CONNECT_NEIGHBOR:Name]] is a silent machine code — never speak or mention it. Always append it whenever the user wants to be connected. DO NOT connect them without them explicitly asking.    
     
     # CALL INSTRUCTION: 
     If they ask to call or talk to their family, reply exactly with this format: "I will connect you to [Name] now."
