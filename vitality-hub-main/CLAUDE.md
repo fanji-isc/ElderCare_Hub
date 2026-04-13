@@ -49,15 +49,15 @@ Browser (8080) → [Vite/React] → /api proxy → [FastAPI (3001)] → [IRIS He
 
 | Endpoint | Purpose |
 |---|---|
-| `GET /api/hr` | Heart rate epoch data |
-| `GET /api/sleep` | Sleep stages |
-| `GET /api/ecg` | ECG waveform |
-| `GET /api/dailySummary` | Steps, resting HR, stress |
-| `GET /api/gait` | Gait / fall risk metrics |
-| `GET /api/fridge` | Smart fridge / nutrition data |
-| `GET /api/toilet` | Hydration / toilet events |
-| `GET /api/neighborhood` | Community activity |
-| `GET /api/phone_calls` | Phone call log |
+| `GET /api/iris_data?column=hr` | Heart rate epoch data |
+| `GET /api/iris_data?column=sleep` | Sleep stages |
+| `GET /api/iris_data?column=ecg` | ECG waveform |
+| `GET /api/iris_data?column=dailySummary` | Steps, resting HR, stress |
+| `GET /api/iris_data?column=gait` | Gait / fall risk metrics |
+| `GET /api/iris_data?column=fridge` | Smart fridge / nutrition data |
+| `GET /api/iris_data?column=toilet` | Hydration / toilet events |
+| `GET /api/iris_data?column=neighborhood` | Community activity |
+| `GET /api/iris_data?column=phoneCalls` | Phone call log |
 | `GET /api/fhir/patients` | FHIR patient list |
 | `GET /api/fhir/patient` | Single patient demographics |
 | `GET /api/fhir/conditions` | Active conditions |

@@ -439,11 +439,11 @@ const FamilyView = () => {
     (async () => {
       try {
         const [dailyRes, sleepRes, toiletRes, gaitRes, fridgeRes] = await Promise.all([
-          fetch(`${API_BASE}/api/dailySummary?patient_id=${HOME_ID}`),
-          fetch(`${API_BASE}/api/sleep?patient_id=${HOME_ID}`),
-          fetch(`${API_BASE}/api/toilet?patient_id=${HOME_ID}`),
-          fetch(`${API_BASE}/api/gait?patient_id=${HOME_ID}`),
-          fetch(`${API_BASE}/api/fridge?patient_id=${HOME_ID}`),
+          fetch(`${API_BASE}/api/iris_data?patient_id=${HOME_ID}&column=dailySummary`),
+          fetch(`${API_BASE}/api/iris_data?patient_id=${HOME_ID}&column=sleep`),
+          fetch(`${API_BASE}/api/iris_data?patient_id=${HOME_ID}&column=toilet`),
+          fetch(`${API_BASE}/api/iris_data?patient_id=${HOME_ID}&column=gait`),
+          fetch(`${API_BASE}/api/iris_data?patient_id=${HOME_ID}&column=fridge`),
         ]);
         const dailyJson = dailyRes.ok ? await dailyRes.json() : [];
         const sleepJson = sleepRes.ok ? await sleepRes.json() : [];

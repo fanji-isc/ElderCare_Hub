@@ -39,126 +39,20 @@ def get_iris():
 
 # ── IRIS Home data endpoints ─────────────────────────────────────────────────────
 
-@app.get("/api/ecg")
-def get_ecg(patient_id: str = ""):
+@app.get("/api/iris_data")
+def get_iris_data(patient_id: str = "", column: str = "") -> dict:
     conn = get_iris()
     try:
         irispy = iris.createIRIS(conn)
         # Fetch the combined record
         txt = irispy.classMethodValue("MyApp.Utils", "GetLatestJSONFile", patient_id)
         data = json.loads(txt) if txt else {}
-        # Only return the ECG part
-        return data.get("ecg", {})
+        # Only return the desired column
+        return data.get(column, {})
     finally:
         conn.close()
 
-@app.get("/api/hr")
-def get_hr(patient_id: str = ""):
-    conn = get_iris()
-    try:
-        irispy = iris.createIRIS(conn)
-        # Fetch the combined record
-        txt = irispy.classMethodValue("MyApp.Utils", "GetLatestJSONFile", patient_id)
-        data = json.loads(txt) if txt else {}
-        # Only return the Heart Rate part
-        return data.get("hr", {})
-    finally:
-        conn.close()
-
-@app.get("/api/sleep")
-def get_sleep(patient_id: str = ""):
-    conn = get_iris()
-    try:
-        irispy = iris.createIRIS(conn)
-        # Fetch the combined record
-        txt = irispy.classMethodValue("MyApp.Utils", "GetLatestJSONFile", patient_id)
-        data = json.loads(txt) if txt else {}
-        # Only return the Sleep part
-        return data.get("sleep", {})
-    finally:
-        conn.close()
-
-@app.get("/api/dailySummary")
-def get_dailySummary(patient_id: str = ""):
-    conn = get_iris()
-    try:
-        irispy = iris.createIRIS(conn)
-        # Fetch the combined record
-        txt = irispy.classMethodValue("MyApp.Utils", "GetLatestJSONFile", patient_id)
-        data = json.loads(txt) if txt else {}
-        # Only return the Daily Summary part
-        return data.get("dailySummary", {})
-    finally:
-        conn.close()
-
-@app.get("/api/toilet")
-def get_toilet(patient_id: str = ""):
-    conn = get_iris()
-    try:
-        irispy = iris.createIRIS(conn)
-        # Fetch the combined record
-        txt = irispy.classMethodValue("MyApp.Utils", "GetLatestJSONFile", patient_id)
-        data = json.loads(txt) if txt else {}
-        # Only return the Toilet part
-        return data.get("toilet", [])
-    finally:
-        conn.close()
-
-@app.get("/api/gait")
-def get_gait(patient_id: str = ""):
-    conn = get_iris()
-    try:
-        irispy = iris.createIRIS(conn)
-        # Fetch the combined record
-        txt = irispy.classMethodValue("MyApp.Utils", "GetLatestJSONFile", patient_id)
-        data = json.loads(txt) if txt else {}
-        # Only return the Gait part
-        return data.get("gait", [])
-    finally:
-        conn.close()
-
-@app.get("/api/fridge")
-def get_fridge(patient_id: str = ""):
-    conn = get_iris()
-    try:
-        irispy = iris.createIRIS(conn)
-        # Fetch the combined record
-        txt = irispy.classMethodValue("MyApp.Utils", "GetLatestJSONFile", patient_id)
-        data = json.loads(txt) if txt else {}
-        # Only return the Fridge part
-        return data.get("fridge", [])
-    finally:
-        conn.close()
-
-@app.get("/api/neighborhood")
-def get_neighborhood(patient_id: str = ""):
-    conn = get_iris()
-    try:
-        irispy = iris.createIRIS(conn)
-        # Fetch the combined record
-        txt = irispy.classMethodValue("MyApp.Utils", "GetLatestJSONFile", patient_id)
-        data = json.loads(txt) if txt else {}
-        # Only return the Neighborhood part
-        return data.get("neighborhood", [])
-    finally:
-        conn.close()
-
-@app.get("/api/phone_calls")
-def get_phone_calls(patient_id: str = ""):
-    conn = get_iris()
-    try:
-        irispy = iris.createIRIS(conn)
-        # Fetch the combined record
-        txt = irispy.classMethodValue("MyApp.Utils", "GetLatestJSONFile", patient_id)
-        data = json.loads(txt) if txt else {}
-        # Only return the Phone Calls part
-        return data.get("phoneCalls", [])
-    finally:
-        conn.close()
-
-# ── Interprete IRIS Home data endpoints ───────────────────────────────────────
-
-def interprete_garmin(patient_id: str = "") -> dict:
+def interpret_garmin(patient_id: str = "") -> dict:
     """This function retrieves a summary of the Patient's ECG, HR, and Sleep Data from their Garmin Watch.
 
     returns: Status of the execution of this function, and a dictionary of the 'ECG Summary', 'HR Summary', and 'Sleep Summary'."""
@@ -423,7 +317,7 @@ def interprete_garmin(patient_id: str = "") -> dict:
     - Explain that a Lead I ECG (from a wrist-worn device) is a snapshot of the heart's electrical activity from the left to right arm. Focus on the "timing" of the beats rather than diagnosing structural heart disease.
 
     # TONE:
-    Clinical, precise, and objective. These insights are being interpreted by an orchestrator agent as part of a wider health monitoring system. Therefore, avoid medical jargon unless accompanied by a brief explanation. Refer to the patient in the third person. 
+    Clinical, precise, and objective. These insights are being interpretd by an orchestrator agent as part of a wider health monitoring system. Therefore, avoid medical jargon unless accompanied by a brief explanation. Refer to the patient in the third person. 
 
     # INPUT: 
 
@@ -449,7 +343,7 @@ def interprete_garmin(patient_id: str = "") -> dict:
     - Use the `time_window` to orient your advice. A 60-minute window of high stress in the morning (focus) is different from a 60-minute window of high stress at midnight (poor recovery).
 
     # TONE:
-    Insightful, analytical, and highly personalized. Translate the "Summary Metrics" into a narrative about the patient's day. These insights are being interpreted by an orchestrator agent as part of a wider health monitoring system. Therefore, avoid medical jargon unless accompanied by a brief explanation. Refer to the patient in the third person. 
+    Insightful, analytical, and highly personalized. Translate the "Summary Metrics" into a narrative about the patient's day. These insights are being interpretd by an orchestrator agent as part of a wider health monitoring system. Therefore, avoid medical jargon unless accompanied by a brief explanation. Refer to the patient in the third person. 
 
     # INPUT: 
 
@@ -505,7 +399,7 @@ def interprete_garmin(patient_id: str = "") -> dict:
     When providing data, such as total hours of sleep, cross reference it against the patient's baseline / 7-day average to give the patient context for the data.
 
     # TONE:
-    Professional and data-driven. These insights are being interpreted by an orchestrator agent as part of a wider health monitoring system. Therefore, avoid "fluff"; focus on biological impact. Refer to the patient in the third person.
+    Professional and data-driven. These insights are being interpretd by an orchestrator agent as part of a wider health monitoring system. Therefore, avoid "fluff"; focus on biological impact. Refer to the patient in the third person.
 
     # INPUT: 
 
@@ -538,7 +432,7 @@ def interprete_garmin(patient_id: str = "") -> dict:
     Focus on **Stability** and **Symmetry**. Translate the "GCT Delta" into plain English (e.g. "The user is favoring their left leg").
 
     # TONE:
-    Professional and data-driven. These insights are being interpreted by an orchestrator agent as part of a wider health monitoring system. Therefore, avoid "fluff"; focus on biological impact. Refer to the patient in the third person.
+    Professional and data-driven. These insights are being interpretd by an orchestrator agent as part of a wider health monitoring system. Therefore, avoid "fluff"; focus on biological impact. Refer to the patient in the third person.
 
     # INPUT: 
 
@@ -587,7 +481,7 @@ def interprete_garmin(patient_id: str = "") -> dict:
     finally:
         conn.close()
 
-def interprete_home_data(patient_id: str = "") -> dict:
+def interpret_home_data(patient_id: str = "") -> dict:
     """This function retrieves a summary of the Patient's Toilet and Fridge Data from their smart home hub.
 
     returns: Status of the execution of this function, and a dictionary of the 'Hydration Summary' and 'Nutrition Summary'."""
@@ -736,9 +630,8 @@ def interprete_home_data(patient_id: str = "") -> dict:
         conn.close()
 
 # TODO: rewrite to be a tool the agent can call if Frank asks about his neighbourhood
-@app.get("/api/build-neighbourhood-context")
 def build_neighbourhood_context(patient_id: str, first_name: str):
-    neighborhoodJson = get_neighborhood(patient_id)
+    neighborhoodJson = get_iris_data(patient_id, "neighborhood")
 
     latest_dict = neighborhoodJson[0] if neighborhoodJson else None
     lines = []
@@ -797,7 +690,7 @@ def build_step_history(dailySummaryJson: list):
     return step_history
 
 def extract_fridge(patient_id: str):
-    fridgeJson = get_fridge(patient_id)
+    fridgeJson = get_iris_data(patient_id, "fridge")
     
     latest_dict = max(fridgeJson, key=lambda x: x.get("calendarDate"), default=None)
     if latest_dict:
@@ -817,7 +710,7 @@ def extract_fridge(patient_id: str):
     return {"waterLiters": 50, "currentItems": [], "expiringItems": [], "mealsCount": 0}
 
 def extract_hydration(patient_id: str):
-    toiletJson = get_toilet(patient_id)
+    toiletJson = get_iris_data(patient_id, "toilet")
     
     hydrationNote = ""
     hydrationColorLevel = 0
@@ -838,7 +731,7 @@ def extract_hydration(patient_id: str):
     return hydrationNote, hydrationColorLevel, dehydrated
 
 def extract_gait(patient_id: str):
-    gaitJson = get_gait(patient_id)
+    gaitJson = get_iris_data(patient_id, "gait")
     
     all_sessions = [s for day in gaitJson for s in day["sessions"]]
     if all_sessions:
@@ -884,7 +777,7 @@ def extract_gait(patient_id: str):
     return gaitNote, gaitConcern, gait_metrics
 
 def extract_phone_calls(patient_id: str):
-    phoneCallJson = get_phone_calls(patient_id)
+    phoneCallJson = get_iris_data(patient_id, "phoneCalls")
     phone_calls = {"phoneCallMinutes": 0, "phoneCallTrend": []}
     
     sorted_calls = sorted(
@@ -900,7 +793,7 @@ def extract_phone_calls(patient_id: str):
     return phone_calls
 
 def extract_sleep(patient_id: str):
-    sleepJson = get_sleep(patient_id)
+    sleepJson = get_iris_data(patient_id, "sleep")
     
     hoursAsleep = 0
     filtered_sleep = [
@@ -921,7 +814,7 @@ def extract_sleep(patient_id: str):
 # TODO: check where vitals is called to see if more/different keys should be included
 @app.get("/api/build-patient-dashboard")
 def get_patient_dashboard(patient_id: str):
-    dailyJson = get_dailySummary(patient_id)
+    dailyJson = get_iris_data(patient_id, "dailySummary")
     latest_dailySummary = max(dailyJson, key=lambda x: x.get("calendarDate"), default=None)
 
     # extractStress
@@ -1310,7 +1203,7 @@ def get_fhir_care_plans(patient_id: str = ""):
         
     return results
 
-# ── Interprete FHIR proxy endpoints ───────────────────────────────────────────
+# ── Interpret FHIR proxy endpoints ───────────────────────────────────────────
 
 def get_patient_context(patient_id: str = ""):
     conditions  = get_fhir_conditions(patient_id)
@@ -1623,8 +1516,8 @@ def get_resident_context(patient_id: str = ""):
     """
     client = get_openai_client()
     
-    garmin_dict = interprete_garmin(patient_id)
-    home_dict = interprete_home_data(patient_id)
+    garmin_dict = interpret_garmin(patient_id)
+    home_dict = interpret_home_data(patient_id)
     if garmin_dict.get("status") == "error" or home_dict.get("status") == "error":
         garmin_data = "None"
         home_data = "None"
@@ -1637,7 +1530,7 @@ def get_resident_context(patient_id: str = ""):
 
     # CONTEXT:
     You are a Senior Clinical Data Scientist specializing in Geriatric Health. You analyze data from six distinct health monitoring systems (ECG, HR, Sleep, Gait, Hydration, and Nutrition) to create a unified safety and recovery profile for an elderly user.
-    Your goal is to generate a summary of the patient's Garmin and Home Appliance data for an orchestrator agent to interprete as part of a wider health monitoring system. Therefore, avoid medical jargon unless accompanied by a brief explanation. Refer to the patient in the third person. 
+    Your goal is to generate a summary of the patient's Garmin and Home Appliance data for an orchestrator agent to interpret as part of a wider health monitoring system. Therefore, avoid medical jargon unless accompanied by a brief explanation. Refer to the patient in the third person. 
 
     # INTERPRETATION FRAMEWORK: 
     You must cross-reference data across all six systems to identify patterns of "Biological Resilience," "Mental Wellbeing," and "Acute Safety Risks." Use the following holistic logic:
@@ -1708,7 +1601,7 @@ def get_resident_context(patient_id: str = ""):
         * *Logic:* Forgetting to eat or failing to manage inventory are markers of executive dysfunction or depressive withdrawal, often preceded by poor deep sleep architecture.
 
     ## 3. REPORT STRUCTURE (MANDATORY)
-    Your goal is to generate a summary of the patient's Garmin and Home Appliance data for an orchestrator agent to interprete as part of a wider health monitoring system. Therefore, avoid medical jargon unless accompanied by a brief explanation. Refer to the patient in the third person. Your final output must follow this exact template:
+    Your goal is to generate a summary of the patient's Garmin and Home Appliance data for an orchestrator agent to interpret as part of a wider health monitoring system. Therefore, avoid medical jargon unless accompanied by a brief explanation. Refer to the patient in the third person. Your final output must follow this exact template:
 
     ---
     ### ⚠️ OVERALL RISK LEVEL: [LOW | ELEVATED | CRITICAL]
@@ -1749,7 +1642,7 @@ def get_resident_context(patient_id: str = ""):
 
 @app.get("/api/system-prompt")
 def get_system_prompt(patient_id: str = "") -> str:
-    neighborhoodJson = get_neighborhood(patient_id)
+    neighborhoodJson = get_iris_data(patient_id, "neighborhood")
 
     latest_dict = neighborhoodJson[0] if neighborhoodJson else None
 

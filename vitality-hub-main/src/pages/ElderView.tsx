@@ -299,7 +299,6 @@ const ElderView = () => {
   const messagesRef = useRef<Msg[]>([]);
   messagesRef.current = messages;
   const runningRef = useRef(false);
-  const neighborhoodRef = useRef<string>("");
   const scrollBottomRef = useRef<HTMLDivElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioSourceRef = useRef<AudioBufferSourceNode | null>(null);
@@ -498,10 +497,6 @@ const ElderView = () => {
   useEffect(() => {
     (async () => {
       try {
-        // Build neighborhood RAG text 
-        // TODO: remove this
-        neighborhoodRef.current = await fetch(`${API_BASE}/api/build-neighbourhood-context?patient_id=${HOME_ID}&first_name=${first_name}`).then(res => res.ok ? res.text() : "Error: Could not retrieve neighbourhood context.");
-
         const res = await fetch(`${API_BASE}/api/build-patient-dashboard?patient_id=${HOME_ID}`);
         if (!res.ok) {
           const errorData = await res.json().catch(() => ({ detail: "Unknown Error" }));

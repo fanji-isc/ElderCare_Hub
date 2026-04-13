@@ -186,7 +186,7 @@ export function CommunityPanel({ section = "all" }: { section?: CommunitySection
   const [postMessage,  setPostMessage]  = useState("");
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/neighborhood?patient_id=${encodeURIComponent(PATIENT_ID)}`)
+    fetch(`${API_BASE}/api/iris_data?patient_id=${encodeURIComponent(PATIENT_ID)}&column=neighborhood`)
       .then((r) => r.ok ? r.json() : [])
       .then((data: any) => {
         const latest = Array.isArray(data) && data.length > 0 ? data[0] : null;

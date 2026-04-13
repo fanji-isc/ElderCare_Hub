@@ -295,7 +295,7 @@ def get_FHIR(file_path: str) -> dict:
         return {"status": "error", "message": f"The following error was found: {e}."}
 
 @function_tool
-def interprete_garmin(yesterday_datetime: datetime) -> dict:
+def interpret_garmin(yesterday_datetime: datetime) -> dict:
     """This function retrieves a summary of the Patient's ECG, HR, and Sleep Data from their Garmin Watch of the week ending on the given datetime.
 
     arguments:
@@ -353,7 +353,7 @@ def interprete_garmin(yesterday_datetime: datetime) -> dict:
     When providing data, such as total hours of sleep, cross reference it against the patient's baseline / 7-day average to give the patient context for the data.
 
     # TONE:
-    Professional and data-driven. These insights are being interpreted by an orchestrator agent as part of a wider health monitoring system. Therefore, avoid "fluff"; focus on biological impact. Refer to the patient in the third person.
+    Professional and data-driven. These insights are being interpretd by an orchestrator agent as part of a wider health monitoring system. Therefore, avoid "fluff"; focus on biological impact. Refer to the patient in the third person.
 
     # INPUT: 
 
@@ -373,7 +373,7 @@ def interprete_garmin(yesterday_datetime: datetime) -> dict:
     - Explain that a Lead I ECG (from a wrist-worn device) is a snapshot of the heart's electrical activity from the left to right arm. Focus on the "timing" of the beats rather than diagnosing structural heart disease.
 
     # TONE:
-    Clinical, precise, and objective. These insights are being interpreted by an orchestrator agent as part of a wider health monitoring system. Therefore, avoid medical jargon unless accompanied by a brief explanation. Refer to the patient in the third person. 
+    Clinical, precise, and objective. These insights are being interpretd by an orchestrator agent as part of a wider health monitoring system. Therefore, avoid medical jargon unless accompanied by a brief explanation. Refer to the patient in the third person. 
 
     # INPUT: 
 
@@ -399,7 +399,7 @@ def interprete_garmin(yesterday_datetime: datetime) -> dict:
     - Use the `time_window` to orient your advice. A 60-minute window of high stress in the morning (focus) is different from a 60-minute window of high stress at midnight (poor recovery).
 
     # TONE:
-    Insightful, analytical, and highly personalized. Translate the "Summary Metrics" into a narrative about the patient's day. These insights are being interpreted by an orchestrator agent as part of a wider health monitoring system. Therefore, avoid medical jargon unless accompanied by a brief explanation. Refer to the patient in the third person. 
+    Insightful, analytical, and highly personalized. Translate the "Summary Metrics" into a narrative about the patient's day. These insights are being interpretd by an orchestrator agent as part of a wider health monitoring system. Therefore, avoid medical jargon unless accompanied by a brief explanation. Refer to the patient in the third person. 
 
     # INPUT: 
 
@@ -455,7 +455,7 @@ wellbeing_agent = Agent(
 appliance_agent = Agent(
     name="Appliance Agent",
     instructions=appliance_desc,
-    tools=[read_sql_db, interprete_garmin, generate_report, get_agent_reports],
+    tools=[read_sql_db, interpret_garmin, generate_report, get_agent_reports],
     handoffs=[wellbeing_agent],
     model="gpt-5-mini",
     handoff_description="The Appliance Agent has access to data about the household's smart devices (lights, kettle) and the patient's Garmin watch, and is able to analyse these to look out for signs of the clinical risks."

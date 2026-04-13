@@ -53,7 +53,7 @@ def get_clinical_risks(patient_fhir):
                 "role": "system", 
                 "content": "You are an expert medical data analyst specializing in FHIR R4 speaking directly to a clinician. When given a FHIR bundle, you should analyse the patient's medical history to determine what conditions they are at risk for. "
                             "The format of the answer should be plain text. "
-                            "Be clear and concise, only include conditions that are high risk so that a clinician can interprete this quickly. "
+                            "Be clear and concise, only include conditions that are high risk so that a clinician can interpret this quickly. "
                             "DO NOT try and provide the clinician with any advise on further actions or perform any diagnoses yourself."
             },
             {

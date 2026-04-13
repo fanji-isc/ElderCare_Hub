@@ -93,7 +93,7 @@ async def clinician_view():
     yesterday = today - timedelta(days=1)
     yesterday = yesterday.strftime("%Y-%m-%d")
 
-    summarise_request = f"Generate a summary of the patient's Garmin data from the past week ending on {yesterday} for their clinician to interprete"
+    summarise_request = f"Generate a summary of the patient's Garmin data from the past week ending on {yesterday} for their clinician to interpret"
     result = await Runner.run(appliance_agent, summarise_request)
     return result.final_output
 
