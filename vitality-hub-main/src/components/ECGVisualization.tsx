@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Activity, Clock } from "lucide-react";
 
-const PATIENT_ID = "PATIENT_001";
 
 type EcgRecord = {
   summary: {
@@ -36,7 +35,7 @@ export function ECGVisualization() {
   const [sampleOffset, setSampleOffset] = useState(0);
 
   useEffect(() => {
-    fetch(`/api/iris_data?patient_id=${encodeURIComponent(PATIENT_ID)}&column=ecg`)
+    fetch(`/api/iris_data?column=ecg`)
       .then(async (r) => {
         if (!r.ok) throw new Error(await r.text());
         return r.json();

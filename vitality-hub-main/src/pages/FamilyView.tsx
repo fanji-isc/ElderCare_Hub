@@ -129,7 +129,7 @@ function MedicationDetail() {
   useEffect(() => {
     const fetchMeds = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/patient-medications?first_name=${first_name}&last_name=${last_name}`);
+        const res = await fetch(`${API_BASE}/api/fhir/patient-medications?first_name=${first_name}&last_name=${last_name}`);
         if (!res.ok) throw new Error("Patient not found or server error");
         
         const data = await res.json();
@@ -195,7 +195,7 @@ function AppointmentsDetail() {
   useEffect(() => {
     const fetchAppts = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/patient-appointments?first_name=${first_name}&last_name=${last_name}`);
+        const res = await fetch(`${API_BASE}/api/fhir/patient-appointments?first_name=${first_name}&last_name=${last_name}`);
         if (!res.ok) throw new Error("Patient not found or server error");
         
         const data: Appt[] = await res.json();

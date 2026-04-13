@@ -40,7 +40,7 @@ def get_iris():
 # ── IRIS Home data endpoints ─────────────────────────────────────────────────────
 
 @app.get("/api/iris_data")
-def get_iris_data(patient_id: str = "", column: str = "") -> dict:
+def get_iris_data(patient_id: str = "", column: str = ""):
     conn = get_iris()
     try:
         irispy = iris.createIRIS(conn)
@@ -926,7 +926,7 @@ def get_fhir_medications(patient_id: str = ""):
         })
     return results
 
-@app.get("/api/patient-medications")
+@app.get("/api/fhir/patient-medications")
 def get_patient_medications(first_name: str, last_name: str):
     try:
         all_patients = get_fhir_patients()
@@ -1114,7 +1114,7 @@ def get_fhir_appointments(patient_id: str = ""):
         })
     return results
 
-@app.get("/api/patient-appointments")
+@app.get("/api/fhir/patient-appointments")
 def get_patient_appointments(first_name: str, last_name: str):
     try:
         all_patients = get_fhir_patients()
