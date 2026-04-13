@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException, Body, Query
+from fastapi import FastAPI, UploadFile, File, HTTPException, Body
 from fastapi.responses import Response, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -12,10 +12,7 @@ from scipy.signal import find_peaks
 from datetime import datetime, timezone, timedelta
 import openai
 from openai import OpenAI
-from backend.config import IRIS_HOST, IRIS_PORT, IRIS_NAMESPACE, IRIS_USERNAME, IRIS_PASSWORD
-FHIR_BASE = "http://localhost:52773/csp/healthshare/demo/fhir/r4"
-FHIR_AUTH = ("_SYSTEM", "demo")
-FHIR_HEADERS = {"Accept": "application/fhir+json"}
+from backend.config import IRIS_HOST, IRIS_PORT, IRIS_NAMESPACE, IRIS_USERNAME, IRIS_PASSWORD, FHIR_BASE, FHIR_AUTH, FHIR_HEADERS
 
 app = FastAPI()
 
