@@ -129,7 +129,7 @@ function MedicationDetail() {
   useEffect(() => {
     const fetchMeds = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/patient-medications?first_name=${first_name}&last_name=${last_name}`);
+        const res = await fetch(`${API_BASE}/api/fhir/patient-medications?first_name=${first_name}&last_name=${last_name}`);
         if (!res.ok) throw new Error("Patient not found or server error");
         
         const data = await res.json();
@@ -195,7 +195,7 @@ function AppointmentsDetail() {
   useEffect(() => {
     const fetchAppts = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/patient-appointments?first_name=${first_name}&last_name=${last_name}`);
+        const res = await fetch(`${API_BASE}/api/fhir/patient-appointments?first_name=${first_name}&last_name=${last_name}`);
         if (!res.ok) throw new Error("Patient not found or server error");
         
         const data: Appt[] = await res.json();
@@ -439,11 +439,11 @@ const FamilyView = () => {
     (async () => {
       try {
         const [dailyRes, sleepRes, toiletRes, gaitRes, fridgeRes] = await Promise.all([
-          fetch(`${API_BASE}/api/dailySummary?patient_id=${HOME_ID}`),
-          fetch(`${API_BASE}/api/sleep?patient_id=${HOME_ID}`),
-          fetch(`${API_BASE}/api/toilet?patient_id=${HOME_ID}`),
-          fetch(`${API_BASE}/api/gait?patient_id=${HOME_ID}`),
-          fetch(`${API_BASE}/api/fridge?patient_id=${HOME_ID}`),
+          fetch(`${API_BASE}/api/iris_data?patient_id=${HOME_ID}&column=dailySummary`),
+          fetch(`${API_BASE}/api/iris_data?patient_id=${HOME_ID}&column=sleep`),
+          fetch(`${API_BASE}/api/iris_data?patient_id=${HOME_ID}&column=toilet`),
+          fetch(`${API_BASE}/api/iris_data?patient_id=${HOME_ID}&column=gait`),
+          fetch(`${API_BASE}/api/iris_data?patient_id=${HOME_ID}&column=fridge`),
         ]);
         const dailyJson = dailyRes.ok ? await dailyRes.json() : [];
         const sleepJson = sleepRes.ok ? await sleepRes.json() : [];

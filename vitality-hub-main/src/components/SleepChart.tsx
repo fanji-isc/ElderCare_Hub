@@ -44,7 +44,7 @@ export function SleepChart({ patientId = "PATIENT_001" }: { patientId?: string }
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`/api/sleep?patient_id=${encodeURIComponent(patientId)}`);
+        const res = await fetch(`/api/iris_data?patient_id=${encodeURIComponent(patientId)}&column=sleep`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const payload = await res.json();
 

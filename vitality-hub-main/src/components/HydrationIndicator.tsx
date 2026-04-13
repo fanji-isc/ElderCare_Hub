@@ -93,7 +93,7 @@ export function HydrationIndicator() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/toilet?patient_id=${encodeURIComponent(PATIENT_ID)}`);
+        const res = await fetch(`${API_BASE}/api/iris_data?patient_id=${encodeURIComponent(PATIENT_ID)}&column=toilet`);
         const json = res.ok ? await res.json() : [];
         const allData = Array.isArray(json) ? json : [];
 

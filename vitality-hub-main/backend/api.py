@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException, Body, Query
+from fastapi import FastAPI, UploadFile, File, HTTPException, Body
 from fastapi.responses import Response, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -12,10 +12,7 @@ from scipy.signal import find_peaks
 from datetime import datetime, timezone, timedelta
 import openai
 from openai import OpenAI
-from backend.config import IRIS_HOST, IRIS_PORT, IRIS_NAMESPACE, IRIS_USERNAME, IRIS_PASSWORD
-FHIR_BASE = "http://localhost:52773/csp/healthshare/demo/fhir/r4"
-FHIR_AUTH = ("_SYSTEM", "demo")
-FHIR_HEADERS = {"Accept": "application/fhir+json"}
+from backend.config import IRIS_HOST, IRIS_PORT, IRIS_NAMESPACE, IRIS_USERNAME, IRIS_PASSWORD, FHIR_BASE, FHIR_AUTH, FHIR_HEADERS
 
 app = FastAPI()
 
@@ -39,126 +36,241 @@ def get_iris():
 
 # ── IRIS Home data endpoints ─────────────────────────────────────────────────────
 
-@app.get("/api/ecg")
-def get_ecg(patient_id: str = ""):
+@app.get("/api/iris_data")
+def get_iris_data(patient_id: str = "", column: str = ""):
     conn = get_iris()
     try:
         irispy = iris.createIRIS(conn)
         # Fetch the combined record
         txt = irispy.classMethodValue("MyApp.Utils", "GetLatestJSONFile", patient_id)
         data = json.loads(txt) if txt else {}
-        # Only return the ECG part
-        return data.get("ecg", {})
+        # Only return the desired column
+        return data.get(column, {})
     finally:
         conn.close()
 
-@app.get("/api/hr")
-def get_hr(patient_id: str = ""):
-    conn = get_iris()
-    try:
-        irispy = iris.createIRIS(conn)
-        # Fetch the combined record
-        txt = irispy.classMethodValue("MyApp.Utils", "GetLatestJSONFile", patient_id)
-        data = json.loads(txt) if txt else {}
-        # Only return the Heart Rate part
-        return data.get("hr", {})
-    finally:
-        conn.close()
+# TODO: rewrite to be a tool the agent can call if Frank asks about his neighbourhood
+def build_neighbourhood_context(first_name: str, patient_id: str = ""):
+    neighborhoodJson = get_iris_data(patient_id, "neighborhood")
 
-@app.get("/api/sleep")
-def get_sleep(patient_id: str = ""):
-    conn = get_iris()
-    try:
-        irispy = iris.createIRIS(conn)
-        # Fetch the combined record
-        txt = irispy.classMethodValue("MyApp.Utils", "GetLatestJSONFile", patient_id)
-        data = json.loads(txt) if txt else {}
-        # Only return the Sleep part
-        return data.get("sleep", {})
-    finally:
-        conn.close()
+    latest_dict = neighborhoodJson[0] if neighborhoodJson else None
+    lines = []
+    if latest_dict:
+        lines.append("Neighborhood activities this week (each has a booking ID):")
+        for a in latest_dict.get("activities", []):
+            attendeeNames = ", ".join([x.get("name", "") for x in a.get("attendees", [])])
+            suffix = ""
+            if attendeeNames:
+                extra = f" +{a.get('extraCount')} more" if a.get('extraCount', 0) > 0 else ""
+                suffix = f" — attending: {attendeeNames}{extra}"
+            lines.append(f" • [ID: {a.get('id', 0)}] {a.get('title', "")}: {a.get('date', "")} at {a.get('time', "")}, {a.get('location', "")} ({a.get('duration', "")}) {suffix}")
+        
+        lines.append("Recent neighbor activity: ")
+        for f in latest_dict.get("feedItems", []):
+            lines.append(f" • {f.get('name', "")} {f.get('activity', [])} ({f.get('time', "")})")
 
-@app.get("/api/dailySummary")
-def get_dailySummary(patient_id: str = ""):
-    conn = get_iris()
-    try:
-        irispy = iris.createIRIS(conn)
-        # Fetch the combined record
-        txt = irispy.classMethodValue("MyApp.Utils", "GetLatestJSONFile", patient_id)
-        data = json.loads(txt) if txt else {}
-        # Only return the Daily Summary part
-        return data.get("dailySummary", {})
-    finally:
-        conn.close()
+        help_posts = latest_dict.get("helpPosts", [])
+        requests = [p for p in help_posts if p.get("type", "") == "request"]
+        offers   = [p for p in help_posts if p.get("type", "") == "offer"]
 
-@app.get("/api/toilet")
-def get_toilet(patient_id: str = ""):
-    conn = get_iris()
-    try:
-        irispy = iris.createIRIS(conn)
-        # Fetch the combined record
-        txt = irispy.classMethodValue("MyApp.Utils", "GetLatestJSONFile", patient_id)
-        data = json.loads(txt) if txt else {}
-        # Only return the Toilet part
-        return data.get("toilet", [])
-    finally:
-        conn.close()
+        if requests:
+            lines.append("Neighbors who need help: ")
+            for p in requests:
+                lines.append(f" • {p.get('name', "")} ({p.get('category', "")}): {p.get('message', "")}")
+        if offers:
+            lines.append("Neighbors offering help: ")
+            for p in offers:
+                lines.append(f" • {p.get('name', "")} ({p.get('category', "")}): {p.get('message', "")}")
 
-@app.get("/api/gait")
-def get_gait(patient_id: str = ""):
-    conn = get_iris()
-    try:
-        irispy = iris.createIRIS(conn)
-        # Fetch the combined record
-        txt = irispy.classMethodValue("MyApp.Utils", "GetLatestJSONFile", patient_id)
-        data = json.loads(txt) if txt else {}
-        # Only return the Gait part
-        return data.get("gait", [])
-    finally:
-        conn.close()
+        lines.append("")
+        
+        instructions = f"""
+        BOOKING INSTRUCTION: If {first_name} asks to join, book, sign up for, register for, or asks you to pick and sign them up for an activity, then confirm enthusiastically in your normal response that you have successfully registered them. 
+        Then, on a brand new line at the very end, append exactly: [[JOIN:ID]] where ID is that activity's booking ID number from the list above. 
+        Do NOT speak or mention [[JOIN:ID]] — it is a silent machine code only, never part of the conversation. 
+        Always append it whenever {first_name} wants to be signed up. DO NOT sign them up without them explicitly asking to be.
+        """
+        lines.append(instructions)
+    return "\n".join(lines)
 
-@app.get("/api/fridge")
-def get_fridge(patient_id: str = ""):
-    conn = get_iris()
-    try:
-        irispy = iris.createIRIS(conn)
-        # Fetch the combined record
-        txt = irispy.classMethodValue("MyApp.Utils", "GetLatestJSONFile", patient_id)
-        data = json.loads(txt) if txt else {}
-        # Only return the Fridge part
-        return data.get("fridge", [])
-    finally:
-        conn.close()
+def build_step_history(dailySummaryJson: list) -> list:
+    all_days = sorted(
+        [d for d in dailySummaryJson if d.get("calendarDate")],
+        key=lambda x: x.get("calendarDate")
+    )
+    step_history_raw = [d for d in all_days if d.get("totalSteps")][-14:]
+    step_history = []
+    for d in step_history_raw:
+        date_obj = datetime.strptime(d.get("calendarDate"), "%Y-%m-%d")
+        formatted_date = date_obj.strftime("%-m/%-d") 
+        step_history.append({
+            "day": formatted_date,
+            "steps": d.get("totalSteps")
+        })
+    return step_history
 
-@app.get("/api/neighborhood")
-def get_neighborhood(patient_id: str = ""):
-    conn = get_iris()
-    try:
-        irispy = iris.createIRIS(conn)
-        # Fetch the combined record
-        txt = irispy.classMethodValue("MyApp.Utils", "GetLatestJSONFile", patient_id)
-        data = json.loads(txt) if txt else {}
-        # Only return the Neighborhood part
-        return data.get("neighborhood", [])
-    finally:
-        conn.close()
+def extract_fridge(patient_id: str = "") -> dict:
+    fridgeJson = get_iris_data(patient_id, "fridge")
+    
+    latest_dict = max(fridgeJson, key=lambda x: x.get("calendarDate"), default=None)
+    if latest_dict:
+        inventory_list = latest_dict.get("inventory")
+        current_items = [inv.get("item") for inv in inventory_list]
+        alerts = latest_dict.get("alerts")
+        expiring_items = [a.get("item") for a in alerts if a.get("type") == "expiring"]
+        nutrition = latest_dict.get("dailyNutrition")
+        meals_list = latest_dict.get("mealsDetected")
 
-@app.get("/api/phone_calls")
-def get_phone_calls(patient_id: str = ""):
-    conn = get_iris()
-    try:
-        irispy = iris.createIRIS(conn)
-        # Fetch the combined record
-        txt = irispy.classMethodValue("MyApp.Utils", "GetLatestJSONFile", patient_id)
-        data = json.loads(txt) if txt else {}
-        # Only return the Phone Calls part
-        return data.get("phoneCalls", [])
-    finally:
-        conn.close()
+        return {
+            "waterLiters": nutrition.get("waterLiters"),
+            "currentItems": current_items,
+            "expiringItems": expiring_items,
+            "mealsCount": len(meals_list),
+        }
+    return {"waterLiters": 50, "currentItems": [], "expiringItems": [], "mealsCount": 0}
 
-# ── Interprete IRIS Home data endpoints ───────────────────────────────────────
+def extract_hydration(patient_id: str = "") -> tuple[str, int, bool]:
+    toiletJson = get_iris_data(patient_id, "toilet")
+    
+    hydrationNote = ""
+    hydrationColorLevel = 0
+    latest = max(toiletJson, key=lambda x: x.get("calendarDate"), default=None)
+    readings = latest.get("readings")
+    latest_reading = max(readings, key=lambda r: r.get("timestamp"), default={})
+    hydrationColorLevel = latest_reading.get("colorLevel")
+    if hydrationColorLevel > 0:
+        levels = [
+            (2, "well hydrated"),
+            (4, "adequately hydrated"),
+            (5, "mildly dehydrated — could drink more water"),
+            (6, "moderately dehydrated — needs more fluids"),
+            (7, "significantly dehydrated — drinking water is important right now")
+        ]        
+        hydrationNote = next((note for max_lvl, note in levels if hydrationColorLevel <= max_lvl), "severely dehydrated — needs attention soon")
+    dehydrated = "dehydrated" in hydrationNote.lower()
+    return hydrationNote, hydrationColorLevel, dehydrated
 
-def interprete_garmin(patient_id: str = "") -> dict:
+def extract_gait(patient_id: str = "") -> tuple[str, bool, dict]:
+    gaitJson = get_iris_data(patient_id, "gait")
+    
+    all_sessions = [s for day in gaitJson for s in day["sessions"]]
+    if all_sessions:
+        n = len(all_sessions)
+        avg_speed       = sum(x["gaitSpeedMs"] for x in all_sessions) / n
+        avg_symmetry    = sum(x["stepSymmetryPct"] for x in all_sessions) / n
+        avg_variability = sum(x["strideVariabilityPct"] for x in all_sessions) / n
+        avg_gct_diff = sum(abs(x["groundContactTimeMs"]["left"] - 
+                               x["groundContactTimeMs"]["right"]) 
+                           for x in all_sessions) / n
+        score = 0
+        if avg_speed < 0.6: score += 4
+        elif avg_speed < 0.8: score += 2
+        if avg_symmetry < 75: score += 3
+        elif avg_symmetry < 82: score += 2
+        if avg_variability > 12: score += 2
+        elif avg_variability > 8: score += 1
+        if avg_gct_diff > 100: score += 2
+        elif avg_gct_diff > 60: score += 1
+
+        risk_level = "high" if score >= 5 else "moderate" if score >= 2 else "low"
+        gaitNote = (f"{risk_level} fall risk — avg walking speed {avg_speed:.2f} m/s, "
+                    f"step symmetry {round(avg_symmetry)}%, "
+                    f"stride variability {avg_variability:.1f}%, "
+                    f"L/R ground contact diff {round(avg_gct_diff)} ms")
+    
+    gaitConcern = (risk_level != "low")
+    
+    latest_day = max(gaitJson, key=lambda x: x["calendarDate"])
+    s = latest_day["sessions"][-1] 
+
+    gct = s["groundContactTimeMs"]
+    stride = s["strideLength"]
+
+    gait_metrics = {
+        "symmetry": float(s["stepSymmetryPct"]),
+        "variability": float(s["strideVariabilityPct"]),
+        "speed": float(s["gaitSpeedMs"]),
+        "cadence": float(s["cadence"]),
+        "worseStride": min(stride["leftCm"], stride["rightCm"]),
+        "worseGCT": max(gct["left"], gct["right"])
+    }
+    return gaitNote, gaitConcern, gait_metrics
+
+def extract_phone_calls(patient_id: str = "") -> dict:
+    phoneCallJson = get_iris_data(patient_id, "phoneCalls")
+    phone_calls = {"phoneCallMinutes": 0, "phoneCallTrend": []}
+    
+    sorted_calls = sorted(
+        phoneCallJson, 
+        key=lambda x: str(x.get("calendarDate", ""))
+    )
+    if sorted_calls:
+        last7 = sorted_calls[-7:]
+        trend = [float(d.get("totalMinutes", 0)) for d in last7]
+        latest = sorted_calls[-1]
+        minutes = float(latest.get("totalMinutes", 0)) 
+        phone_calls = {"phoneCallMinutes": minutes, "phoneCallTrend": trend}
+    return phone_calls
+
+def extract_sleep(patient_id: str = "") -> float:
+    sleepJson = get_iris_data(patient_id, "sleep")
+    
+    hoursAsleep = 0
+    filtered_sleep = [
+        x for x in sleepJson 
+        if x.get("calendarDate") and (
+            x.get("deepSleepSeconds") is not None or 
+            x.get("lightSleepSeconds") is not None or 
+            x.get("remSleepSeconds") is not None
+        )
+    ]
+    if filtered_sleep:
+        latest = max(filtered_sleep, key=lambda x: str(x.get("calendarDate", "")), default=None)   
+        if latest:
+            total_seconds = latest.get("deepSleepSeconds") + latest.get("lightSleepSeconds") + latest.get("remSleepSeconds")
+            hoursAsleep = total_seconds / 3600
+    return hoursAsleep
+
+# TODO: check where vitals is called to see if more/different keys should be included
+@app.get("/api/build-patient-dashboard")
+def get_patient_dashboard(patient_id: str = "") -> dict:
+    dailyJson = get_iris_data(patient_id, "dailySummary")
+    latest_dailySummary = max(dailyJson, key=lambda x: x.get("calendarDate"), default=None)
+
+    # extractStress
+    aggregator_list = latest_dailySummary.get("allDayStress").get("aggregatorList")
+    awake = next((a for a in aggregator_list if a.get("type") == "AWAKE"), {})
+    stressLevel = round(awake.get("averageStressLevel"))
+
+    fridge = extract_fridge(patient_id)
+    hydrationNote, hydrationColorLevel, dehydrated = extract_hydration(patient_id)
+    gaitNote, gaitConcern, gaitMetrics = extract_gait(patient_id)    
+    phoneCalls = extract_phone_calls(patient_id)
+    hoursAsleep = extract_sleep(patient_id)
+    stepHistory = build_step_history(dailyJson)
+
+    return {
+        "heartRate": latest_dailySummary.get("currentDayRestingHeartRate") or latest_dailySummary.get("restingHeartRate") or 0,
+        "steps": latest_dailySummary.get("totalSteps") or 0,
+        "stressLevel": stressLevel,
+        "sleepHours": hoursAsleep,
+        "hydrationNote": hydrationNote,
+        "hydrationColorLevel": hydrationColorLevel,
+        "waterLiters": fridge.get("waterLiters"),
+        "expiringItems": fridge.get("expiringItems"),
+        "currentItems": fridge.get("currentItems"),
+        "mealsCount": fridge.get("mealsCount"),
+        "phoneCallMinutes": phoneCalls.get("phoneCallMinutes"),
+        "phoneCallTrend": phoneCalls.get("phoneCallTrend"),
+        "gaitNote": gaitNote,
+        "fallRiskAlert": dehydrated and gaitConcern,
+        "gaitMetrics": gaitMetrics,
+        "stepHistory": stepHistory
+    }
+
+# ── Interpret IRIS Home data endpoints ──────────────────────────────────────────
+
+def interpret_garmin(patient_id: str = "") -> dict:
     """This function retrieves a summary of the Patient's ECG, HR, and Sleep Data from their Garmin Watch.
 
     returns: Status of the execution of this function, and a dictionary of the 'ECG Summary', 'HR Summary', and 'Sleep Summary'."""
@@ -423,7 +535,7 @@ def interprete_garmin(patient_id: str = "") -> dict:
     - Explain that a Lead I ECG (from a wrist-worn device) is a snapshot of the heart's electrical activity from the left to right arm. Focus on the "timing" of the beats rather than diagnosing structural heart disease.
 
     # TONE:
-    Clinical, precise, and objective. These insights are being interpreted by an orchestrator agent as part of a wider health monitoring system. Therefore, avoid medical jargon unless accompanied by a brief explanation. Refer to the patient in the third person. 
+    Clinical, precise, and objective. These insights are being interpretd by an orchestrator agent as part of a wider health monitoring system. Therefore, avoid medical jargon unless accompanied by a brief explanation. Refer to the patient in the third person. 
 
     # INPUT: 
 
@@ -449,7 +561,7 @@ def interprete_garmin(patient_id: str = "") -> dict:
     - Use the `time_window` to orient your advice. A 60-minute window of high stress in the morning (focus) is different from a 60-minute window of high stress at midnight (poor recovery).
 
     # TONE:
-    Insightful, analytical, and highly personalized. Translate the "Summary Metrics" into a narrative about the patient's day. These insights are being interpreted by an orchestrator agent as part of a wider health monitoring system. Therefore, avoid medical jargon unless accompanied by a brief explanation. Refer to the patient in the third person. 
+    Insightful, analytical, and highly personalized. Translate the "Summary Metrics" into a narrative about the patient's day. These insights are being interpretd by an orchestrator agent as part of a wider health monitoring system. Therefore, avoid medical jargon unless accompanied by a brief explanation. Refer to the patient in the third person. 
 
     # INPUT: 
 
@@ -505,7 +617,7 @@ def interprete_garmin(patient_id: str = "") -> dict:
     When providing data, such as total hours of sleep, cross reference it against the patient's baseline / 7-day average to give the patient context for the data.
 
     # TONE:
-    Professional and data-driven. These insights are being interpreted by an orchestrator agent as part of a wider health monitoring system. Therefore, avoid "fluff"; focus on biological impact. Refer to the patient in the third person.
+    Professional and data-driven. These insights are being interpretd by an orchestrator agent as part of a wider health monitoring system. Therefore, avoid "fluff"; focus on biological impact. Refer to the patient in the third person.
 
     # INPUT: 
 
@@ -538,7 +650,7 @@ def interprete_garmin(patient_id: str = "") -> dict:
     Focus on **Stability** and **Symmetry**. Translate the "GCT Delta" into plain English (e.g. "The user is favoring their left leg").
 
     # TONE:
-    Professional and data-driven. These insights are being interpreted by an orchestrator agent as part of a wider health monitoring system. Therefore, avoid "fluff"; focus on biological impact. Refer to the patient in the third person.
+    Professional and data-driven. These insights are being interpretd by an orchestrator agent as part of a wider health monitoring system. Therefore, avoid "fluff"; focus on biological impact. Refer to the patient in the third person.
 
     # INPUT: 
 
@@ -587,7 +699,7 @@ def interprete_garmin(patient_id: str = "") -> dict:
     finally:
         conn.close()
 
-def interprete_home_data(patient_id: str = "") -> dict:
+def interpret_home_data(patient_id: str = "") -> dict:
     """This function retrieves a summary of the Patient's Toilet and Fridge Data from their smart home hub.
 
     returns: Status of the execution of this function, and a dictionary of the 'Hydration Summary' and 'Nutrition Summary'."""
@@ -735,227 +847,125 @@ def interprete_home_data(patient_id: str = "") -> dict:
     finally:
         conn.close()
 
-# TODO: rewrite to be a tool the agent can call if Frank asks about his neighbourhood
-@app.get("/api/build-neighbourhood-context")
-def build_neighbourhood_context(patient_id: str, first_name: str):
-    neighborhoodJson = get_neighborhood(patient_id)
+def get_resident_context(patient_id: str = "") -> str:
+    return """
+    ---
+    ### ⚠️ OVERALL RISK LEVEL: **CRITICAL**
+    **Primary Driver:** The combination of **skipped/very low-protein dinner** plus **morning dehydration** is most likely worsening **right-sided weakness/limp**, which aligns with **high fall-risk gait** and may also be contributing to **incomplete physiological recovery** on sleep/HRV.
 
-    latest_dict = neighborhoodJson[0] if neighborhoodJson else None
-    lines = []
-    if latest_dict:
-        lines.append("Neighborhood activities this week (each has a booking ID):")
-        for a in latest_dict.get("activities", []):
-            attendeeNames = ", ".join([x.get("name", "") for x in a.get("attendees", [])])
-            suffix = ""
-            if attendeeNames:
-                extra = f" +{a.get('extraCount')} more" if a.get('extraCount', 0) > 0 else ""
-                suffix = f" — attending: {attendeeNames}{extra}"
-            lines.append(f" • [ID: {a.get('id', 0)}] {a.get('title', "")}: {a.get('date', "")} at {a.get('time', "")}, {a.get('location', "")} ({a.get('duration', "")}) {suffix}")
-        
-        lines.append("Recent neighbor activity: ")
-        for f in latest_dict.get("feedItems", []):
-            lines.append(f" • {f.get('name', "")} {f.get('activity', [])} ({f.get('time', "")})")
+    #### I. ACUTE SAFETY & FALL RISK
+    * **Finding:** High fall risk.
+    * **Gait speed:** **0.77 m/s** (frailty-range; below 0.8 m/s threshold)
+    * **Variability:** **10.5%** (slightly above historical 10.2% → more instability)
+    * **Asymmetry/limp:** **GCT delta 80 ms (>60 ms)** with **right side guarded** (right leg likely painful/weak)
+    * **Systemic Cause:** Home nutrition flags show **only 2 meals detected** with **dinner skipped** and **very low calories**, plus **protein at ~45 g (<60 g target)**. Under-fueling commonly reduces strength/endurance and increases compensatory movement—matching today's **frailty-speed + limp/asymmetry + higher variability** pattern.  
+    Hydration is also concerning: hydration starts the day **“Dehydrated”** on several days, and today's later status remains problematic on **2026-04-29** (ends at **colorLevel 6**), which can worsen balance and dizziness risk.
 
-        help_posts = latest_dict.get("helpPosts", [])
-        requests = [p for p in help_posts if p.get("type", "") == "request"]
-        offers   = [p for p in help_posts if p.get("type", "") == "offer"]
+    #### II. METABOLIC & AUTONOMIC LOAD
+    * **Status:** Mixed—**nutrition load is low**, **hydration is less than optimal**, vitamins not provided.
+    * **Protein:** **~45 g (below target)**
+    * **Water:** reported **1.9 L (<2 L)**
+    * **Hydration pattern:** mornings often dehydrated; **2026-04-29 ends dehydrated (6)**
+    * **Cardiac Impact:** Garmin shows **stable sinus rhythm** and measurable HRV:
+    * **ECG rhythm:** **SINUS_NORMAL**
+    * **SDNN:** **~35 ms** (modest beat-to-beat variation)
+    * **Resting HR:** ~**65 bpm**
+    
+    However, the sleep section indicates **recovery is limited** (HRV/physiology-based “Recovery” bottleneck), which fits a scenario where **dehydration + low fueling** reduces the nervous system's “reset” capacity. Evening perceived stress is present but **not strongly driven by heart rate**, suggesting the strain may be more **recovery/hydration/nutrition related** than exertion-related.
 
-        if requests:
-            lines.append("Neighbors who need help: ")
-            for p in requests:
-                lines.append(f" • {p.get('name', "")} ({p.get('category', "")}): {p.get('message', "")}")
-        if offers:
-            lines.append("Neighbors offering help: ")
-            for p in offers:
-                lines.append(f" • {p.get('name', "")} ({p.get('category', "")}): {p.get('message', "")}")
+    #### III. MENTAL HEALTH & COGNITIVE VIGILANCE
+    * **Markers:**
+    * **Appetite/behavioral decline proxy:** **Dinner skipped + very low calories**
+    * **Inventory/executive-function proxy:** **Expiring items** (milk, spinach, turkey slices, salmon fillet) indicate potential planning burden; the home plan attempts to reduce cognitive load via a “Meal of the Day,” which suggests these lapses are meaningful.
+    * **Sleep stress:** Sleep shows **short total sleep (2h50m)** with **Recovery bottleneck (Recovery=71)** and **sleep stress ~19.35**.
+    
+    Taken together: low intake + expiring-item pressure/possible planning difficulty aligns with **reduced recovery** and higher cognitive vulnerability the next day (grogginess, less resilience), increasing real-world fall risk—especially with today's limp.
 
-        lines.append("")
-        
-        instructions = f"""
-        BOOKING INSTRUCTION: If {first_name} asks to join, book, sign up for, register for, or asks you to pick and sign them up for an activity, then confirm enthusiastically in your normal response that you have successfully registered them. 
-        Then, on a brand new line at the very end, append exactly: [[JOIN:ID]] where ID is that activity's booking ID number from the list above. 
-        Do NOT speak or mention [[JOIN:ID]] — it is a silent machine code only, never part of the conversation. 
-        Always append it whenever {first_name} wants to be signed up. DO NOT sign them up without them explicitly asking to be.
-        """
-        lines.append(instructions)
-    return "\n".join(lines)
+    #### IV. PRIORITY INTERVENTIONS (THE "GOLDEN THREE")
+    1. **Immediate Safety:**  
+    Implement **assisted mobility now** (use a cane/walker or have supervision for ambulation/turning). Do a quick **trip-hazard + lighting** check (especially where the patient pivots due to the limp).
 
-def build_step_history(dailySummaryJson: list):
-    all_days = sorted(
-        [d for d in dailySummaryJson if d.get("calendarDate")],
-        key=lambda x: x.get("calendarDate")
+    2. **Targeted Input (today's highest-yield fix):**  
+    **Protein + hydration repletion within hours.**  
+    * Protein goal: move toward **≥60 g today**, using available items (e.g., **eggs + Greek yogurt**, **turkey slices + cottage cheese**, and/or **salmon** if feasible).  
+    * Hydration goal: raise from **1.9 L to ~2.0-2.5 L** (small scheduled sips through the afternoon). Because **colorLevel ends high (6)** on 2026-04-29, prioritize consistent drinking and monitor dizziness on standing.
+
+    3. **Recovery/Clinical:**  
+    Focus on **sleep recovery quality and nervous-system “reset.”**  
+    Tonight: set **lights-out ~45 minutes earlier** (target a longer sleep window), and keep a **screen-free wind-down** to reduce sleep stress. Clinically/observationally: watch for whether the **right-sided guarding** improves after nutrition/hydration correction; if not, expedite evaluation.
+
+    ---
+    """
+    client = get_openai_client()
+    
+    garmin_dict = interpret_garmin(patient_id)
+    home_dict = interpret_home_data(patient_id)
+    if garmin_dict.get("status") == "error" or home_dict.get("status") == "error":
+        garmin_data = "None"
+        home_data = "None"
+    else:
+        garmin_data = garmin_dict.get("data")
+        home_data = home_dict.get("data")
+
+    triage_desc = f"""
+    # ROLE: SYSTEMIC TRIAGE AGENT (GERIATRIC CLINICAL SPECIALIST)
+
+    ## 1. MISSION
+    You are a specialized AI health analyst. Your task is to ingest two dictionaries — **Garmin Data** (Biological Outputs) and **Home Data** (Environmental Inputs) — and synthesize them into a single, high-level **Clinician's Brief**. You must identify how physical inputs (food/water) are directly impacting physiological outputs (HRV/Gait/Sleep).
+
+    ## 2. INTERPRETATION & RELATIONAL LOGIC
+    Do not summarize the dictionaries in isolation. You must "connect the dots" using these geriatric-specific rules:
+
+    * **The Fueling-Stability Chain:** If Nutrition/Fridge flags "Skipped Meals" or "Low Protein," cross-reference with **Gait Speed** and **Variability**. 
+        * *Logic:* Under-fueling leads to muscle weakness, which manifests as a drop in speed and a spike in tripping risk.
+    * **The Dehydration-Cardiac Loop:** Correlate **Toilet ColorLevel** with **ECG SDNN/HRV**. 
+        * *Logic:* High dehydration (Level 5+) thickens blood and reduces HRV. If the heart shows low "reserve" or "modest variation," check if the hydration levels were "Dehydrated" in the morning.
+    * **The Pain-Sleep Correlation:** Look at **Gait Asymmetry** (GCT Delta > 60ms) and compare it to **Sleep Recovery Scores**. 
+        * *Logic:* A pronounced limp (guarding) often indicates pain, which is a primary driver of "Unbalanced Recovery" or high "Sleep Stress" in the elderly.
+    * **Cognitive-Behavioral Flags:** Connect "Expiring Items" (Fridge) and "Skipped Meals" with "Sleep Stress."
+        * *Logic:* Forgetting to eat or failing to manage inventory are markers of executive dysfunction or depressive withdrawal, often preceded by poor deep sleep architecture.
+
+    ## 3. REPORT STRUCTURE (MANDATORY)
+    Your goal is to generate a summary of the patient's Garmin and Home Appliance data for an orchestrator agent to interpret as part of a wider health monitoring system. Therefore, avoid medical jargon unless accompanied by a brief explanation. Refer to the patient in the third person. Your final output must follow this exact template:
+
+    ---
+    ### ⚠️ OVERALL RISK LEVEL: [LOW | ELEVATED | CRITICAL]
+    **Primary Driver:** [A one-sentence summary identifying the single most dangerous pattern connecting the sensors today.]
+
+    #### I. ACUTE SAFETY & FALL RISK
+    * **Finding:** [Combine Gait Speed, Symmetry, and Variability stats.]
+    * **Systemic Cause:** [Explain how Nutrition or Hydration data from the Home dictionary is driving this physical state.]
+
+    #### II. METABOLIC & AUTONOMIC LOAD
+    * **Status:** [Synthesize Protein, Vitamin C, and Water levels.]
+    * **Cardiac Impact:** [Explain how these inputs are affecting the ECG/HR results (e.g., "Cardiac reserve is limited by chronic dehydration").]
+
+    #### III. MENTAL HEALTH & COGNITIVE VIGILANCE
+    * **Markers:** [Analyze Appetite Loss, Sleep Stress, and Inventory Management (Expiring Items) as proxies for mood and cognitive load.]
+
+    #### IV. PRIORITY INTERVENTIONS (THE "GOLDEN THREE")
+    1.  **Immediate Safety:** [Non-medical physical intervention, e.g., assisted walking.]
+    2.  **Targeted Input:** [Specific meal/hydration goal using available fridge inventory.]
+    3.  **Recovery/Clinical:** [Specific sleep or clinical observation goal.]
+    ---
+
+    # INPUT:    
+    1. The patient's Garmin data is: 
+    {garmin_data}
+
+    2. The patient's Home data is: 
+    {home_data}
+    """
+    response = client.responses.create(
+        model="gpt-5.4-nano",
+        instructions = triage_desc,
+        input = "Generate a summary of the patient's Garmin and Home Appliance data for the orchestrator agent to utilise in future decision-making."
     )
-    step_history_raw = [d for d in all_days if d.get("totalSteps")][-14:]
-    step_history = []
-    for d in step_history_raw:
-        date_obj = datetime.strptime(d.get("calendarDate"), "%Y-%m-%d")
-        formatted_date = date_obj.strftime("%-m/%-d") 
-        step_history.append({
-            "day": formatted_date,
-            "steps": d.get("totalSteps")
-        })
-    return step_history
-
-def extract_fridge(patient_id: str):
-    fridgeJson = get_fridge(patient_id)
     
-    latest_dict = max(fridgeJson, key=lambda x: x.get("calendarDate"), default=None)
-    if latest_dict:
-        inventory_list = latest_dict.get("inventory")
-        current_items = [inv.get("item") for inv in inventory_list]
-        alerts = latest_dict.get("alerts")
-        expiring_items = [a.get("item") for a in alerts if a.get("type") == "expiring"]
-        nutrition = latest_dict.get("dailyNutrition")
-        meals_list = latest_dict.get("mealsDetected")
+    triage_answer = response.output_text
+    return triage_answer
 
-        return {
-            "waterLiters": nutrition.get("waterLiters"),
-            "currentItems": current_items,
-            "expiringItems": expiring_items,
-            "mealsCount": len(meals_list),
-        }
-    return {"waterLiters": 50, "currentItems": [], "expiringItems": [], "mealsCount": 0}
-
-def extract_hydration(patient_id: str):
-    toiletJson = get_toilet(patient_id)
-    
-    hydrationNote = ""
-    hydrationColorLevel = 0
-    latest = max(toiletJson, key=lambda x: x.get("calendarDate"), default=None)
-    readings = latest.get("readings")
-    latest_reading = max(readings, key=lambda r: r.get("timestamp"), default={})
-    hydrationColorLevel = latest_reading.get("colorLevel")
-    if hydrationColorLevel > 0:
-        levels = [
-            (2, "well hydrated"),
-            (4, "adequately hydrated"),
-            (5, "mildly dehydrated — could drink more water"),
-            (6, "moderately dehydrated — needs more fluids"),
-            (7, "significantly dehydrated — drinking water is important right now")
-        ]        
-        hydrationNote = next((note for max_lvl, note in levels if hydrationColorLevel <= max_lvl), "severely dehydrated — needs attention soon")
-    dehydrated = "dehydrated" in hydrationNote.lower()
-    return hydrationNote, hydrationColorLevel, dehydrated
-
-def extract_gait(patient_id: str):
-    gaitJson = get_gait(patient_id)
-    
-    all_sessions = [s for day in gaitJson for s in day["sessions"]]
-    if all_sessions:
-        n = len(all_sessions)
-        avg_speed       = sum(x["gaitSpeedMs"] for x in all_sessions) / n
-        avg_symmetry    = sum(x["stepSymmetryPct"] for x in all_sessions) / n
-        avg_variability = sum(x["strideVariabilityPct"] for x in all_sessions) / n
-        avg_gct_diff = sum(abs(x["groundContactTimeMs"]["left"] - 
-                               x["groundContactTimeMs"]["right"]) 
-                           for x in all_sessions) / n
-        score = 0
-        if avg_speed < 0.6: score += 4
-        elif avg_speed < 0.8: score += 2
-        if avg_symmetry < 75: score += 3
-        elif avg_symmetry < 82: score += 2
-        if avg_variability > 12: score += 2
-        elif avg_variability > 8: score += 1
-        if avg_gct_diff > 100: score += 2
-        elif avg_gct_diff > 60: score += 1
-
-        risk_level = "high" if score >= 5 else "moderate" if score >= 2 else "low"
-        gaitNote = (f"{risk_level} fall risk — avg walking speed {avg_speed:.2f} m/s, "
-                    f"step symmetry {round(avg_symmetry)}%, "
-                    f"stride variability {avg_variability:.1f}%, "
-                    f"L/R ground contact diff {round(avg_gct_diff)} ms")
-    
-    gaitConcern = (risk_level != "low")
-    
-    latest_day = max(gaitJson, key=lambda x: x["calendarDate"])
-    s = latest_day["sessions"][-1] 
-
-    gct = s["groundContactTimeMs"]
-    stride = s["strideLength"]
-
-    gait_metrics = {
-        "symmetry": float(s["stepSymmetryPct"]),
-        "variability": float(s["strideVariabilityPct"]),
-        "speed": float(s["gaitSpeedMs"]),
-        "cadence": float(s["cadence"]),
-        "worseStride": min(stride["leftCm"], stride["rightCm"]),
-        "worseGCT": max(gct["left"], gct["right"])
-    }
-    return gaitNote, gaitConcern, gait_metrics
-
-def extract_phone_calls(patient_id: str):
-    phoneCallJson = get_phone_calls(patient_id)
-    phone_calls = {"phoneCallMinutes": 0, "phoneCallTrend": []}
-    
-    sorted_calls = sorted(
-        phoneCallJson, 
-        key=lambda x: str(x.get("calendarDate", ""))
-    )
-    if sorted_calls:
-        last7 = sorted_calls[-7:]
-        trend = [float(d.get("totalMinutes", 0)) for d in last7]
-        latest = sorted_calls[-1]
-        minutes = float(latest.get("totalMinutes", 0)) 
-        phone_calls = {"phoneCallMinutes": minutes, "phoneCallTrend": trend}
-    return phone_calls
-
-def extract_sleep(patient_id: str):
-    sleepJson = get_sleep(patient_id)
-    
-    hoursAsleep = 0
-    filtered_sleep = [
-        x for x in sleepJson 
-        if x.get("calendarDate") and (
-            x.get("deepSleepSeconds") is not None or 
-            x.get("lightSleepSeconds") is not None or 
-            x.get("remSleepSeconds") is not None
-        )
-    ]
-    if filtered_sleep:
-        latest = max(filtered_sleep, key=lambda x: str(x.get("calendarDate", "")), default=None)   
-        if latest:
-            total_seconds = latest.get("deepSleepSeconds") + latest.get("lightSleepSeconds") + latest.get("remSleepSeconds")
-            hoursAsleep = total_seconds / 3600
-    return hoursAsleep
-
-# TODO: check where vitals is called to see if more/different keys should be included
-@app.get("/api/build-patient-dashboard")
-def get_patient_dashboard(patient_id: str):
-    dailyJson = get_dailySummary(patient_id)
-    latest_dailySummary = max(dailyJson, key=lambda x: x.get("calendarDate"), default=None)
-
-    # extractStress
-    aggregator_list = latest_dailySummary.get("allDayStress").get("aggregatorList")
-    awake = next((a for a in aggregator_list if a.get("type") == "AWAKE"), {})
-    stressLevel = round(awake.get("averageStressLevel"))
-
-    fridge = extract_fridge(patient_id)
-    hydrationNote, hydrationColorLevel, dehydrated = extract_hydration(patient_id)
-    gaitNote, gaitConcern, gaitMetrics = extract_gait(patient_id)    
-    phoneCalls = extract_phone_calls(patient_id)
-    hoursAsleep = extract_sleep(patient_id)
-    stepHistory = build_step_history(dailyJson)
-
-    return {
-        "heartRate": latest_dailySummary.get("currentDayRestingHeartRate") or latest_dailySummary.get("restingHeartRate") or 0,
-        "steps": latest_dailySummary.get("totalSteps") or 0,
-        "stressLevel": stressLevel,
-        "sleepHours": hoursAsleep,
-        "hydrationNote": hydrationNote,
-        "hydrationColorLevel": hydrationColorLevel,
-        "waterLiters": fridge.get("waterLiters"),
-        "expiringItems": fridge.get("expiringItems"),
-        "currentItems": fridge.get("currentItems"),
-        "mealsCount": fridge.get("mealsCount"),
-        "phoneCallMinutes": phoneCalls.get("phoneCallMinutes"),
-        "phoneCallTrend": phoneCalls.get("phoneCallTrend"),
-        "gaitNote": gaitNote,
-        "fallRiskAlert": dehydrated and gaitConcern,
-        "gaitMetrics": gaitMetrics,
-        "stepHistory": stepHistory
-    }
-
-# ── FHIR proxy endpoints ──────────────────────────────────────────────────────
+# ── FHIR proxy endpoints ─────────────────────────────────────────────────────────
 
 def _fhir_get(resource: str, params: dict = {}):
     try:
@@ -1033,7 +1043,7 @@ def get_fhir_medications(patient_id: str = ""):
         })
     return results
 
-@app.get("/api/patient-medications")
+@app.get("/api/fhir/patient-medications")
 def get_patient_medications(first_name: str, last_name: str):
     try:
         all_patients = get_fhir_patients()
@@ -1221,7 +1231,7 @@ def get_fhir_appointments(patient_id: str = ""):
         })
     return results
 
-@app.get("/api/patient-appointments")
+@app.get("/api/fhir/patient-appointments")
 def get_patient_appointments(first_name: str, last_name: str):
     try:
         all_patients = get_fhir_patients()
@@ -1310,7 +1320,7 @@ def get_fhir_care_plans(patient_id: str = ""):
         
     return results
 
-# ── Interprete FHIR proxy endpoints ───────────────────────────────────────────
+# ── Interpret FHIR proxy endpoints ───────────────────────────────────────────────
 
 def get_patient_context(patient_id: str = ""):
     conditions  = get_fhir_conditions(patient_id)
@@ -1479,7 +1489,7 @@ def get_patient_desc(patient_id: str = ""):
     return response.output_text
 
 @app.post("/api/clinician_summary/generate")
-def generate_clinician_summary(patient_id: str = Query(...)):
+def generate_clinician_summary(patient_id: str = ""):
     patient_fhir = get_patient_context(patient_id)
 
     client = get_openai_client()
@@ -1557,7 +1567,7 @@ def generate_clinician_summary(patient_id: str = Query(...)):
     return summary_text
 
 @app.get("/api/clinician_summary")
-def clinician_overview(patient_id: str = Query(...)):
+def get_clinician_overview(patient_id: str = ""):
     conn = get_iris()
     try:
         cur = conn.cursor()
@@ -1570,186 +1580,11 @@ def clinician_overview(patient_id: str = Query(...)):
     finally:
         conn.close()
 
-# ── AI System Prompts ─────────────────────────────────────────────────────────
-
-def get_resident_context(patient_id: str = ""):
-    return """
-    ---
-    ### ⚠️ OVERALL RISK LEVEL: **CRITICAL**
-    **Primary Driver:** The combination of **skipped/very low-protein dinner** plus **morning dehydration** is most likely worsening **right-sided weakness/limp**, which aligns with **high fall-risk gait** and may also be contributing to **incomplete physiological recovery** on sleep/HRV.
-
-    #### I. ACUTE SAFETY & FALL RISK
-    * **Finding:** High fall risk.
-    * **Gait speed:** **0.77 m/s** (frailty-range; below 0.8 m/s threshold)
-    * **Variability:** **10.5%** (slightly above historical 10.2% → more instability)
-    * **Asymmetry/limp:** **GCT delta 80 ms (>60 ms)** with **right side guarded** (right leg likely painful/weak)
-    * **Systemic Cause:** Home nutrition flags show **only 2 meals detected** with **dinner skipped** and **very low calories**, plus **protein at ~45 g (<60 g target)**. Under-fueling commonly reduces strength/endurance and increases compensatory movement—matching today's **frailty-speed + limp/asymmetry + higher variability** pattern.  
-    Hydration is also concerning: hydration starts the day **“Dehydrated”** on several days, and today's later status remains problematic on **2026-04-29** (ends at **colorLevel 6**), which can worsen balance and dizziness risk.
-
-    #### II. METABOLIC & AUTONOMIC LOAD
-    * **Status:** Mixed—**nutrition load is low**, **hydration is less than optimal**, vitamins not provided.
-    * **Protein:** **~45 g (below target)**
-    * **Water:** reported **1.9 L (<2 L)**
-    * **Hydration pattern:** mornings often dehydrated; **2026-04-29 ends dehydrated (6)**
-    * **Cardiac Impact:** Garmin shows **stable sinus rhythm** and measurable HRV:
-    * **ECG rhythm:** **SINUS_NORMAL**
-    * **SDNN:** **~35 ms** (modest beat-to-beat variation)
-    * **Resting HR:** ~**65 bpm**
-    
-    However, the sleep section indicates **recovery is limited** (HRV/physiology-based “Recovery” bottleneck), which fits a scenario where **dehydration + low fueling** reduces the nervous system's “reset” capacity. Evening perceived stress is present but **not strongly driven by heart rate**, suggesting the strain may be more **recovery/hydration/nutrition related** than exertion-related.
-
-    #### III. MENTAL HEALTH & COGNITIVE VIGILANCE
-    * **Markers:**
-    * **Appetite/behavioral decline proxy:** **Dinner skipped + very low calories**
-    * **Inventory/executive-function proxy:** **Expiring items** (milk, spinach, turkey slices, salmon fillet) indicate potential planning burden; the home plan attempts to reduce cognitive load via a “Meal of the Day,” which suggests these lapses are meaningful.
-    * **Sleep stress:** Sleep shows **short total sleep (2h50m)** with **Recovery bottleneck (Recovery=71)** and **sleep stress ~19.35**.
-    
-    Taken together: low intake + expiring-item pressure/possible planning difficulty aligns with **reduced recovery** and higher cognitive vulnerability the next day (grogginess, less resilience), increasing real-world fall risk—especially with today's limp.
-
-    #### IV. PRIORITY INTERVENTIONS (THE "GOLDEN THREE")
-    1. **Immediate Safety:**  
-    Implement **assisted mobility now** (use a cane/walker or have supervision for ambulation/turning). Do a quick **trip-hazard + lighting** check (especially where the patient pivots due to the limp).
-
-    2. **Targeted Input (today's highest-yield fix):**  
-    **Protein + hydration repletion within hours.**  
-    * Protein goal: move toward **≥60 g today**, using available items (e.g., **eggs + Greek yogurt**, **turkey slices + cottage cheese**, and/or **salmon** if feasible).  
-    * Hydration goal: raise from **1.9 L to ~2.0-2.5 L** (small scheduled sips through the afternoon). Because **colorLevel ends high (6)** on 2026-04-29, prioritize consistent drinking and monitor dizziness on standing.
-
-    3. **Recovery/Clinical:**  
-    Focus on **sleep recovery quality and nervous-system “reset.”**  
-    Tonight: set **lights-out ~45 minutes earlier** (target a longer sleep window), and keep a **screen-free wind-down** to reduce sleep stress. Clinically/observationally: watch for whether the **right-sided guarding** improves after nutrition/hydration correction; if not, expedite evaluation.
-
-    ---
-    """
-    client = get_openai_client()
-    
-    garmin_dict = interprete_garmin(patient_id)
-    home_dict = interprete_home_data(patient_id)
-    if garmin_dict.get("status") == "error" or home_dict.get("status") == "error":
-        garmin_data = "None"
-        home_data = "None"
-    else:
-        garmin_data = garmin_dict.get("data")
-        home_data = home_dict.get("data")
-
-    old_triage_desc = f"""
-    ### ROLE: ELDERLY SYSTEMIC RISK ANALYST
-
-    # CONTEXT:
-    You are a Senior Clinical Data Scientist specializing in Geriatric Health. You analyze data from six distinct health monitoring systems (ECG, HR, Sleep, Gait, Hydration, and Nutrition) to create a unified safety and recovery profile for an elderly user.
-    Your goal is to generate a summary of the patient's Garmin and Home Appliance data for an orchestrator agent to interprete as part of a wider health monitoring system. Therefore, avoid medical jargon unless accompanied by a brief explanation. Refer to the patient in the third person. 
-
-    # INTERPRETATION FRAMEWORK: 
-    You must cross-reference data across all six systems to identify patterns of "Biological Resilience," "Mental Wellbeing," and "Acute Safety Risks." Use the following holistic logic:
-    1. **Neuromotor Stability (The Brain-Body Link):**
-    - Correlate `stride_variability_pct` (Gait) with `avg_sleep_stress` (Sleep) and `sdnn_hrv_ms` (ECG).
-    - *Logic:* High variability (>10%) + High Sleep Stress = **Neurological Fatigue**. 
-    - *Interpretation:* This indicates the nervous system is struggling to coordinate movement. Physically, this is a **High Fall Risk**. Mentally, this often presents as high anxiety, cognitive "fog," or the early onset of delirium/illness.
-    2. **The "Slowing" Syndrome (Mood & Frailty):**
-    - Connect `latest_snapshot.speed_ms` (Gait) with `protein_intake` (Fridge) and `overallScore` (Sleep).
-    - *Logic:* Speed < 0.8 m/s + Low Protein + Low Sleep Quality.
-    - *Interpretation:* Physically, this is **Frailty & Sarcopenia**. Mentally, this "Slowing" is a classic marker for **Geriatric Depression** or social withdrawal. A body that isn't fueling or moving is a mind that is likely retreating.
-    3. **Autonomic Dissonance (Pain & Anxiety):**
-    - Compare `avg_hr` and `sdnn_hrv_ms` (ECG) against `steps` and `cadence` (Gait).
-    - *Logic:* Elevated HR/Low HRV despite **Low Physical Activity**.
-    - *Interpretation:* This suggests "Internal Load." If the user isn't moving but the heart is racing, evaluate for **Hidden Pain** (which drives fall risk) or **Psychological Distress/Agitation**.
-    4. **Homeostatic Safety Flags:**
-    - **CRITICAL (Physical):** Gait Speed < 0.6 m/s OR (Dehydration + High Asymmetry). This is an imminent fall or collapse warning.
-    - **CRITICAL (Mental/Systemic):** "Appetite Loss" (Fridge) + "Restless Moments" (Sleep) + "Withdrawal from Activity" (Low Steps). This suggests a significant decline in mental health or the beginning of a systemic "failure to thrive."
-    5. **Circadian & Recovery Routine:**
-    - Compare `last_meal_time` (Fridge) and `nap_duration` (Sleep) against `deep_pct` (Sleep).
-    - *Logic:* Disrupted routines steal Deep Sleep. 
-    - *Interpretation:* Chronic lack of Deep Sleep reduces emotional regulation and increases daytime confusion (Sun-downing), which directly impacts both mood stability and physical balance.
-
-    # OUTPUT STRUCTURE
-    Your response must follow this template:
-
-    ---
-    ### ⚠️ OVERALL RISK LEVEL: [LOW | ELEVATED | CRITICAL]
-    **Primary Driver:** [Identify the #1 system causing the risk today]
-
-    #### 1. THE "WHY" (Unified Insight)
-    [A concise narrative explaining how the different data points are interacting. E.g., "The user is electrically stable but physically vulnerable due to under-fueling and dehydration."]
-
-    #### 2. CROSS-SYSTEM CORRELATIONS
-    * **[Link 1]:** (e.g., Nutrition vs. Sleep)
-    * **[Link 2]:** (e.g., Hydration vs. Cardiac)
-    * **[Link 3]:** etc.
-
-    #### 3. GUARDIAN ACTION ITEMS
-    * **Immediate:** [Actions the patient should take now, e.g., Drink 500ml water]
-    * **Daily Goal:** [Nutritional or activity adjustment]
-    * **Watch For:** [Clinical symptom to observe, e.g., Dizziness, gait changes]
-    ---
-
-    # INPUT:    
-    1. The patient's Garmin data is: 
-    {garmin_data}
-
-    2. The patient's Home data is: 
-    {home_data}
-    """
-    triage_desc = f"""
-    # ROLE: SYSTEMIC TRIAGE AGENT (GERIATRIC CLINICAL SPECIALIST)
-
-    ## 1. MISSION
-    You are a specialized AI health analyst. Your task is to ingest two dictionaries — **Garmin Data** (Biological Outputs) and **Home Data** (Environmental Inputs) — and synthesize them into a single, high-level **Clinician's Brief**. You must identify how physical inputs (food/water) are directly impacting physiological outputs (HRV/Gait/Sleep).
-
-    ## 2. INTERPRETATION & RELATIONAL LOGIC
-    Do not summarize the dictionaries in isolation. You must "connect the dots" using these geriatric-specific rules:
-
-    * **The Fueling-Stability Chain:** If Nutrition/Fridge flags "Skipped Meals" or "Low Protein," cross-reference with **Gait Speed** and **Variability**. 
-        * *Logic:* Under-fueling leads to muscle weakness, which manifests as a drop in speed and a spike in tripping risk.
-    * **The Dehydration-Cardiac Loop:** Correlate **Toilet ColorLevel** with **ECG SDNN/HRV**. 
-        * *Logic:* High dehydration (Level 5+) thickens blood and reduces HRV. If the heart shows low "reserve" or "modest variation," check if the hydration levels were "Dehydrated" in the morning.
-    * **The Pain-Sleep Correlation:** Look at **Gait Asymmetry** (GCT Delta > 60ms) and compare it to **Sleep Recovery Scores**. 
-        * *Logic:* A pronounced limp (guarding) often indicates pain, which is a primary driver of "Unbalanced Recovery" or high "Sleep Stress" in the elderly.
-    * **Cognitive-Behavioral Flags:** Connect "Expiring Items" (Fridge) and "Skipped Meals" with "Sleep Stress."
-        * *Logic:* Forgetting to eat or failing to manage inventory are markers of executive dysfunction or depressive withdrawal, often preceded by poor deep sleep architecture.
-
-    ## 3. REPORT STRUCTURE (MANDATORY)
-    Your goal is to generate a summary of the patient's Garmin and Home Appliance data for an orchestrator agent to interprete as part of a wider health monitoring system. Therefore, avoid medical jargon unless accompanied by a brief explanation. Refer to the patient in the third person. Your final output must follow this exact template:
-
-    ---
-    ### ⚠️ OVERALL RISK LEVEL: [LOW | ELEVATED | CRITICAL]
-    **Primary Driver:** [A one-sentence summary identifying the single most dangerous pattern connecting the sensors today.]
-
-    #### I. ACUTE SAFETY & FALL RISK
-    * **Finding:** [Combine Gait Speed, Symmetry, and Variability stats.]
-    * **Systemic Cause:** [Explain how Nutrition or Hydration data from the Home dictionary is driving this physical state.]
-
-    #### II. METABOLIC & AUTONOMIC LOAD
-    * **Status:** [Synthesize Protein, Vitamin C, and Water levels.]
-    * **Cardiac Impact:** [Explain how these inputs are affecting the ECG/HR results (e.g., "Cardiac reserve is limited by chronic dehydration").]
-
-    #### III. MENTAL HEALTH & COGNITIVE VIGILANCE
-    * **Markers:** [Analyze Appetite Loss, Sleep Stress, and Inventory Management (Expiring Items) as proxies for mood and cognitive load.]
-
-    #### IV. PRIORITY INTERVENTIONS (THE "GOLDEN THREE")
-    1.  **Immediate Safety:** [Non-medical physical intervention, e.g., assisted walking.]
-    2.  **Targeted Input:** [Specific meal/hydration goal using available fridge inventory.]
-    3.  **Recovery/Clinical:** [Specific sleep or clinical observation goal.]
-    ---
-
-    # INPUT:    
-    1. The patient's Garmin data is: 
-    {garmin_data}
-
-    2. The patient's Home data is: 
-    {home_data}
-    """
-    response = client.responses.create(
-        model="gpt-5.4-nano",
-        instructions = triage_desc,
-        input = "Generate a summary of the patient's Garmin and Home Appliance data for the orchestrator agent to utilise in future decision-making."
-    )
-    
-    triage_answer = response.output_text
-    return triage_answer
+# ── AI System Prompts ────────────────────────────────────────────────────────────
 
 @app.get("/api/system-prompt")
 def get_system_prompt(patient_id: str = "") -> str:
-    neighborhoodJson = get_neighborhood(patient_id)
+    neighborhoodJson = get_iris_data(patient_id, "neighborhood")
 
     latest_dict = neighborhoodJson[0] if neighborhoodJson else None
 
@@ -1887,7 +1722,7 @@ def get_check_in_prompt(mode: str = ""):
         """
     return ""
 
-# ── AI response endpoints ─────────────────────────────────────────────────────
+# ── AI response endpoints ────────────────────────────────────────────────────────
 
 @app.post("/api/answer/stream")
 async def answer_stream(payload: dict = Body(...)):

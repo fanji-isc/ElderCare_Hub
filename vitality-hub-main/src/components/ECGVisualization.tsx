@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Activity, Clock } from "lucide-react";
 
+
 type EcgRecord = {
   summary: {
     startTimeLocal?: string;
@@ -34,7 +35,7 @@ export function ECGVisualization() {
   const [sampleOffset, setSampleOffset] = useState(0);
 
   useEffect(() => {
-    fetch("/api/ecg")
+    fetch(`/api/iris_data?column=ecg`)
       .then(async (r) => {
         if (!r.ok) throw new Error(await r.text());
         return r.json();
