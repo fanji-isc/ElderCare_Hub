@@ -217,8 +217,8 @@ function BmiGauge({ bmi, weight, height }: { bmi: number | null; weight: number 
   const MIN = 10, MAX = 40, RANGE = MAX - MIN;
   const zones = [
     { label: "Below 18.5 (Underweight)", color: "#fb923c", start: 10, end: 18.5 },
-    { label: "18.5 – 24.9 (Normal)",     color: "#4ade80", start: 18.5, end: 25 },
-    { label: "25 – 29.9 (Overweight)",   color: "#fbbf24", start: 25, end: 30 },
+    { label: "18.5 - 24.9 (Normal)",     color: "#4ade80", start: 18.5, end: 25 },
+    { label: "25 - 29.9 (Overweight)",   color: "#fbbf24", start: 25, end: 30 },
     { label: "30 or over (Obesity)",     color: "#f87171", start: 30, end: 40 },
   ];
   const pct  = bmi != null ? Math.max(0, Math.min(100, ((bmi - MIN) / RANGE) * 100)) : null;
@@ -679,8 +679,8 @@ const PhysicianView = () => {
                   </CardTitle>
                   <div className="flex flex-wrap gap-3 text-xs mt-1">
                     <span className="flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded-sm bg-emerald-200"/>Normal (&lt;120)</span>
-                    <span className="flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded-sm bg-yellow-200"/>Elevated (120–129)</span>
-                    <span className="flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded-sm bg-orange-200"/>Stage 1 (130–139)</span>
+                    <span className="flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded-sm bg-yellow-200"/>Elevated (120-129)</span>
+                    <span className="flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded-sm bg-orange-200"/>Stage 1 (130-139)</span>
                     <span className="flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded-sm bg-red-200"/>Stage 2 (≥140)</span>
                   </div>
                 </CardHeader>
