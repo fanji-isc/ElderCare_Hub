@@ -241,6 +241,324 @@ def extract_sleep(patient_id: str = "") -> float:
             hoursAsleep = total_seconds / 3600
     return hoursAsleep
 
+def unix_to_utc(timestamp):
+    return datetime.fromtimestamp(timestamp / 1000.0, tz=timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')
+
+def llm_ready_ecg(ecg_list):
+    """
+    Filters raw Garmin ECG data into a concise dictionary optimized for LLM analysis and summarization.
+    """
+    def analyze_raw_ecg(ecg_readings):
+        samples = np.array(ecg_readings["samples"])
+        fs = ecg_readings["sampleRate"]  # 128.0 Hz
+        
+        # look for peaks with a minimum height and distance 
+        # (distance=fs/2 ensures we don't pick up T-waves as beats)
+        peaks, _ = find_peaks(samples, distance=fs/2, prominence=np.std(samples))
+        # RR-intervals in milliseconds: (Difference in indices / sampling rate) * 1000
+        rr_intervals = np.diff(peaks) / fs * 1000
+        sdnn = float(np.std(rr_intervals))
+        max_hr = 60000 / np.min(rr_intervals)
+        min_hr = 60000 / np.max(rr_intervals)
+        
+        analysis_report = {
+            "total_beats_detected": len(peaks),
+            "mean_rr_interval_ms": round(float(np.mean(rr_intervals)), 2),
+            "sdnn_hrv_ms": round(sdnn, 2),
+            "estimated_hr_range": f"{round(min_hr)} - {round(max_hr)} bpm",
+            "rhythm_stability": {
+                "rr_variance": round(float(np.var(rr_intervals)), 2),
+                "is_regular_rhythm": sdnn < 50  # Simple heuristic for rhythm stability
+            },
+            "signal_metadata": {
+                "sample_count": len(samples),
+                "sampling_rate_hz": fs
+            }
+        }
+        
+        return analysis_report
+    
+    llm_input = []
+    for ecg_json in ecg_list:
+        summary = ecg_json.get("summary", {})
+        reading = ecg_json.get("reading", {})
+
+        start_time_utc = unix_to_utc(summary.get("startTime", 0))
+        analysis_report = analyze_raw_ecg(reading)
+
+        llm_input.append({
+            "utc_timestamp": start_time_utc,
+            "local_time": summary.get("startTimeLocal"),
+            "rhythm_classification": summary.get("rhythmClassification"),
+            "metrics": {
+                "average_heart_rate_bpm": summary.get("heartRateAverage"),
+                "rmssd_hrv_ms": summary.get("rmssdHrv"),
+                "lead_type": reading.get("leadType"),
+                "duration_seconds": reading.get("durationInSeconds")
+            },
+            "calculated_metrics": analysis_report,
+            "context": {
+                "mounting_side": summary.get("mountingSide"),
+                "reported_symptoms": summary.get("symptoms", []),
+                "device_info": summary.get("deviceInfo", {}).get("productName", "Garmin Device")
+            }
+        })
+    return llm_input
+
+def llm_ready_hr(hr_json):
+    """
+    Filters raw Garmin HR data into a concise dictionary optimized for LLM analysis and summarization.
+    """
+    epochs = hr_json.get("epochArray", [])
+
+    # Extract columns based on the provided descriptors
+    # 0: timestamp, 1: heartRate, 2: stress, 3: spo2, 4: respiration
+    timestamps = [e[0] for e in epochs if e[0] is not None]
+    hr_values = [e[1] for e in epochs if e[1] is not None]
+    stress_values = [e[2] for e in epochs if e[2] is not None]
+    spo2_values = [e[3] for e in epochs if e[3] is not None]
+    resp_values = [e[4] for e in epochs if e[4] is not None]
+
+    def get_stats(data):
+        if not data: return None
+        return {
+            "min": float(np.min(data)),
+            "max": float(np.max(data)),
+            "avg": float(round(np.mean(data), 2)),
+            "std_dev": float(round(np.std(data), 2))
+        }
+
+    start_time = min(timestamps)
+    end_time = max(timestamps)
+    duration_minutes = (end_time - start_time) / 60000
+
+    # Check for correlation between Stress and Heart Rate
+    correlation = None
+    if len(hr_values) == len(stress_values) and len(hr_values) > 1:
+        correlation = float(round(np.corrcoef(hr_values, stress_values)[0, 1], 2))
+
+    analysis_report = {
+        "time_window": {
+            "utc_start_timestamp": unix_to_utc(start_time),
+            "utc_end_timestamp": unix_to_utc(end_time),
+            "duration_total_minutes": float(round(duration_minutes, 2))
+        },
+        "summary_metrics": {
+            "heart_rate_bpm": get_stats(hr_values),
+            "stress_score_0_100": get_stats(stress_values),
+            "blood_oxygen_spo2": get_stats(spo2_values),
+            "respiration_breaths_per_min": get_stats(resp_values)
+        },
+        "physiological_insights": {
+            "hr_stress_correlation": correlation,
+            "data_points_analyzed": len(epochs),
+            "is_high_stress_event": any(s > 75 for s in stress_values)
+        }
+    }
+    return analysis_report
+
+def llm_ready_sleep(sleep_list):
+    """
+    Filters raw Garmin Sleep data into a concise dictionary optimized for LLM analysis and summarization.
+    """
+    def sec_to_hms(seconds: int) -> str:
+        # Convert Seconds to Hours/Minutes for readability
+        h = seconds // 3600
+        m = (seconds % 3600) // 60
+        return f"{h}h {m}m"
+
+    processed_entries = []
+    for sleep_entry in sleep_list:
+        # Filter out empty "retro" objects and keep only valid sleep records
+        if "calendarDate" in sleep_entry:
+            # Basic Totals
+            scores = sleep_entry.get("sleepScores", {})
+
+            deep = sleep_entry.get("deepSleepSeconds", 0)
+            light = sleep_entry.get("lightSleepSeconds", 0)
+            rem = sleep_entry.get("remSleepSeconds", 0)
+            awake = sleep_entry.get("awakeSleepSeconds", 0)
+            total_sleep_sec = deep + light + rem
+            
+            architecture = {}
+            if total_sleep_sec > 0:
+                architecture = {
+                    "deep_pct": round((deep / total_sleep_sec) * 100, 1),
+                    "rem_pct": round((rem / total_sleep_sec) * 100, 1),
+                    "light_pct": round((light / total_sleep_sec) * 100, 1)
+                }
+
+            naps = sleep_entry.get("napList", [])
+            nap_summary = []
+            for nap in naps:
+                nap_summary.append({
+                    "duration": sec_to_hms(nap.get("napTimeSec", 0)),
+                    "time": nap.get("napStartTimestampGMT", "").split("T")[-1][:5]
+                })
+
+            processed_entries.append({
+                "date": sleep_entry["calendarDate"],
+                "total_sleep_time": sec_to_hms(total_sleep_sec),
+                "awake_time_during_sleep": sec_to_hms(awake),
+                "scores": {
+                    "overall": scores.get("overallScore"),
+                    "recovery": scores.get("recoveryScore"),
+                    "restfulness": scores.get("restfulnessScore")
+                },
+                "architecture": architecture,
+                "physiologicals": {
+                    "avg_sleep_stress": round(float(sleep_entry.get("avgSleepStress", 0)), 2),
+                    "avg_respiration_brpm": sleep_entry.get("averageRespiration"),
+                    "restless_moments": sleep_entry.get("restlessMomentCount")
+                },
+                "naps": nap_summary if nap_summary else "NONE",
+                "garmin_feedback": scores.get("feedback", "NONE")
+            })
+
+    overall_avg_score = np.mean([e["scores"]["overall"] for e in processed_entries])
+    stress_trend = np.mean([e["physiologicals"]["avg_sleep_stress"] for e in processed_entries])
+
+    return {
+        "overall_stats": {
+            "mean_overall_score": float(round(overall_avg_score, 2)),
+            "mean_avg_sleep_stress": float(round(stress_trend, 2)),
+            "total_nights_tracked": len(processed_entries)
+        },
+        "daily_breakdown": processed_entries
+    }    
+
+def llm_ready_gait(gait_list):
+    """
+    Filters raw Garmin Gait data into a concise dictionary optimized for LLM analysis and summarization.
+    """
+    # Flatten all sessions across all days for historical context
+    all_sessions = [s for day in gait_list for s in day.get("sessions", [])]
+
+    n = len(all_sessions)
+    
+    avg_speed = sum(x["gaitSpeedMs"] for x in all_sessions) / n
+    avg_symmetry = sum(x["stepSymmetryPct"] for x in all_sessions) / n
+    avg_variability = sum(x["strideVariabilityPct"] for x in all_sessions) / n
+    avg_gct_diff = sum(abs(x["groundContactTimeMs"]["left"] - 
+                        x["groundContactTimeMs"]["right"]) for x in all_sessions) / n
+
+    score = 0
+    if avg_speed < 0.6: score += 4
+    elif avg_speed < 0.8: score += 2
+    if avg_symmetry < 75: score += 3
+    elif avg_symmetry < 82: score += 2
+    if avg_variability > 12: score += 2
+    elif avg_variability > 8: score += 1
+    if avg_gct_diff > 100: score += 2
+    elif avg_gct_diff > 60: score += 1
+
+    risk_level = "high" if score >= 5 else "moderate" if score >= 2 else "low"
+
+    latest_day = max(gait_list, key=lambda x: x["calendarDate"])
+    latest_s = latest_day["sessions"][-1]
+    
+    latest_gct_diff = abs(latest_s["groundContactTimeMs"]["left"] - latest_s["groundContactTimeMs"]["right"])
+    latest_stride_diff = abs(latest_s["strideLength"]["leftCm"] - latest_s["strideLength"]["rightCm"])
+
+    return {
+        "fall_risk_assessment": {
+            "level": risk_level,
+            "weighted_score": score,
+            "is_concerning": risk_level != "low"
+        },
+        "latest_snapshot": {
+            "date": latest_day["calendarDate"],
+            "speed_ms": round(latest_s["gaitSpeedMs"], 2),
+            "symmetry_pct": round(latest_s["stepSymmetryPct"], 1),
+            "variability_pct": round(latest_s["strideVariabilityPct"], 1),
+            "asymmetry": {
+                "gct_delta_ms": latest_gct_diff,
+                "stride_delta_cm": latest_stride_diff,
+                "shorter_stride_side": "left" if latest_s["strideLength"]["leftCm"] < latest_s["strideLength"]["rightCm"] else "right"
+            }
+        },
+        "historical_averages": {
+            "avg_walking_speed": round(avg_speed, 2),
+            "avg_symmetry": round(avg_symmetry, 1),
+            "avg_variability": round(avg_variability, 1),
+            "avg_gct_imbalance": round(avg_gct_diff, 0)
+        },
+        "clinical_flags": {
+            "frailty_speed_alert": latest_s["gaitSpeedMs"] < 0.8,
+            "high_instability_alert": latest_s["strideVariabilityPct"] > 10.0,
+            "significant_limp_detected": latest_gct_diff > 60
+        }
+    }
+
+def llm_ready_toilet(toilet_list):
+    """
+    Filters raw Smart Toilet data into a concise dictionary optimized for LLM analysis and summarization.
+    """
+    daily_analysis = []
+    
+    for day in toilet_list:
+        readings = day.get("readings", [])
+        if not readings:
+            continue
+        
+        # Calculate hydration improvement (Morning vs Last Reading)
+        morning_level = readings[0]["colorLevel"]
+        last_level = readings[-1]["colorLevel"]
+        improvement = morning_level - last_level
+        
+        daily_analysis.append({
+            "date": day["calendarDate"],
+            "readings_count": len(readings),
+            "morning_status": "Dehydrated" if morning_level >= 5 else "Hydrated",
+            "hydration_trend": {
+                "start_level": morning_level,
+                "end_level": last_level,
+                "net_improvement": int(improvement)
+            },
+            "is_incomplete_data": len(readings) < 3
+        })
+        
+    return daily_analysis
+
+def llm_ready_fridge(fridge_list):
+    """
+    Filters raw Smart Fridge data into a concise dictionary optimized for LLM analysis and summarization.
+    """
+    nutritional_trends = []
+    
+    for day in fridge_list:
+        nutrition = day.get("dailyNutrition", {})
+        meals = day.get("mealsDetected", [])
+        alerts = [a["message"] for a in day.get("alerts", [])]
+        
+        # Protein check: Elderly individuals often need ~1.2g per kg of body weight
+        # We flag anything below 60g as a potential risk for muscle loss
+        protein_intake = nutrition.get("protein", 0)
+        
+        nutritional_trends.append({
+            "date": day["calendarDate"],
+            "safety_summary": {
+                "calories": nutrition.get("calories"),
+                "macronutrients": f"Protein: {protein_intake}g, Carbs: {nutrition.get('carbs')}g, Fat: {nutrition.get('fat')}g",
+                "protein_status": "Adequate" if protein_intake >= 65 else "Low (Sarcopenia Risk)",
+                "hydration_liters": nutrition.get("waterLiters"),
+                "meal_consistency": "Normal" if len(meals) >= 3 else "Irregular/Skipped"
+            },
+            "cognitive_indicators": {
+                "expired_items_count": len([a for a in alerts if "expires" in a.lower()]),
+                "skipped_meals_flag": any("skipped" in a.lower() for a in alerts)
+            },
+            "critical_alerts": day.get("alerts", [])
+        })
+
+    latest_inventory = fridge_list[-1].get("inventory")
+    inventory_str = "["
+    for dict in latest_inventory:
+        inventory_str += f"{json.dumps(dict)} ,"
+    inventory_str = inventory_str[:-2] + "]"
+        
+    return nutritional_trends, inventory_str
+
 # TODO: check where vitals is called to see if more/different keys should be included
 @app.get("/api/build-patient-dashboard")
 def get_patient_dashboard(patient_id: str = "") -> dict:
@@ -281,256 +599,10 @@ def get_patient_dashboard(patient_id: str = "") -> dict:
 # ── Interpret IRIS Home data endpoints ──────────────────────────────────────────
 
 def interpret_garmin(patient_id: str = "") -> dict:
-    """This function retrieves a summary of the Patient's ECG, HR, and Sleep Data from their Garmin Watch.
+    """This function retrieves an AI summary of the Patient's ECG, HR, Sleep, and Gait Data from their Garmin Watch.
 
-    returns: Status of the execution of this function, and a dictionary of the 'ECG Summary', 'HR Summary', and 'Sleep Summary'."""
-    def unix_to_utc(timestamp):
-        return datetime.fromtimestamp(timestamp / 1000.0, tz=timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')
-    
-    def get_ecgdata(ecg_list):
-        """
-        Filters raw Garmin ECG data into a concise dictionary optimized for LLM analysis and summarization.
-        """
-        def analyze_raw_ecg(ecg_readings):
-            samples = np.array(ecg_readings["samples"])
-            fs = ecg_readings["sampleRate"]  # 128.0 Hz
-            
-            # look for peaks with a minimum height and distance 
-            # (distance=fs/2 ensures we don't pick up T-waves as beats)
-            peaks, _ = find_peaks(samples, distance=fs/2, prominence=np.std(samples))
-            # RR-intervals in milliseconds: (Difference in indices / sampling rate) * 1000
-            rr_intervals = np.diff(peaks) / fs * 1000
-            sdnn = float(np.std(rr_intervals))
-            max_hr = 60000 / np.min(rr_intervals)
-            min_hr = 60000 / np.max(rr_intervals)
-            
-            analysis_report = {
-                "total_beats_detected": len(peaks),
-                "mean_rr_interval_ms": round(float(np.mean(rr_intervals)), 2),
-                "sdnn_hrv_ms": round(sdnn, 2),
-                "estimated_hr_range": f"{round(min_hr)} - {round(max_hr)} bpm",
-                "rhythm_stability": {
-                    "rr_variance": round(float(np.var(rr_intervals)), 2),
-                    "is_regular_rhythm": sdnn < 50  # Simple heuristic for rhythm stability
-                },
-                "signal_metadata": {
-                    "sample_count": len(samples),
-                    "sampling_rate_hz": fs
-                }
-            }
-            
-            return analysis_report
-        
-        llm_input = []
-        for ecg_json in ecg_list:
-            summary = ecg_json.get("summary", {})
-            reading = ecg_json.get("reading", {})
-
-            start_time_utc = unix_to_utc(summary.get("startTime", 0))
-            analysis_report = analyze_raw_ecg(reading)
-
-            llm_input.append({
-                "utc_timestamp": start_time_utc,
-                "local_time": summary.get("startTimeLocal"),
-                "rhythm_classification": summary.get("rhythmClassification"),
-                "metrics": {
-                    "average_heart_rate_bpm": summary.get("heartRateAverage"),
-                    "rmssd_hrv_ms": summary.get("rmssdHrv"),
-                    "lead_type": reading.get("leadType"),
-                    "duration_seconds": reading.get("durationInSeconds")
-                },
-                "calculated_metrics": analysis_report,
-                "context": {
-                    "mounting_side": summary.get("mountingSide"),
-                    "reported_symptoms": summary.get("symptoms", []),
-                    "device_info": summary.get("deviceInfo", {}).get("productName", "Garmin Device")
-                }
-            })
-        return llm_input
-
-    def get_hrdata(hr_json):
-        """
-        Filters raw Garmin HR data into a concise dictionary optimized for LLM analysis and summarization.
-        """
-        epochs = hr_json.get("epochArray", [])
-
-        # Extract columns based on the provided descriptors
-        # 0: timestamp, 1: heartRate, 2: stress, 3: spo2, 4: respiration
-        timestamps = [e[0] for e in epochs if e[0] is not None]
-        hr_values = [e[1] for e in epochs if e[1] is not None]
-        stress_values = [e[2] for e in epochs if e[2] is not None]
-        spo2_values = [e[3] for e in epochs if e[3] is not None]
-        resp_values = [e[4] for e in epochs if e[4] is not None]
-
-        def get_stats(data):
-            if not data: return None
-            return {
-                "min": float(np.min(data)),
-                "max": float(np.max(data)),
-                "avg": float(round(np.mean(data), 2)),
-                "std_dev": float(round(np.std(data), 2))
-            }
-
-        start_time = min(timestamps)
-        end_time = max(timestamps)
-        duration_minutes = (end_time - start_time) / 60000
-
-        # Check for correlation between Stress and Heart Rate
-        correlation = None
-        if len(hr_values) == len(stress_values) and len(hr_values) > 1:
-            correlation = float(round(np.corrcoef(hr_values, stress_values)[0, 1], 2))
-
-        analysis_report = {
-            "time_window": {
-                "utc_start_timestamp": unix_to_utc(start_time),
-                "utc_end_timestamp": unix_to_utc(end_time),
-                "duration_total_minutes": float(round(duration_minutes, 2))
-            },
-            "summary_metrics": {
-                "heart_rate_bpm": get_stats(hr_values),
-                "stress_score_0_100": get_stats(stress_values),
-                "blood_oxygen_spo2": get_stats(spo2_values),
-                "respiration_breaths_per_min": get_stats(resp_values)
-            },
-            "physiological_insights": {
-                "hr_stress_correlation": correlation,
-                "data_points_analyzed": len(epochs),
-                "is_high_stress_event": any(s > 75 for s in stress_values)
-            }
-        }
-        return analysis_report
-
-    def get_sleepdata(sleep_list):
-        """
-        Filters raw Garmin Sleep data into a concise dictionary optimized for LLM analysis and summarization.
-        """
-        def sec_to_hms(seconds: int) -> str:
-            # Convert Seconds to Hours/Minutes for readability
-            h = seconds // 3600
-            m = (seconds % 3600) // 60
-            return f"{h}h {m}m"
-
-        processed_entries = []
-        for sleep_entry in sleep_list:
-            # Filter out empty "retro" objects and keep only valid sleep records
-            if "calendarDate" in sleep_entry:
-                # Basic Totals
-                scores = sleep_entry.get("sleepScores", {})
-
-                deep = sleep_entry.get("deepSleepSeconds", 0)
-                light = sleep_entry.get("lightSleepSeconds", 0)
-                rem = sleep_entry.get("remSleepSeconds", 0)
-                awake = sleep_entry.get("awakeSleepSeconds", 0)
-                total_sleep_sec = deep + light + rem
-                
-                architecture = {}
-                if total_sleep_sec > 0:
-                    architecture = {
-                        "deep_pct": round((deep / total_sleep_sec) * 100, 1),
-                        "rem_pct": round((rem / total_sleep_sec) * 100, 1),
-                        "light_pct": round((light / total_sleep_sec) * 100, 1)
-                    }
-
-                naps = sleep_entry.get("napList", [])
-                nap_summary = []
-                for nap in naps:
-                    nap_summary.append({
-                        "duration": sec_to_hms(nap.get("napTimeSec", 0)),
-                        "time": nap.get("napStartTimestampGMT", "").split("T")[-1][:5]
-                    })
-
-                processed_entries.append({
-                    "date": sleep_entry["calendarDate"],
-                    "total_sleep_time": sec_to_hms(total_sleep_sec),
-                    "awake_time_during_sleep": sec_to_hms(awake),
-                    "scores": {
-                        "overall": scores.get("overallScore"),
-                        "recovery": scores.get("recoveryScore"),
-                        "restfulness": scores.get("restfulnessScore")
-                    },
-                    "architecture": architecture,
-                    "physiologicals": {
-                        "avg_sleep_stress": round(float(sleep_entry.get("avgSleepStress", 0)), 2),
-                        "avg_respiration_brpm": sleep_entry.get("averageRespiration"),
-                        "restless_moments": sleep_entry.get("restlessMomentCount")
-                    },
-                    "naps": nap_summary if nap_summary else "NONE",
-                    "garmin_feedback": scores.get("feedback", "NONE")
-                })
-
-        overall_avg_score = np.mean([e["scores"]["overall"] for e in processed_entries])
-        stress_trend = np.mean([e["physiologicals"]["avg_sleep_stress"] for e in processed_entries])
-
-        return {
-            "overall_stats": {
-                "mean_overall_score": float(round(overall_avg_score, 2)),
-                "mean_avg_sleep_stress": float(round(stress_trend, 2)),
-                "total_nights_tracked": len(processed_entries)
-            },
-            "daily_breakdown": processed_entries
-        }    
-
-    def get_gaitdata(gait_list):
-        # Flatten all sessions across all days for historical context
-        all_sessions = [s for day in gait_list for s in day.get("sessions", [])]
-
-        n = len(all_sessions)
-        
-        avg_speed = sum(x["gaitSpeedMs"] for x in all_sessions) / n
-        avg_symmetry = sum(x["stepSymmetryPct"] for x in all_sessions) / n
-        avg_variability = sum(x["strideVariabilityPct"] for x in all_sessions) / n
-        avg_gct_diff = sum(abs(x["groundContactTimeMs"]["left"] - 
-                            x["groundContactTimeMs"]["right"]) for x in all_sessions) / n
-
-        score = 0
-        if avg_speed < 0.6: score += 4
-        elif avg_speed < 0.8: score += 2
-        if avg_symmetry < 75: score += 3
-        elif avg_symmetry < 82: score += 2
-        if avg_variability > 12: score += 2
-        elif avg_variability > 8: score += 1
-        if avg_gct_diff > 100: score += 2
-        elif avg_gct_diff > 60: score += 1
-
-        risk_level = "high" if score >= 5 else "moderate" if score >= 2 else "low"
-
-        latest_day = max(gait_list, key=lambda x: x["calendarDate"])
-        latest_s = latest_day["sessions"][-1]
-        
-        latest_gct_diff = abs(latest_s["groundContactTimeMs"]["left"] - latest_s["groundContactTimeMs"]["right"])
-        latest_stride_diff = abs(latest_s["strideLength"]["leftCm"] - latest_s["strideLength"]["rightCm"])
-
-        return {
-            "fall_risk_assessment": {
-                "level": risk_level,
-                "weighted_score": score,
-                "is_concerning": risk_level != "low"
-            },
-            "latest_snapshot": {
-                "date": latest_day["calendarDate"],
-                "speed_ms": round(latest_s["gaitSpeedMs"], 2),
-                "symmetry_pct": round(latest_s["stepSymmetryPct"], 1),
-                "variability_pct": round(latest_s["strideVariabilityPct"], 1),
-                "asymmetry": {
-                    "gct_delta_ms": latest_gct_diff,
-                    "stride_delta_cm": latest_stride_diff,
-                    "shorter_stride_side": "left" if latest_s["strideLength"]["leftCm"] < latest_s["strideLength"]["rightCm"] else "right"
-                }
-            },
-            "historical_averages": {
-                "avg_walking_speed": round(avg_speed, 2),
-                "avg_symmetry": round(avg_symmetry, 1),
-                "avg_variability": round(avg_variability, 1),
-                "avg_gct_imbalance": round(avg_gct_diff, 0)
-            },
-            "clinical_flags": {
-                "frailty_speed_alert": latest_s["gaitSpeedMs"] < 0.8,
-                "high_instability_alert": latest_s["strideVariabilityPct"] > 10.0,
-                "significant_limp_detected": latest_gct_diff > 60
-            }
-        }
-    
-    ecg_analyst = """
+    returns: Status of the execution of this function, and a dictionary of the 'ECG Summary', 'HR Summary', 'Sleep Summary', and 'Geriatric Gait Summary'."""
+    ecg_analyst = f"""
     # ROLE: ECG Precision Analyst
 
     # CONTEXT: 
@@ -576,7 +648,7 @@ def interpret_garmin(patient_id: str = "") -> dict:
     # INPUT: 
 
     """
-    sleep_coach = """
+    sleep_coach = f"""
     # ROLE: Garmin Sleep Performance Coach
 
     # CONTEXT:
@@ -680,25 +752,25 @@ def interpret_garmin(patient_id: str = "") -> dict:
         raw_sleep_data = data.get("sleep", [])
         raw_gait_data = data.get("gait", [])
 
-        ecg_data = get_ecgdata(raw_ecg_data)
+        ecg_data = llm_ready_ecg(raw_ecg_data)
         ecg_response = client.responses.create(
             model="gpt-5-nano",
             input= ecg_analyst + json.dumps(ecg_data)
         )
 
-        hr_data = get_hrdata(raw_hr_data)
+        hr_data = llm_ready_hr(raw_hr_data)
         hr_response = client.responses.create(
             model="gpt-5-nano",
             input= hr_coach + json.dumps(hr_data)
         )
 
-        sleep_data = get_sleepdata(raw_sleep_data)
+        sleep_data = llm_ready_sleep(raw_sleep_data)
         sleep_response = client.responses.create(
             model="gpt-5-nano",
             input= sleep_coach + json.dumps(sleep_data)
         )
 
-        gait_data = get_gaitdata(raw_gait_data)
+        gait_data = llm_ready_gait(raw_gait_data)
         gait_response = client.responses.create(
             model="gpt-5-nano",
             input= gait_strategist + json.dumps(gait_data)
@@ -710,79 +782,10 @@ def interpret_garmin(patient_id: str = "") -> dict:
         conn.close()
 
 def interpret_home_data(patient_id: str = "") -> dict:
-    """This function retrieves a summary of the Patient's Toilet and Fridge Data from their smart home hub.
+    """This function retrieves an AI summary of the Patient's Toilet and Fridge Data from their smart home hub.
 
     returns: Status of the execution of this function, and a dictionary of the 'Hydration Summary' and 'Nutrition Summary'."""
-    def get_toiletdata(toilet_list):
-        """
-        Filters raw Smart Toilet data into a concise dictionary optimized for LLM analysis and summarization.
-        """
-        daily_analysis = []
-        
-        for day in toilet_list:
-            readings = day.get("readings", [])
-            if not readings:
-                continue
-            
-            # Calculate hydration improvement (Morning vs Last Reading)
-            morning_level = readings[0]["colorLevel"]
-            last_level = readings[-1]["colorLevel"]
-            improvement = morning_level - last_level
-            
-            daily_analysis.append({
-                "date": day["calendarDate"],
-                "readings_count": len(readings),
-                "morning_status": "Dehydrated" if morning_level >= 5 else "Hydrated",
-                "hydration_trend": {
-                    "start_level": morning_level,
-                    "end_level": last_level,
-                    "net_improvement": int(improvement)
-                },
-                "is_incomplete_data": len(readings) < 3
-            })
-            
-        return daily_analysis
-    
-    def get_fridgedata(fridge_list):
-        """
-        Filters raw Smart Fridge data into a concise dictionary optimized for LLM analysis and summarization.
-        """
-        nutritional_trends = []
-        
-        for day in fridge_list:
-            nutrition = day.get("dailyNutrition", {})
-            meals = day.get("mealsDetected", [])
-            alerts = [a["message"] for a in day.get("alerts", [])]
-            
-            # Protein check: Elderly individuals often need ~1.2g per kg of body weight
-            # We flag anything below 60g as a potential risk for muscle loss
-            protein_intake = nutrition.get("protein", 0)
-            
-            nutritional_trends.append({
-                "date": day["calendarDate"],
-                "safety_summary": {
-                    "calories": nutrition.get("calories"),
-                    "macronutrients": f"Protein: {protein_intake}g, Carbs: {nutrition.get('carbs')}g, Fat: {nutrition.get('fat')}g",
-                    "protein_status": "Adequate" if protein_intake >= 65 else "Low (Sarcopenia Risk)",
-                    "hydration_liters": nutrition.get("waterLiters"),
-                    "meal_consistency": "Normal" if len(meals) >= 3 else "Irregular/Skipped"
-                },
-                "cognitive_indicators": {
-                    "expired_items_count": len([a for a in alerts if "expires" in a.lower()]),
-                    "skipped_meals_flag": any("skipped" in a.lower() for a in alerts)
-                },
-                "critical_alerts": day.get("alerts", [])
-            })
-
-        latest_inventory = fridge_list[-1].get("inventory")
-        inventory_str = "["
-        for dict in latest_inventory:
-            inventory_str += f"{json.dumps(dict)} ,"
-        inventory_str = inventory_str[:-2] + "]"
-            
-        return nutritional_trends, inventory_str
-
-    hydration_coach = """
+    hydration_coach = f"""
     ### ROLE: METABOLIC HEALTH COACH
 
     # CONTEXT: 
@@ -804,7 +807,7 @@ def interpret_home_data(patient_id: str = "") -> dict:
     # INPUT: 
 
     """
-    nutrition_coach = """
+    nutrition_coach = f"""
     ### ROLE: GERIATRIC WELLNESS COACH
 
     # CONTEXT:
@@ -839,13 +842,13 @@ def interpret_home_data(patient_id: str = "") -> dict:
         raw_toilet_data = data.get("toilet", {})
         raw_fridge_data = data.get("fridge", {})
     
-        toilet_data = get_toiletdata(raw_toilet_data)
+        toilet_data = llm_ready_toilet(raw_toilet_data)
         toilet_response = client.responses.create(
             model="gpt-5-nano",
             input= hydration_coach + json.dumps(toilet_data)
         )
 
-        fridge_data, inventory_str = get_fridgedata(raw_fridge_data)
+        fridge_data, inventory_str = llm_ready_fridge(raw_fridge_data)
         fridge_response = client.responses.create(
             model="gpt-5-nano",
             input= nutrition_coach + f"Current inventory: \n{inventory_str}\n\n Fridge Data: \n{json.dumps(fridge_data)}"
@@ -1598,7 +1601,7 @@ def get_clinician_overview(patient_id: str = ""):
 # ── AI System Prompts ────────────────────────────────────────────────────────────
 
 @app.get("/api/system-prompt")
-def get_system_prompt(patient_id: str = "") -> str:
+def get_system_prompt(patient_id: str = "") -> str: 
     neighborhoodJson = get_iris_data(patient_id, "neighborhood")
 
     latest_dict = neighborhoodJson[0] if neighborhoodJson else None
@@ -1642,70 +1645,69 @@ def get_system_prompt(patient_id: str = "") -> str:
     patient_desc = get_patient_desc(patient_id)
 
     nhh_desc = f"""
-    ### ROLE: Elder-care assitant
+    # ROLE: Elder-care assitant
 
-    # CONTEXT: 
+    # CONTEXT 
     You are a calm, friendly elder-care assistant. You are speaking directly to the following user:
 
     {patient_desc}
- 
-    # TONE:
-    Speak clearly and briefly. Don't patronise them. Prioritise conciseness, your reply should keep to 4-5 sentences. Only ever reply in plain text, don't use any markdown or formatting.
 
-    # RESTRICTIONS:
+    # TONE
+    Speak clearly and briefly. Don't patronise them. Prioritise conciseness, your reply should keep to 4-5 sentences. Your output should only ever be in plain text, don't use any markdown or formatting.
+
+    # RESTRICTIONS
     DO NOT give medical diagnoses. 
-    If unsure, suggest contacting their healthcare professional.
+    If unsure, suggest contacting their healthcare professional. Only suggest this if the user explicitly asks for medical advice or if the data shows a severe concerning condition, otherwise suggest contacting their family.
 
-    # DATA SUMMARY: 
+    You are an advisor, not a personal secretary. You may suggest that the user contacts a neighbor or family member, but you must NEVER offer to draft messages, send alerts, or "loop people in" yourself. 
+    **HARD STOP:** Never offer to "help think through," "create a plan," or "formulate next steps." Provide the information and then stop. **NO FACILITATION:** Never use phrases like "I can help you plan" or "Let's figure out." Your role is to provide options, not to manage the user's schedule or logistics EXCEPT for the specific automated actions defined in the Trigger Codes section.
+
+    # --- DATA SECTION ---
+
+    ## HOME DATA SUMMARY: 
 
     {triage_answer}
 
-    # APPOINTMENT INSTRUCTION:
-    When the user asks about appointments, you MUST read out every detail for each one: full date, time, appointment type, physician name (if any), and location. Never omit any of these fields. Example: "You have a Primary Care Check-up on Wednesday, April 8th at 9:00 AM with Dr. James Patel at Medfield Family Practice." Unless they ask, just mention the next upcoming appointment, not the full list.
-
-    # NEIGHBORHOOD ACTIVITIES :
-    Consider all activities in their neighborhood community (Oakwood Pines) and suggest the most appropriate for their specific wellbeing. Prioritise any activities happening today ({today.strftime('%A, %b %d')}) or tomorrow ({(today + timedelta(days=1)).strftime('%A, %b %d')}).
+    ## NEIGHBORHOOD ACTIVITIES :
 
     {activities}
 
-    # NEIGHBORHOOD HELP BOARD:
-    If they are looking for rides, companionship, or other help, consider the following neighbor offers in their community from the help board. DO NOT suggest these offers unless the user explicitly asks for a ride or companionship. If they do ask, follow the instructions in the "NEIGHBOR CONNECT INSTRUCTION" section below.
+    ## NEIGHBORHOOD HELP BOARD:
 
-    - Rides:
+    - Rides:  
     {ride_offers}
 
-    - Companionship:
+    - Companionship:  
     {companion_offers}
 
-    # BOOKING INSTRUCTION: 
-    If the user confirms they would like to join a specific activity, then confirm enthusiastically in your response that you have successfully registered them. 
+    ## Fridge inventory:
 
-    Then, on a brand new line at the very end, append exactly: [[JOIN:ID]] where ID is that activity's booking ID number from the list above. 
-    Do NOT speak or mention [[JOIN:ID]] — it is a silent machine code only, never part of the conversation with the user. DO NOT sign them up without them explicitly asking to be.
-
-    # NEIGHBOR CONNECT INSTRUCTION:
-    If the user asks for a ride/transport or companionship, follow this logic:
-    1. First mention any neighbors who have offered (from the list above). 
-    - If no neighbor ride fits, suggest Lyft as a convenient option. 
-    - If no companionship offers fit, suggest joining a neighborhood activity as a way to meet people or to contact his family.
-    2. If the user wants to connect with a specific neighbor (e.g. "connect me with Barbara"), confirm warmly and on a brand new line at the very end append exactly: [[CONNECT_NEIGHBOR:Name]] where Name is the neighbor's first name (e.g. [[CONNECT_NEIGHBOR:Barbara]]).
-
-    [[CONNECT_NEIGHBOR:Name]] is a silent machine code — never speak or mention it. Always append it whenever the user wants to be connected. DO NOT connect them without them explicitly asking.    
-    
-    # CALL INSTRUCTION: 
-    If they ask to call or talk to their family, reply exactly with this format: "I will connect you to [Name] now."
-    
-    Then, on a brand new line at the very end, append exactly: [[CALL_FAMILY]] — this is a silent machine code, never speak or mention it.
-
-    # FOOD & ACTIVITY CONNECTION:
-    If the user asks about food, recipes, or what to eat, suggest something from his fridge inventory AND check if there is a relevant upcoming activity (e.g. a cooking demo or class) — if so, briefly mention it by name and date as something he might enjoy.
-
-    Fridge inventory: 
-    - Current items: 
+    - Current items:  
     {"\n".join(fridge.get("currentItems", [])) if fridge.get("currentItems") else "Nothing currently in the fridge."}
 
-    - Expiring items: 
+    - Expiring items:  
     {"\n".join(fridge.get("expiringItems", [])) if fridge.get("expiringItems") else "Nothing is currently expiring soon." }
+
+    # --- OPERATIONAL INSTRUCTIONS ---
+
+    **Follow these triggers strictly. If a condition is met, execute the corresponding action:**
+
+    * **IF user asks about appointments:** Read the next upcoming appointment only unless they explicitly ask for more. You MUST include: full date, time, appointment type, physician name (if any), and location. Example: "You have a Primary Care Check-up on Wednesday, April 8th at 9:00 AM with Dr. James Patel at Medfield Family Practice."
+    
+    * **IF user asks about activities:** Suggest the most appropriate Neighborhood Activity for their specific wellbeing. NEVER list all activities unless explicitly asked, pick the most relevant one based on their health status and interests. If there are no relevant activities, mention those that are happening either today ({today.strftime('%A, %b %d')}) or tomorrow ({(today + timedelta(days=1)).strftime('%A, %b %d')})
+    
+    * **IF user asks about food/recipes:** Suggest an item from their Fridge Inventory AND check if there is a relevant Neighborhood Activity (e.g. a cooking class) — if so, if they have not already signed up, briefly mention it by name and date as something they might enjoy. 
+    
+    * **IF user asks for a ride:** Suggest a Neighbor from the Help Board if one exists. As an alternative, suggest **Lyft** or contacting **family** for help coordinating a ride. NEVER suggest a generic "taxi" or "ride service"—always name **Lyft** specifically. **STRICT LIMIT**: You are ONLY supposed to suggest these options - do not follow up by asking the user for their preference. Do not ask about their physical needs (e.g., getting in/out of the car). Do not offer to help with a plan. Provide the options and stop speaking.
+
+    **[TRIGGER CODES]**
+    Append a code ONLY if a condition is met. On a brand new line at the very end. These are silent machine codes: NEVER speak, explain, or mention them. 
+
+    **STRICT RULE:** If no condition is met, end with a period. DO NOT append "none" or any other text.
+
+    * **IF user explicitly asks to join or be signed up for an activity:** This is within your scope. Confirm registration enthusiastically (e.g., "I've signed you up for that now!") and append `[[JOIN:ID]]`.  
+    * **IF user explicitly asks to connect with a neighbor:** Confirm warmly "I will connect you with [Name] now." + append `[[CONNECT_NEIGHBOR:Name]]`.  
+    * **IF user asks to call/talk to family:** Reply exactly: "I will connect you to [Name] now." + append `[[CALL_FAMILY]]`.
     """
 
     return nhh_desc
