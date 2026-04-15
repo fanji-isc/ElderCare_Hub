@@ -506,7 +506,6 @@ const ElderView = () => {
         const loaded: Vitals = {
           ...dashboardData
         };
-        console.log("Fetched Vitals Data:", loaded);
         setVitals(loaded);
         vitalsRef.current = loaded;
 
@@ -742,8 +741,8 @@ const ElderView = () => {
           } else {
             const joinMatch = fullAnswer.match(/\[\[JOIN:(\d+)\]\]/i);
             const callMatch = fullAnswer.match(/\[\[CALL_FAMILY\]\]/i);
-            const connectMatch = fullAnswer.match(/\[\[CONNECT_NEIGHBOR:([^\]]+)\]\]/i);
-            const displayAnswer = fullAnswer.replace(/\n?\s*\[\[JOIN:\d+\]\]/gi, "").replace(/\n?\s*\[\[CALL_FAMILY\]\]/gi, "").replace(/\n?\s*\[\[CONNECT_NEIGHBOR:[^\]]+\]\]/gi, "").trim();
+            const connectMatch = fullAnswer.match(/\[\[CONNECT_NEIGHBOR:([^,\]]+),(\d+)\]\]/i);
+            const displayAnswer = fullAnswer.replace(/\n?\s*\[\[JOIN:\d+\]\]/gi, "").replace(/\n?\s*\[\[CALL_FAMILY\]\]/gi, "").replace(/\n?\s*\[\[CONNECT_NEIGHBOR:[^,\]]+,\d+\]\]/gi, "").trim();
             const buf = await fetchTTSBuffer(ttsReady(displayAnswer), ttsCtrl.signal);
             setMessages((prev) => {
               const msgs = [...prev];
@@ -763,8 +762,9 @@ const ElderView = () => {
             }
             if (connectMatch) {
               const neighborName = connectMatch[1].trim();
+              const neighborId = parseInt(connectMatch[2], 10);
               setOpenPanel("helping");
-              window.dispatchEvent(new CustomEvent("NHH-connect-neighbor", { detail: { name: neighborName } }));
+              window.dispatchEvent(new CustomEvent("NHH-connect-neighbor", { detail: { name: neighborName, id: neighborId } }));
             }
           }
         } catch {

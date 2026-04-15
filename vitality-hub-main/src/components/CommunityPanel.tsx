@@ -174,6 +174,12 @@ export function CommunityPanel({ section = "all" }: { section?: CommunitySection
   const [posts, setPosts] = useState<HelpPost[]>([]);
   const [loading, setLoading] = useState(true);
   const activitiesRef = useRef<Activity[]>([]);  // stable ref for event handler closure
+  const postsRef = useRef<HelpPost[]>([]);       // stable ref for posts
+
+  useEffect(() => {
+    activitiesRef.current = activities;
+    postsRef.current = posts;
+  }, [activities, posts]);
 
   const [joined,    setJoined]    = useState<Set<number>>(new Set());
   const [helped,    setHelped]    = useState<Set<number>>(new Set());
@@ -184,60 +190,6 @@ export function CommunityPanel({ section = "all" }: { section?: CommunitySection
   const [postType,     setPostType]     = useState<"request" | "offer">("request");
   const [postCategory, setPostCategory] = useState("Ride");
   const [postMessage,  setPostMessage]  = useState("");
-
-  useEffect(() => {
-    fetch(`${API_BASE}/api/iris_data?patient_id=${encodeURIComponent(PATIENT_ID)}&column=neighborhood`)
-      .then((r) => r.ok ? r.json() : [])
-      .then((data: any) => {
-        const latest = Array.isArray(data) && data.length > 0 ? data[0] : null;
-        if (latest) {
-          const acts = Array.isArray(latest.activities) ? latest.activities : [];
-          activitiesRef.current = acts;
-          setActivities(acts);
-          setPosts(Array.isArray(latest.helpPosts) ? latest.helpPosts : []);
-        }
-      })
-      .catch(() => { /* silent — UI stays empty */ })
-      .finally(() => setLoading(false));
-  }, []);
-
-  // Listen for NHH booking a class via voice command — fires when NHH responds with [[JOIN:id]]
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const id = (e as CustomEvent<{ id: number }>).detail.id;
-      setJoined((prev) => {
-        if (prev.has(id)) return prev;  // already joined — no-op
-        const next = new Set(prev);
-        next.add(id);
-        const act = activitiesRef.current.find((a) => a.id === id);
-        toast.success(`Joy has signed you up for ${act?.title ?? "the activity"}!`);
-        return next;
-      });
-    };
-    window.addEventListener("NHH-join-activity", handler);
-    return () => window.removeEventListener("NHH-join-activity", handler);
-  }, []);
-
-  // Listen for Joy connecting Frank with a neighbor via voice command — fires when [[CONNECT_NEIGHBOR:name]]
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const name = (e as CustomEvent<{ name: string }>).detail.name.toLowerCase();
-      setPosts((prev) => {
-        const post = prev.find((p) => p.name.toLowerCase() === name);
-        if (!post) return prev;
-        setConnected((prevC) => {
-          if (prevC.has(post.id)) return prevC;
-          const next = new Set(prevC);
-          next.add(post.id);
-          toast.success(`Joy has connected you with ${post.name}!`);
-          return next;
-        });
-        return prev;
-      });
-    };
-    window.addEventListener("NHH-connect-neighbor", handler);
-    return () => window.removeEventListener("NHH-connect-neighbor", handler);
-  }, []);
 
   const handleHelp = (id: number, name: string) => {
     setHelped((prev) => {
@@ -286,6 +238,77 @@ export function CommunityPanel({ section = "all" }: { section?: CommunitySection
     setPostCategory("Ride");
     setPostOpen(false);
   };
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/iris_data?patient_id=${encodeURIComponent(PATIENT_ID)}&column=neighborhood`)
+      .then((r) => r.ok ? r.json() : [])
+      .then((data: any) => {
+        const latest = Array.isArray(data) && data.length > 0 ? data[0] : null;
+        if (latest) {
+          const acts = Array.isArray(latest.activities) ? latest.activities : [];
+          const helpPosts = Array.isArray(latest.helpPosts) ? latest.helpPosts : [];
+          activitiesRef.current = acts;
+          postsRef.current = helpPosts;
+          setActivities(acts);
+          setPosts(helpPosts);
+        }
+      })
+      .catch(() => { /* silent — UI stays empty */ })
+      .finally(() => setLoading(false));
+  }, []);
+
+  // Listen for NHH booking a class via voice command — fires when Joy responds with [[JOIN:id]]
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const id = (e as CustomEvent<{ id: number }>).detail.id;
+      setJoined((prev) => {
+        if (prev.has(id)) return prev;  // already joined — no-op
+        const next = new Set(prev);
+        next.add(id);
+        const act = activitiesRef.current.find((a) => a.id === id);
+        toast.success(`Joy has signed you up for ${act?.title ?? "the activity"}!`);
+        return next;
+      });
+    };
+    window.addEventListener("NHH-join-activity", handler);
+    return () => window.removeEventListener("NHH-join-activity", handler);
+  }, []);
+
+  // Listen for Joy connecting Frank with a neighbor via voice command — fires when Joy responds with [[CONNECT_NEIGHBOR:name,id]]
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { name, id } = (e as CustomEvent<{ name: string; id: number }>).detail;
+      
+      // Look up the post in the stable ref to determine its type
+      const post = postsRef.current.find((p) => p.id === id);
+      
+      if (!post) {
+        toast.error(`Could not find a post for ${name}.`);
+        return;
+      }
+
+      if (post.type === "request") {
+        // Use your existing helper for requests
+        handleHelp(id, post.name);
+      } else {
+        // Direct logic for connections (offers)
+        setConnected((prev) => {
+          const next = new Set(prev);
+          if (next.has(id)) {
+            next.delete(id);
+            toast.info(`Disconnected from ${post.name}.`);
+          } else {
+            next.add(id);
+            toast.success(`Joy has connected you with ${post.name}!`);
+          }
+          return next;
+        });
+      }
+    };
+    
+    window.addEventListener("NHH-connect-neighbor", handler);
+    return () => window.removeEventListener("NHH-connect-neighbor", handler);
+  }, []); // handleHelp is stable since it only depends on setHelped
 
   return (
     <div className="space-y-6">
