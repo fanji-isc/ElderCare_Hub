@@ -4,32 +4,30 @@
     "deviceId": "SMART_FRIDGE_001",
     "patientId": "PATIENT_001",
     "inventory": [
-      { "item": "Milk", "quantity": "1.5 L", "expiresInDays": 3, "category": "dairy", "stockLevel": "medium" },
-      { "item": "Greek Yogurt", "quantity": "2 cups", "expiresInDays": 5, "category": "dairy", "stockLevel": "full" },
-      { "item": "Apples", "quantity": "4 pieces", "expiresInDays": 7, "category": "fruit", "stockLevel": "medium" },
-      { "item": "Spinach", "quantity": "200 g", "expiresInDays": 2, "category": "vegetable", "stockLevel": "low" },
-      { "item": "Chicken Breast", "quantity": "300 g", "expiresInDays": 1, "category": "protein", "stockLevel": "low" },
-      { "item": "Orange Juice", "quantity": "500 ml", "expiresInDays": 4, "category": "beverage", "stockLevel": "medium" },
-      { "item": "Eggs", "quantity": "6 pieces", "expiresInDays": 14, "category": "protein", "stockLevel": "full" },
-      { "item": "Cheddar Cheese", "quantity": "150 g", "expiresInDays": 10, "category": "dairy", "stockLevel": "low" }
+      { "item": "Whole Milk", "quantity": "2.0 L", "expiresInDays": 5, "category": "dairy", "stockLevel": "full" },
+      { "item": "Beef Stew (w/ Carrots & Potatoes)", "quantity": "1000 ml", "expiresInDays": 2, "category": "protein/veg", "stockLevel": "full" },
+      { "item": "Frozen Sweet Peas", "quantity": "500 g", "expiresInDays": 30, "category": "vegetable", "stockLevel": "full" },
+      { "item": "Roasted Butternut Squash", "quantity": "400 g", "expiresInDays": 3, "category": "vegetable", "stockLevel": "medium" },
+      { "item": "Peanut Butter", "quantity": "450 g", "expiresInDays": 90, "category": "pantry", "stockLevel": "full" },
+      { "item": "Sourdough", "quantity": "12 slices", "expiresInDays": 4, "category": "grain", "stockLevel": "full" },
+      { "item": "Cottage Cheese", "quantity": "500 g", "expiresInDays": 7, "category": "dairy", "stockLevel": "full" }
     ],
     "dailyNutrition": {
-      "calories": 1720,
-      "protein": 62,
-      "carbs": 195,
-      "fat": 52,
-      "fiber": 22,
-      "waterLiters": 1.6
+      "calories": 1900,
+      "protein": 85,
+      "carbs": 215,
+      "fat": 75,
+      "fiber": 28,
+      "waterLiters": 2.2
     },
     "mealsDetected": [
-      { "time": "07:45", "meal": "Breakfast", "items": ["Greek Yogurt", "Apples"], "calories": 310 },
-      { "time": "12:30", "meal": "Lunch", "items": ["Chicken Breast", "Spinach"], "calories": 460 },
-      { "time": "19:00", "meal": "Dinner", "items": ["Eggs", "Cheddar Cheese"], "calories": 540 }
+      { "time": "08:15", "meal": "Breakfast", "items": ["Sourdough (2 slices)", "Peanut Butter (30g)", "Whole Milk (150ml)"], "calories": 430 },
+      { "time": "12:30", "meal": "Lunch", "items": ["Beef Stew (250ml)", "Roasted Butternut Squash (150g)", "Whole Milk (150ml)"], "calories": 520 },
+      { "time": "18:00", "meal": "Dinner", "items": ["Beef Stew (250ml)", "Frozen Sweet Peas (100g)", "Sourdough (2 slices)"], "calories": 550 },
+      { "time": "20:30", "meal": "Late Snack", "items": ["Cottage Cheese (200g)", "Whole Milk (150ml)"], "calories": 400 }
     ],
     "alerts": [
-      { "type": "expiring", "item": "Chicken Breast", "message": "Expires tomorrow — use soon" },
-      { "type": "expiring", "item": "Spinach", "message": "Expires in 2 days" },
-      { "type": "nutrition", "message": "Vitamin C intake below recommended level" }
+      { "type": "expiring", "item": "Beef Stew", "message": "Expires in 2 days." }
     ]
   },
   {
@@ -37,31 +35,31 @@
     "deviceId": "SMART_FRIDGE_001",
     "patientId": "PATIENT_001",
     "inventory": [
-      { "item": "Milk", "quantity": "1.2 L", "expiresInDays": 2, "category": "dairy", "stockLevel": "medium" },
-      { "item": "Greek Yogurt", "quantity": "1 cup", "expiresInDays": 4, "category": "dairy", "stockLevel": "low" },
-      { "item": "Bananas", "quantity": "3 pieces", "expiresInDays": 3, "category": "fruit", "stockLevel": "medium" },
-      { "item": "Broccoli", "quantity": "250 g", "expiresInDays": 4, "category": "vegetable", "stockLevel": "full" },
-      { "item": "Salmon Fillet", "quantity": "200 g", "expiresInDays": 2, "category": "protein", "stockLevel": "low" },
-      { "item": "Orange Juice", "quantity": "300 ml", "expiresInDays": 3, "category": "beverage", "stockLevel": "low" },
-      { "item": "Eggs", "quantity": "4 pieces", "expiresInDays": 13, "category": "protein", "stockLevel": "medium" },
-      { "item": "Blueberries", "quantity": "150 g", "expiresInDays": 5, "category": "fruit", "stockLevel": "low" }
+      { "item": "Whole Milk", "quantity": "1.55 L", "expiresInDays": 4, "category": "dairy", "stockLevel": "medium" },
+      { "item": "Beef Stew (w/ Carrots & Potatoes)", "quantity": "500 ml", "expiresInDays": 1, "category": "protein/veg", "stockLevel": "medium" },
+      { "item": "Frozen Sweet Peas", "quantity": "400 g", "expiresInDays": 29, "category": "vegetable", "stockLevel": "medium" },
+      { "item": "Roasted Butternut Squash", "quantity": "250 g", "expiresInDays": 2, "category": "vegetable", "stockLevel": "low" },
+      { "item": "Peanut Butter", "quantity": "420 g", "expiresInDays": 89, "category": "pantry", "stockLevel": "full" },
+      { "item": "Sourdough", "quantity": "8 slices", "expiresInDays": 3, "category": "grain", "stockLevel": "medium" },
+      { "item": "Cottage Cheese", "quantity": "300 g", "expiresInDays": 6, "category": "dairy", "stockLevel": "medium" }
     ],
     "dailyNutrition": {
-      "calories": 1890,
-      "protein": 74,
-      "carbs": 210,
-      "fat": 58,
-      "fiber": 27,
-      "waterLiters": 2.1
+      "calories": 1600,
+      "protein": 72,
+      "carbs": 180,
+      "fat": 60,
+      "fiber": 19,
+      "waterLiters": 1.8
     },
     "mealsDetected": [
-      { "time": "08:00", "meal": "Breakfast", "items": ["Greek Yogurt", "Blueberries", "Bananas"], "calories": 380 },
-      { "time": "13:00", "meal": "Lunch", "items": ["Salmon Fillet", "Broccoli"], "calories": 510 },
-      { "time": "18:30", "meal": "Dinner", "items": ["Eggs", "Broccoli"], "calories": 420 }
+      { "time": "09:00", "meal": "Breakfast", "items": ["Sourdough (2 slices)", "Peanut Butter (30g)", "Whole Milk (150ml)"], "calories": 430 },
+      { "time": "13:30", "meal": "Lunch", "items": ["Beef Stew (250ml)", "Sourdough (2 slices)"], "calories": 450 },
+      { "time": "18:45", "meal": "Dinner", "items": ["Roasted Butternut Squash (250g)", "Cottage Cheese (200g)"], "calories": 420 },
+      { "time": "21:00", "meal": "Late Snack", "items": ["Whole Milk (200ml)", "Sourdough (1 slice)"], "calories": 300 }
     ],
     "alerts": [
-      { "type": "expiring", "item": "Salmon Fillet", "message": "Expires in 2 days" },
-      { "type": "expiring", "item": "Milk", "message": "Expires in 2 days" }
+      { "type": "expiring", "item": "Beef Stew", "message": "Expires tomorrow — use soon." },
+      { "type": "expiring", "item": "Roasted Butternut Squash", "message": "Expires in 2 days." }
     ]
   },
   {
@@ -69,31 +67,27 @@
     "deviceId": "SMART_FRIDGE_001",
     "patientId": "PATIENT_001",
     "inventory": [
-      { "item": "Milk", "quantity": "0.8 L", "expiresInDays": 1, "category": "dairy", "stockLevel": "low" },
-      { "item": "Greek Yogurt", "quantity": "1 cup", "expiresInDays": 3, "category": "dairy", "stockLevel": "low" },
-      { "item": "Oranges", "quantity": "5 pieces", "expiresInDays": 6, "category": "fruit", "stockLevel": "full" },
-      { "item": "Carrots", "quantity": "300 g", "expiresInDays": 8, "category": "vegetable", "stockLevel": "medium" },
-      { "item": "Turkey Slices", "quantity": "150 g", "expiresInDays": 2, "category": "protein", "stockLevel": "low" },
-      { "item": "Almond Milk", "quantity": "600 ml", "expiresInDays": 7, "category": "beverage", "stockLevel": "medium" },
-      { "item": "Eggs", "quantity": "3 pieces", "expiresInDays": 12, "category": "protein", "stockLevel": "low" },
-      { "item": "Cottage Cheese", "quantity": "200 g", "expiresInDays": 6, "category": "dairy", "stockLevel": "medium" },
-      { "item": "Strawberries", "quantity": "200 g", "expiresInDays": 3, "category": "fruit", "stockLevel": "low" }
+      { "item": "Whole Milk", "quantity": "1.2 L", "expiresInDays": 3, "category": "dairy", "stockLevel": "medium" },
+      { "item": "Beef Stew (w/ Carrots & Potatoes)", "quantity": "250 ml", "expiresInDays": 0, "category": "protein/veg", "stockLevel": "low" },
+      { "item": "Frozen Sweet Peas", "quantity": "400 g", "expiresInDays": 28, "category": "vegetable", "stockLevel": "medium" },
+      { "item": "Creamy Peanut Butter", "quantity": "420 g", "expiresInDays": 88, "category": "pantry", "stockLevel": "full" },
+      { "item": "Sourdough Slices", "quantity": "5 slices", "expiresInDays": 2, "category": "grain", "stockLevel": "low" },
+      { "item": "Cottage Cheese", "quantity": "100 g", "expiresInDays": 5, "category": "dairy", "stockLevel": "low" }
     ],
     "dailyNutrition": {
-      "calories": 842,
-      "protein": 45,
-      "carbs": 70,
-      "fat": 23,
-      "fiber": 9,
-      "waterLiters": 1.9
+      "calories": 1250,
+      "protein": 58,
+      "carbs": 138,
+      "fat": 52,
+      "fiber": 14,
+      "waterLiters": 1.4
     },
     "mealsDetected": [
-      { "time": "07:30", "meal": "Breakfast", "items": ["Greek Yogurt", "Strawberries"], "calories": 362 },
-      { "time": "12:45", "meal": "Lunch", "items": ["Turkey Slices", "Carrots"], "calories": 480 }
+      { "time": "10:30", "meal": "Breakfast", "items": ["Sourdough (2 slices)", "Peanut Butter (45g)", "Whole Milk (250ml)"], "calories": 610 },
+      { "time": "15:30", "meal": "Lunch", "items": ["Beef Stew (150ml)", "Sourdough (2 slices)", "Cottage Cheese (100g)"], "calories": 640 }
     ],
     "alerts": [
-      { "type": "expiring", "item": "Milk", "message": "Expires tomorrow — use soon" },
-      { "type": "expiring", "item": "Turkey Slices", "message": "Expires in 2 days" },
+      { "type": "expiring", "item": "Beef Stew", "message": "EXPIRED. Discard remaining portion." },
       { "type": "nutrition", "message": "Only 2 meals detected today — dinner was skipped" },
       { "type": "nutrition", "message": "Calorie intake very low — possible appetite loss" }
     ]
