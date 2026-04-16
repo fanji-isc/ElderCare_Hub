@@ -524,40 +524,50 @@ def llm_ready_fridge(fridge_list):
     """
     Filters raw Smart Fridge data into a concise dictionary optimized for LLM analysis and summarization.
     """
-    nutritional_trends = []
-    
-    for day in fridge_list:
-        nutrition = day.get("dailyNutrition", {})
-        meals = day.get("mealsDetected", [])
-        alerts = [a["message"] for a in day.get("alerts", [])]
-        
-        # Protein check: Elderly individuals often need ~1.2g per kg of body weight
-        # We flag anything below 60g as a potential risk for muscle loss
-        protein_intake = nutrition.get("protein", 0)
-        
-        nutritional_trends.append({
-            "date": day["calendarDate"],
-            "safety_summary": {
-                "calories": nutrition.get("calories"),
-                "macronutrients": f"Protein: {protein_intake}g, Carbs: {nutrition.get('carbs')}g, Fat: {nutrition.get('fat')}g",
-                "protein_status": "Adequate" if protein_intake >= 65 else "Low (Sarcopenia Risk)",
-                "hydration_liters": nutrition.get("waterLiters"),
-                "meal_consistency": "Normal" if len(meals) >= 3 else "Irregular/Skipped"
-            },
-            "cognitive_indicators": {
-                "expired_items_count": len([a for a in alerts if "expires" in a.lower()]),
-                "skipped_meals_flag": any("skipped" in a.lower() for a in alerts)
-            },
-            "critical_alerts": day.get("alerts", [])
-        })
+    total_days = len(fridge_list)
+    if total_days == 0:
+        return {}, "[]"
 
-    latest_inventory = fridge_list[-1].get("inventory")
-    inventory_str = "["
-    for dict in latest_inventory:
-        inventory_str += f"{json.dumps(dict)} ,"
-    inventory_str = inventory_str[:-2] + "]"
+    # Calculate Longitudinal Trends
+    calories_series = [d.get("dailyNutrition", {}).get("calories", 0) for d in fridge_list]
+    protein_series = [d.get("dailyNutrition", {}).get("protein", 0) for d in fridge_list]
+    meal_counts = [len(d.get("mealsDetected", [])) for d in fridge_list]
+    
+    avg_calories = sum(calories_series) / total_days
+    avg_protein = sum(protein_series) / total_days
+    
+    # Calculate % change from first to last day to highlight decline
+    calorie_delta_pct = ((calories_series[-1] - calories_series[0]) / calories_series[0]) * 100 if calories_series[0] > 0 else 0
+
+    all_alerts = []
+    for day in fridge_list:
+        for alert in day.get("alerts", []):
+            all_alerts.append(f"{day['calendarDate']}: {alert['message']}")
+
+    trend_summary = {
+        "observation_period": f"{fridge_list[0]['calendarDate']} to {fridge_list[-1]['calendarDate']}",
+        "aggregate_stats": {
+            "avg_daily_calories": round(avg_calories, 1),
+            "avg_daily_protein": round(avg_protein, 1),
+            "calorie_trend_pct": f"{round(calorie_delta_pct, 1)}%",
+            "meal_frequency_series": meal_counts
+        },
+        "nutritional_risk_assessment": {
+            "sarcopenia_risk": "High" if avg_protein < 65 else "Low",
+            "weight_loss_indicator": "Critical Decline" if calorie_delta_pct < -20 else "Stable"
+        },
+        "chronological_alert_history": all_alerts,
+        "latest_daily_snapshot": {
+            "date": fridge_list[-1]["calendarDate"],
+            "calories": calories_series[-1],
+            "protein": protein_series[-1]
+        }
+    }
+
+    latest_inventory = fridge_list[-1].get("inventory", [])
+    inventory_str = json.dumps(latest_inventory, indent=2)
         
-    return nutritional_trends, inventory_str
+    return trend_summary, inventory_str
 
 # TODO: check where vitals is called to see if more/different keys should be included
 @app.get("/api/build-patient-dashboard")
@@ -617,7 +627,7 @@ def interpret_garmin(patient_id: str = "") -> dict:
     - Explain that a Lead I ECG (from a wrist-worn device) is a snapshot of the heart's electrical activity from the left to right arm. Focus on the "timing" of the beats rather than diagnosing structural heart disease.
 
     # TONE:
-    Clinical, precise, and objective. These insights are being interpretd by an orchestrator agent as part of a wider health monitoring system. Therefore, avoid medical jargon unless accompanied by a brief explanation. Refer to the patient in the third person. 
+    Compassionate, vigilant, analytical, and respectful. These insights are being interpreted by an orchestrator agent as part of a wider health monitoring system that will relay this synthesize your summary with information from other data sources to advise the patient. Therefore, avoid medical jargon unless accompanied by a brief explanation. Focus instead on clear, actionable advice. Refer to the patient in the third person. 
 
     # INPUT: 
 
@@ -626,24 +636,24 @@ def interpret_garmin(patient_id: str = "") -> dict:
     # ROLE: Autonomic Recovery Coach (Time-series Specialist)
 
     # CONTEXT: 
-    You are an expert in autonomic nervous system (ANS) physiology. Your task is to interpret a structured HR analysis report to determine a user's physiological load, stress resilience, and respiratory stability.
+    You are an expert in autonomic nervous system (ANS) physiology. Your task is to interpret a structured HR analysis report to determine a patient's physiological load, stress resilience, and respiratory stability.
 
     # DATA INTERPRETATION RULES:
     1. **The HR/Stress Correlation:** 
-    - Look at `hr_stress_correlation`. 
+    - Look at `physiological_insights.hr_stress_correlation`. 
         - **High (>0.7):** HR is driving stress (physical load/exercise).
         - **Low (<0.3):** Stress is likely psychological or chemical (caffeine, anxiety), as HR and stress are "decoupled."
     2. **Stress Extremes:** 
-    - If `is_high_stress_event` is `True`, look at the `stress_score_0_100` max value. Determine if this was a momentary spike or a sustained period of high sympathetic activation.
+    - If `physiological_insights.is_high_stress_event` is `True`, look at the `summary_metrics.stress_score_0_100` max value. Determine if this was a momentary spike or a sustained period of high sympathetic activation.
     3. **Oxygen & Breathing:** 
-    - Evaluate `blood_oxygen_spo2` and `respiration_breaths_per_min`. 
+    - Evaluate `summary_metrics.blood_oxygen_spo2` and `summary_metrics.respiration_breaths_per_min`. 
         - Flag any `spo2` averages below 95% as potential recovery inhibitors.
         - Note if `respiration` min/max range is wide, which may indicate periods of breath-holding or intense focus ("screen apnea").
     4. **Temporal Context:** 
     - Use the `time_window` to orient your advice. A 60-minute window of high stress in the morning (focus) is different from a 60-minute window of high stress at midnight (poor recovery).
 
     # TONE:
-    Insightful, analytical, and highly personalized. Translate the "Summary Metrics" into a narrative about the patient's day. These insights are being interpretd by an orchestrator agent as part of a wider health monitoring system. Therefore, avoid medical jargon unless accompanied by a brief explanation. Refer to the patient in the third person. 
+    Compassionate, vigilant, analytical, and respectful. These insights are being interpreted by an orchestrator agent as part of a wider health monitoring system that will relay this synthesize your summary with information from other data sources to advise the patient. Therefore, avoid medical jargon unless accompanied by a brief explanation. Focus instead on clear, actionable advice. Refer to the patient in the third person.  
 
     # INPUT: 
 
@@ -699,7 +709,7 @@ def interpret_garmin(patient_id: str = "") -> dict:
     When providing data, such as total hours of sleep, cross reference it against the patient's baseline / 7-day average to give the patient context for the data.
 
     # TONE:
-    Professional and data-driven. These insights are being interpretd by an orchestrator agent as part of a wider health monitoring system. Therefore, avoid "fluff"; focus on biological impact. Refer to the patient in the third person.
+    Compassionate, vigilant, analytical, and respectful. These insights are being interpreted by an orchestrator agent as part of a wider health monitoring system that will relay this synthesize your summary with information from other data sources to advise the patient. Therefore, avoid medical jargon unless accompanied by a brief explanation. Focus instead on clear, actionable advice. Refer to the patient in the third person. 
 
     # INPUT: 
 
@@ -732,7 +742,7 @@ def interpret_garmin(patient_id: str = "") -> dict:
     Focus on **Stability** and **Symmetry**. Translate the "GCT Delta" into plain English (e.g. "The user is favoring their left leg").
 
     # TONE:
-    Professional and data-driven. These insights are being interpretd by an orchestrator agent as part of a wider health monitoring system. Therefore, avoid "fluff"; focus on biological impact. Refer to the patient in the third person.
+    Compassionate, vigilant, analytical, and respectful. These insights are being interpreted by an orchestrator agent as part of a wider health monitoring system that will relay this synthesize your summary with information from other data sources to advise the patient. Therefore, avoid medical jargon unless accompanied by a brief explanation. Focus instead on clear, actionable advice. Refer to the patient in the third person. 
 
     # INPUT: 
 
@@ -797,12 +807,12 @@ def interpret_home_data(patient_id: str = "") -> dict:
     2. **The "Flush" Trend:** 
     - Look for a downward trend in `colorLevel` throughout the day. If the level stays at 6-8 all day, flag this as a "Chronic Dehydration" risk that will negatively impact the user's Garmin HRV.
     3. **Recovery Link:** 
-    - When `morning_status` is "Dehydrated," advise the user to drink some water before checking their Garmin Body Battery or taking an ECG, as dehydration can cause "false-positive" stress readings.
+    - When `morning_status` is "Dehydrated," advise that the user drink some water before checking their Garmin Body Battery or taking an ECG, as dehydration can cause "false-positive" stress readings.
     4. **Data Gaps:** 
     - If `is_incomplete_data` is True, remind the user that hydration tracking requires consistency to map against their HR trends.
 
     # TONE: 
-    Practical, health-conscious, and supportive.
+    Compassionate, vigilant, analytical, and respectful. These insights are being interpreted by an orchestrator agent as part of a wider health monitoring system that will relay this synthesize your summary with information from other data sources to advise the patient. Therefore, avoid medical jargon unless accompanied by a brief explanation. Focus instead on clear, actionable advice. Refer to the patient in the third person. 
 
     # INPUT: 
 
@@ -811,7 +821,7 @@ def interpret_home_data(patient_id: str = "") -> dict:
     ### ROLE: GERIATRIC WELLNESS COACH
 
     # CONTEXT:
-    You are a specialist in geriatric nutrition and preventative care. You interpret Smart Fridge and Garmin data to ensure an elderly user is maintaining muscle mass, hydration, and cognitive routine.
+    You are an expert in geriatric nutrition, focusing on the prevention of 'The Dwindles' (failure to thrive). You analyze synthesized Smart Fridge trends to identify early-stage physical or cognitive decline.
 
     # DATA INTERPRETATION RULES:
     1. **The Anorexia of Aging:** 
@@ -819,12 +829,12 @@ def interpret_home_data(patient_id: str = "") -> dict:
     2. **Protein & Sarcopenia:** 
     - If protein drops below 60g, advise incorporating whatever high protein items are currently in the inventory to support muscle retention.
     3. **Hydration & Fall Prevention:** 
-    - If water is <2L, flag that this needs to be compared to the Smart Toilet `colorLevel`. If color is >5, flag a "High Fall Risk" due to potential orthostatic hypotension (dizziness when standing).
+    - If water is <2L, flag that this needs to be noted as to be compared to the Smart Toilet `colorLevel`. If color is >5, flag a "High Fall Risk" due to potential orthostatic hypotension (dizziness when standing).
     4. **Cognitive Support:** 
     - If the fridge flags many "Expiring soon" items, suggest a simple "Meal of the Day" using those specific items to reduce the user's cognitive load.
 
     # TONE: 
-    Compassionate, vigilant, respectful, and safety-oriented.
+    Compassionate, vigilant, analytical, and respectful. These insights are being interpreted by an orchestrator agent as part of a wider health monitoring system that will relay this synthesize your summary with information from other data sources to advise the patient. Therefore, avoid medical jargon unless accompanied by a brief explanation. Focus instead on clear, actionable advice. Refer to the patient in the third person. 
     
     # INPUT: 
     
@@ -864,48 +874,45 @@ def get_resident_context(patient_id: str = "") -> str:
     return """
     ---
     ### ⚠️ OVERALL RISK LEVEL: **CRITICAL**
-    **Primary Driver:** The combination of **skipped/very low-protein dinner** plus **morning dehydration** is most likely worsening **right-sided weakness/limp**, which aligns with **high fall-risk gait** and may also be contributing to **incomplete physiological recovery** on sleep/HRV.
+    **Primary Driver:** The combination of **very low/irregular intake (skipped meals + low protein)** and **morning dehydration** is most likely driving **new functional instability (limp, low gait speed) with elevated fall risk**, while also undermining sleep recovery and increasing cognitive/behavioral load.
 
     #### I. ACUTE SAFETY & FALL RISK
-    * **Finding:** High fall risk.
-    * **Gait speed:** **0.77 m/s** (frailty-range; below 0.8 m/s threshold)
-    * **Variability:** **10.5%** (slightly above historical 10.2% → more instability)
-    * **Asymmetry/limp:** **GCT delta 80 ms (>60 ms)** with **right side guarded** (right leg likely painful/weak)
-    * **Systemic Cause:** Home nutrition flags show **only 2 meals detected** with **dinner skipped** and **very low calories**, plus **protein at ~45 g (<60 g target)**. Under-fueling commonly reduces strength/endurance and increases compensatory movement—matching today's **frailty-speed + limp/asymmetry + higher variability** pattern.  
-    Hydration is also concerning: hydration starts the day **“Dehydrated”** on several days, and today's later status remains problematic on **2026-04-29** (ends at **colorLevel 6**), which can worsen balance and dizziness risk.
+    * **Finding:** The patient has **high fall risk (6/11)** with:
+    - **Gait speed:** **0.77 m/s** (frailty risk threshold: <0.8 m/s)
+    - **Gait asymmetry:** **GCT delta = 80 ms** (pronounced limp/guarding)
+    - **Variability:** **10.5%** (higher than historical 10.2%), consistent with trip vulnerability
+    * **Systemic Cause:**  
+    - **Fueling-stability chain:** Home nutrition shows **only 2 meals detected** with **dinner skipped** and **calories very low** plus **protein ~58 g (below target ~60 g)**. This increases risk of **muscle weakness** and poorer neuromuscular control—consistent with the **guarded limp** (right leg protection) and **reduced speed**.
+    - **Dehydration-cardiac loop:** Home hydration indicates **morning dehydration on most days** (start color levels frequently **5-7**, improving later). Dehydration can reduce cardiovascular “reserve” and worsen steadiness when standing/walking, amplifying gait instability and trip risk.
 
     #### II. METABOLIC & AUTONOMIC LOAD
-    * **Status:** Mixed—**nutrition load is low**, **hydration is less than optimal**, vitamins not provided.
-    * **Protein:** **~45 g (below target)**
-    * **Water:** reported **1.9 L (<2 L)**
-    * **Hydration pattern:** mornings often dehydrated; **2026-04-29 ends dehydrated (6)**
-    * **Cardiac Impact:** Garmin shows **stable sinus rhythm** and measurable HRV:
-    * **ECG rhythm:** **SINUS_NORMAL**
-    * **SDNN:** **~35 ms** (modest beat-to-beat variation)
-    * **Resting HR:** ~**65 bpm**
-    
-    However, the sleep section indicates **recovery is limited** (HRV/physiology-based “Recovery” bottleneck), which fits a scenario where **dehydration + low fueling** reduces the nervous system's “reset” capacity. Evening perceived stress is present but **not strongly driven by heart rate**, suggesting the strain may be more **recovery/hydration/nutrition related** than exertion-related.
+    * **Status:**  
+    - **Calories:** **~1250 kcal** on the latest snapshot (very low)
+    - **Protein:** **~58 g** (slightly below target)
+    - **Water:** repeatedly **dehydrated in the morning** (colorLevel often 5-7 at start)
+    * **Cardiac Impact:**  
+    - Garmin ECG shows **sinus rhythm normal and stable** with **HR ~61-72 bpm** and **HRV (SDNN ~35 ms)**—reassuring as a rhythm snapshot.
+    - However, dehydration earlier in the day can **blunt HRV robustness** and make the body less adaptable. Also, the Garmin HR summary shows **stress signals are not physically driven** (HR-stress correlation negative), suggesting stress may be **non-physical/behavioral**, but dehydration and under-fueling still likely worsen physical resilience that shows up as **gait instability** rather than arrhythmia.
 
     #### III. MENTAL HEALTH & COGNITIVE VIGILANCE
     * **Markers:**
-    * **Appetite/behavioral decline proxy:** **Dinner skipped + very low calories**
-    * **Inventory/executive-function proxy:** **Expiring items** (milk, spinach, turkey slices, salmon fillet) indicate potential planning burden; the home plan attempts to reduce cognitive load via a “Meal of the Day,” which suggests these lapses are meaningful.
-    * **Sleep stress:** Sleep shows **short total sleep (2h50m)** with **Recovery bottleneck (Recovery=71)** and **sleep stress ~19.35**.
-    
-    Taken together: low intake + expiring-item pressure/possible planning difficulty aligns with **reduced recovery** and higher cognitive vulnerability the next day (grogginess, less resilience), increasing real-world fall risk—especially with today's limp.
+    - **Appetite loss / missed meals:** “**Only 2 meals detected**” with **skipped dinner** and **low calories**—often a behavioral/executive-function signal in older adults (difficulty initiating or maintaining intake).
+    - **Sleep stress & architecture risk:** Sleep has **marked sleep debt** over the week trend (average ~5h18m) with at least one night of **high sleep stress** and **low deep sleep**. While one night showed strong recovery despite short sleep, the overall trajectory suggests the nervous system is **not consistently supported**.
+    - **Inventory management proxy:** **Expiring items** are present (e.g., beef stew expiring today), indicating possible reduced planning/organization—this can precede **sleep stress** and worsen meal regularity.
 
     #### IV. PRIORITY INTERVENTIONS (THE "GOLDEN THREE")
     1. **Immediate Safety:**  
-    Implement **assisted mobility now** (use a cane/walker or have supervision for ambulation/turning). Do a quick **trip-hazard + lighting** check (especially where the patient pivots due to the limp).
+    - Treat as **active fall risk today**: ensure **non-slip footwear**, **remove trip hazards (cords/rugs)**, improve **night/route lighting**, and use a **cane/walker or caregiver-supervised ambulation** until gait symmetry improves.
 
-    2. **Targeted Input (today's highest-yield fix):**  
-    **Protein + hydration repletion within hours.**  
-    * Protein goal: move toward **≥60 g today**, using available items (e.g., **eggs + Greek yogurt**, **turkey slices + cottage cheese**, and/or **salmon** if feasible).  
-    * Hydration goal: raise from **1.9 L to ~2.0-2.5 L** (small scheduled sips through the afternoon). Because **colorLevel ends high (6)** on 2026-04-29, prioritize consistent drinking and monitor dizziness on standing.
+    2. **Targeted Input:**  
+    - Implement a **simple, repeatable “Meal of the Day”** using expiring items to reduce decision fatigue:
+        - **Peanut butter + toast**  
+        - Add **cottage cheese** *and/or* **milk**  
+    - Goal for the next 24 hours: **move protein from ~58 g → at least 60 g (ideally higher)** and increase calorie consistency (avoid another missed meal).
 
-    3. **Recovery/Clinical:**  
-    Focus on **sleep recovery quality and nervous-system “reset.”**  
-    Tonight: set **lights-out ~45 minutes earlier** (target a longer sleep window), and keep a **screen-free wind-down** to reduce sleep stress. Clinically/observationally: watch for whether the **right-sided guarding** improves after nutrition/hydration correction; if not, expedite evaluation.
+    3. **Recovery/Clinical:** Stabilize sleep to reduce stress and improve readiness  
+    - Implement a **consistent earlier bedtime with a 20-minute screen-free wind-down**.  
+    - Overnight goal: reduce the recurring pattern of **short nights/building sleep debt**, targeting **~6.5-7 hours** for the next several nights and watch for lower **sleep stress** and improved deep/REM proportions.
 
     ---
     """
