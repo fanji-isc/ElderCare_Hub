@@ -191,11 +191,20 @@ export function CommunityPanel({ section = "all" }: { section?: CommunitySection
   const [postCategory, setPostCategory] = useState("Ride");
   const [postMessage,  setPostMessage]  = useState("");
 
-  const handleHelp = (id: number, name: string) => {
+  const handleOffer = (id: number, name: string) => {
     setHelped((prev) => {
       const next = new Set(prev);
       if (next.has(id)) { next.delete(id); toast.info(`Removed your offer to help ${name}.`); }
       else              { next.add(id);    toast.success(`${name} will be notified that you can help!`); }
+      return next;
+    });
+  };
+
+  const handleRequest = (id: number, name: string) => {
+    setConnected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) { next.delete(id); toast.info(`Removed your request for help from ${name}.`);}
+      else              { next.add(id);    toast.success(`${name} will be notified that you need help!`); }
       return next;
     });
   };
@@ -207,11 +216,6 @@ export function CommunityPanel({ section = "all" }: { section?: CommunitySection
       else              { next.add(id);    toast.success(`You're signed up for ${title}!`); }
       return next;
     });
-  };
-
-  const handleDeletePost = (id: number) => {
-    setPosts((prev) => prev.filter((p) => p.id !== id));
-    toast.info("Your post has been removed.");
   };
 
   const handleSubmitPost = () => {
@@ -239,6 +243,11 @@ export function CommunityPanel({ section = "all" }: { section?: CommunitySection
     setPostOpen(false);
   };
 
+  const handleDeletePost = (id: number) => {
+    setPosts((prev) => prev.filter((p) => p.id !== id));
+    toast.info("Your post has been removed.");
+  };
+
   useEffect(() => {
     fetch(`${API_BASE}/api/iris_data?patient_id=${encodeURIComponent(PATIENT_ID)}&column=neighborhood`)
       .then((r) => r.ok ? r.json() : [])
@@ -257,7 +266,7 @@ export function CommunityPanel({ section = "all" }: { section?: CommunitySection
       .finally(() => setLoading(false));
   }, []);
 
-  // Listen for NHH booking a class via voice command — fires when Joy responds with [[JOIN:id]]
+  // Listen for Joy booking a class via voice command [[JOIN:id]]
   useEffect(() => {
     const handler = (e: Event) => {
       const id = (e as CustomEvent<{ id: number }>).detail.id;
@@ -274,33 +283,32 @@ export function CommunityPanel({ section = "all" }: { section?: CommunitySection
     return () => window.removeEventListener("NHH-join-activity", handler);
   }, []);
 
-  // Listen for Joy connecting Frank with a neighbor via voice command — fires when Joy responds with [[CONNECT_NEIGHBOR:name,id]]
+  // Listen for Joy connecting Frank with a neighbor via voice command [[CONNECT_NEIGHBOR:name,id]]
   useEffect(() => {
     const handler = (e: Event) => {
       const { name, id } = (e as CustomEvent<{ name: string; id: number }>).detail;
-      
-      // Look up the post in the stable ref to determine its type
+
       const post = postsRef.current.find((p) => p.id === id);
       
       if (!post) {
-        toast.error(`Could not find a post for ${name}.`);
+        toast.error(`Joy could not find a post for ${name}. Please ask her to try again.`);
         return;
       }
 
       if (post.type === "request") {
-        // Use your existing helper for requests
-        handleHelp(id, post.name);
-      } else {
-        // Direct logic for connections (offers)
-        setConnected((prev) => {
+        setHelped((prev) => {
+          if (prev.has(id)) return prev;  // already connected — no-op
           const next = new Set(prev);
-          if (next.has(id)) {
-            next.delete(id);
-            toast.info(`Disconnected from ${post.name}.`);
-          } else {
-            next.add(id);
-            toast.success(`Joy has connected you with ${post.name}!`);
-          }
+          next.add(id);
+          toast.success(`Joy has notified ${name} that you can help!`);
+          return next;
+        });
+      } else {
+        setConnected((prev) => {
+          if (prev.has(id)) return prev;  // already connected — no-op
+          const next = new Set(prev);
+          next.add(id);
+          toast.success(`Joy has notified ${name} that you need help!`);
           return next;
         });
       }
@@ -308,11 +316,11 @@ export function CommunityPanel({ section = "all" }: { section?: CommunitySection
     
     window.addEventListener("NHH-connect-neighbor", handler);
     return () => window.removeEventListener("NHH-connect-neighbor", handler);
-  }, []); // handleHelp is stable since it only depends on setHelped
+  }, []);
 
   return (
     <div className="space-y-6">
-      {/* ── Community Activities ─────────────────────────────────────────────── */}
+      {/* ── Neighborhood Activities ─────────────────────────────────────────────── */}
       {(section === "all" || section === "activity") && (
         <div>
 
@@ -344,7 +352,7 @@ export function CommunityPanel({ section = "all" }: { section?: CommunitySection
                       <div className="mb-4 space-y-1.5">
                         <div className="flex items-center gap-2 text-body-sm text-foreground">
                           <Calendar className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
-                          <span>{act.date} · {act.time} – {computeEndTime(act.time, act.duration)}</span>
+                          <span>{act.date} · {act.time} - {computeEndTime(act.time, act.duration)}</span>
                         </div>
                         <div className="flex items-center gap-2 text-body-sm text-muted-foreground">
                           <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
@@ -462,14 +470,9 @@ export function CommunityPanel({ section = "all" }: { section?: CommunitySection
                         variant={(!isRequest && isConnected) || (isRequest && isHelping) ? "outline" : "default"}
                         onClick={() => {
                           if (isRequest) {
-                            handleHelp(post.id, post.name);
+                            handleOffer(post.id, post.name);
                           } else {
-                            setConnected((prev) => {
-                              const next = new Set(prev);
-                              if (next.has(post.id)) { next.delete(post.id); toast.info(`Disconnected from ${post.name}.`); }
-                              else                   { next.add(post.id);    toast.success(`Connected with ${post.name}!`); }
-                              return next;
-                            });
+                            handleRequest(post.id, post.name);
                           }
                         }}
                         className="flex-shrink-0 h-14 px-8 text-body font-semibold"
