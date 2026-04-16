@@ -174,6 +174,8 @@ export function CommunityPanel({ section = "all" }: { section?: CommunitySection
   const [posts, setPosts] = useState<HelpPost[]>([]);
   const [loading, setLoading] = useState(true);
   const activitiesRef = useRef<Activity[]>([]);  // stable ref for event handler closure
+  const postsRef = useRef<HelpPost[]>([]);       // stable ref for event handler closure
+  const [pendingCmd, setPendingCmd] = useState<{type: 'join' | 'connect', name?: string, id: number} | null>(null);
 
   const [joined,    setJoined]    = useState<Set<number>>(new Set());
   const [helped,    setHelped]    = useState<Set<number>>(new Set());
@@ -185,61 +187,7 @@ export function CommunityPanel({ section = "all" }: { section?: CommunitySection
   const [postCategory, setPostCategory] = useState("Ride");
   const [postMessage,  setPostMessage]  = useState("");
 
-  useEffect(() => {
-    fetch(`${API_BASE}/api/iris_data?patient_id=${encodeURIComponent(PATIENT_ID)}&column=neighborhood`)
-      .then((r) => r.ok ? r.json() : [])
-      .then((data: any) => {
-        const latest = Array.isArray(data) && data.length > 0 ? data[0] : null;
-        if (latest) {
-          const acts = Array.isArray(latest.activities) ? latest.activities : [];
-          activitiesRef.current = acts;
-          setActivities(acts);
-          setPosts(Array.isArray(latest.helpPosts) ? latest.helpPosts : []);
-        }
-      })
-      .catch(() => { /* silent — UI stays empty */ })
-      .finally(() => setLoading(false));
-  }, []);
-
-  // Listen for NHH booking a class via voice command — fires when NHH responds with [[JOIN:id]]
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const id = (e as CustomEvent<{ id: number }>).detail.id;
-      setJoined((prev) => {
-        if (prev.has(id)) return prev;  // already joined — no-op
-        const next = new Set(prev);
-        next.add(id);
-        const act = activitiesRef.current.find((a) => a.id === id);
-        toast.success(`Joy has signed you up for ${act?.title ?? "the activity"}!`);
-        return next;
-      });
-    };
-    window.addEventListener("NHH-join-activity", handler);
-    return () => window.removeEventListener("NHH-join-activity", handler);
-  }, []);
-
-  // Listen for Joy connecting Frank with a neighbor via voice command — fires when [[CONNECT_NEIGHBOR:name]]
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const name = (e as CustomEvent<{ name: string }>).detail.name.toLowerCase();
-      setPosts((prev) => {
-        const post = prev.find((p) => p.name.toLowerCase() === name);
-        if (!post) return prev;
-        setConnected((prevC) => {
-          if (prevC.has(post.id)) return prevC;
-          const next = new Set(prevC);
-          next.add(post.id);
-          toast.success(`Joy has connected you with ${post.name}!`);
-          return next;
-        });
-        return prev;
-      });
-    };
-    window.addEventListener("NHH-connect-neighbor", handler);
-    return () => window.removeEventListener("NHH-connect-neighbor", handler);
-  }, []);
-
-  const handleHelp = (id: number, name: string) => {
+  const handleOffer = (id: number, name: string) => {
     setHelped((prev) => {
       const next = new Set(prev);
       if (next.has(id)) { next.delete(id); toast.info(`Removed your offer to help ${name}.`); }
@@ -247,21 +195,23 @@ export function CommunityPanel({ section = "all" }: { section?: CommunitySection
       return next;
     });
   };
-
+  const handleRequest = (id: number, name: string) => {
+    setConnected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) { next.delete(id); toast.info(`Removed your request for help from ${name}.`);}
+      else              { next.add(id);    toast.success(`${name} will be notified that you need help!`); }
+      return next;
+    });
+  };
   const handleJoin = (id: number, title: string) => {
     setJoined((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) { next.delete(id); toast.info(`Removed from ${title}`); }
+      if (next.has(id)) { next.delete(id); toast.info(`Removed you from the ${title} attendance list.`); }
       else              { next.add(id);    toast.success(`You're signed up for ${title}!`); }
       return next;
     });
   };
-
-  const handleDeletePost = (id: number) => {
-    setPosts((prev) => prev.filter((p) => p.id !== id));
-    toast.info("Your post has been removed.");
-  };
-
+  // TODO: figure out why Ride request is hard coded in
   const handleSubmitPost = () => {
     if (!postMessage.trim()) return;
     const now = new Date();
@@ -286,10 +236,123 @@ export function CommunityPanel({ section = "all" }: { section?: CommunitySection
     setPostCategory("Ride");
     setPostOpen(false);
   };
+  const handleDeletePost = (id: number) => {
+    setPosts((prev) => prev.filter((p) => p.id !== id));
+    toast.info("Your post has been removed.");
+  };
+
+  // Check if there's a pending command from Joy that couldn't be processed earlier because the data hadn't loaded yet.
+  useEffect(() => {
+    if (!loading && pendingCmd) {
+      if (pendingCmd.type === 'connect' && posts.length > 0) {
+        const post = posts.find((p) => p.id === pendingCmd.id);
+        if (post) {
+          if (post.type === "request") handleOffer(post.id, post.name);
+          else handleRequest(post.id, post.name);
+          setPendingCmd(null);
+        }
+      } 
+      else if (pendingCmd.type === 'join' && activities.length > 0) {
+        const act = activities.find((a) => a.id === pendingCmd.id);
+        if (act) {
+          handleJoin(act.id, act.title);
+          setPendingCmd(null);
+        }
+      }
+    }
+  }, [posts, activities, loading, pendingCmd]);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/iris_data?patient_id=${encodeURIComponent(PATIENT_ID)}&column=neighborhood`)
+      .then((r) => r.ok ? r.json() : [])
+      .then((data: any) => {
+        console.log("Fetched neighborhood data: ", data);
+        const latest = Array.isArray(data) && data.length > 0 ? data[0] : null;
+        if (latest) {
+          const acts = Array.isArray(latest.activities) ? latest.activities : [];
+          const posts = Array.isArray(latest.helpPosts) ? latest.helpPosts : [];
+          activitiesRef.current = acts;
+          postsRef.current = posts;
+          setActivities(acts);
+          setPosts(posts);
+          console.log("Parsed activities: ", acts);
+          console.log("Parsed help posts: ", posts);
+        }
+      })
+      .catch(() => { /* silent — UI stays empty */ })
+      .finally(() => setLoading(false));
+  }, []);
+
+  // Listen for Joy booking a class via voice command [[JOIN:id]]
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const id = (e as CustomEvent<{ id: number }>).detail.id;
+
+      const act = activitiesRef.current.find((a) => a.id === id);
+      if (!act) {
+        if (loading) {
+          setPendingCmd({ type: 'join', id });
+        } else {
+          toast.error(`Joy could not find the correct activity to join. Please try again or join manually from the list.`);
+        }
+        return;
+      }
+
+      setJoined((prev) => {
+        if (prev.has(id)) return prev;  // already joined — no-op
+        const next = new Set(prev);
+        next.add(id);
+        toast.success(`Joy has signed you up for ${act.title}!`);
+        return next;
+      });
+    };
+    window.addEventListener("NHH-join-activity", handler);
+    return () => window.removeEventListener("NHH-join-activity", handler);
+  }, [loading]);
+
+  // Listen for Joy connecting Frank with a neighbor via voice command [[CONNECT_NEIGHBOR:name,id]]
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { name, id } = (e as CustomEvent<{ name: string; id: number }>).detail;
+
+      console.log("Received connect-neighbor event for: ", name, id);
+      console.log("Current posts ref: ", postsRef.current);
+
+      const post = postsRef.current.find((p) => p.id === id);
+      if (!post) {
+        if (loading) {
+          setPendingCmd({ type: 'connect', name, id });
+        } else {
+          toast.error(`Joy could not find a post by ${name}.`);
+        }
+        return;
+      }
+
+      if (post.type === "request") {
+        setHelped((prev) => {
+          if (prev.has(id)) return prev;  // already connected — no-op
+          const next = new Set(prev);
+          next.add(id);
+          toast.success(`Joy has notified ${name} that you can help!`);
+          return next;
+        });
+      } else {
+        setConnected((prev) => {
+          if (prev.has(id)) return prev;  // already connected — no-op
+          const next = new Set(prev);
+          next.add(id);
+          toast.success(`Joy has notified ${name} that you need help!`);
+          return next;
+        });
+      }
+    };
+    window.addEventListener("NHH-connect-neighbor", handler);
+    return () => window.removeEventListener("NHH-connect-neighbor", handler);
+  }, [loading]);
 
   return (
     <div className="space-y-6">
-      {/* ── Community Activities ─────────────────────────────────────────────── */}
+      {/* ── Neighborhood Activities ─────────────────────────────────────────────── */}
       {(section === "all" || section === "activity") && (
         <div>
 
@@ -321,7 +384,7 @@ export function CommunityPanel({ section = "all" }: { section?: CommunitySection
                       <div className="mb-4 space-y-1.5">
                         <div className="flex items-center gap-2 text-body-sm text-foreground">
                           <Calendar className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
-                          <span>{act.date} · {act.time} – {computeEndTime(act.time, act.duration)}</span>
+                          <span>{act.date} · {act.time} - {computeEndTime(act.time, act.duration)}</span>
                         </div>
                         <div className="flex items-center gap-2 text-body-sm text-muted-foreground">
                           <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
@@ -439,14 +502,9 @@ export function CommunityPanel({ section = "all" }: { section?: CommunitySection
                         variant={(!isRequest && isConnected) || (isRequest && isHelping) ? "outline" : "default"}
                         onClick={() => {
                           if (isRequest) {
-                            handleHelp(post.id, post.name);
+                            handleOffer(post.id, post.name);
                           } else {
-                            setConnected((prev) => {
-                              const next = new Set(prev);
-                              if (next.has(post.id)) { next.delete(post.id); toast.info(`Disconnected from ${post.name}.`); }
-                              else                   { next.add(post.id);    toast.success(`Connected with ${post.name}!`); }
-                              return next;
-                            });
+                            handleRequest(post.id, post.name);
                           }
                         }}
                         className="flex-shrink-0 h-14 px-8 text-body font-semibold"

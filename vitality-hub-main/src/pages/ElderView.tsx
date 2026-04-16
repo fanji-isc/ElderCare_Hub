@@ -272,6 +272,8 @@ const ElderView = () => {
   const [openPanel, setOpenPanel] = useState<Panel>(null);
   const [demoOpen, setDemoOpen] = useState(false);
   const [pendingJoinId, setPendingJoinId] = useState<number | null>(null);
+  const [pendingConnectId, setPendingConnectId] = useState<number | null>(null);
+  const [pendingConnectName, setPendingConnectName] = useState<string>("");
   const emptyVitals: Vitals = { heartRate: 0, steps: 0, stressLevel: 0, sleepHours: 0, hydrationNote: "", hydrationColorLevel: 0, waterLiters: 0, expiringItems: [], currentItems: [], mealsCount: 0, gaitNote: "", fallRiskAlert: false };
   const [vitals, setVitals] = useState<Vitals>(emptyVitals);
   const vitalsRef = useRef<Vitals>(emptyVitals);
@@ -471,13 +473,25 @@ const ElderView = () => {
         return;
       }
       const joinMatch = fullText.match(/\[\[JOIN:(\d+)\]\]/i);
-      const displayText = fullText.replace(/\n?\s*\[\[JOIN:\d+\]\]/gi, "").replace(/\n?\s*\[\[CALL_FAMILY\]\]/gi, "").replace(/\n?\s*\[\[CONNECT_NEIGHBOR:[^\]]+\]\]/gi, "").trim();
+      const callMatch = fullText.match(/\[\[CALL_FAMILY\]\]/i);
+      const connectMatch = fullText.match(/\[\[CONNECT_NEIGHBOR:([^,\]]+),(\d+)\]\]/i);
+      const displayText = fullText.replace(/\n?\s*\[\[JOIN:\d+\]\]/gi, "").replace(/\n?\s*\[\[CALL_FAMILY\]\]/gi, "").replace(/\n?\s*\[\[CONNECT_NEIGHBOR:[^,\]]+,\d+\]\]/gi, "").trim();
       const buf = await fetchTTSBuffer(ttsReady(displayText), ttsCtrl.signal);
       setMessages([{ role: "assistant", content: displayText }]);
       if (joinMatch) {
         const activityId = parseInt(joinMatch[1], 10);
         setOpenPanel("activity");
         setPendingJoinId(activityId);
+      }
+      if (callMatch) {
+        startCall();
+      }
+      if (connectMatch) {
+        const neighborName = connectMatch[1].trim();
+        const neighborId = parseInt(connectMatch[2], 10);
+        setOpenPanel("helping");
+        setPendingConnectId(neighborId);
+        setPendingConnectName(neighborName);
       }
       if (buf && !ttsCtrl.signal.aborted) await decodeAndPlay(buf, ttsCtrl.signal);
     } catch {
@@ -506,7 +520,6 @@ const ElderView = () => {
         const loaded: Vitals = {
           ...dashboardData
         };
-        console.log("Fetched Vitals Data:", loaded);
         setVitals(loaded);
         vitalsRef.current = loaded;
 
@@ -742,8 +755,8 @@ const ElderView = () => {
           } else {
             const joinMatch = fullAnswer.match(/\[\[JOIN:(\d+)\]\]/i);
             const callMatch = fullAnswer.match(/\[\[CALL_FAMILY\]\]/i);
-            const connectMatch = fullAnswer.match(/\[\[CONNECT_NEIGHBOR:([^\]]+)\]\]/i);
-            const displayAnswer = fullAnswer.replace(/\n?\s*\[\[JOIN:\d+\]\]/gi, "").replace(/\n?\s*\[\[CALL_FAMILY\]\]/gi, "").replace(/\n?\s*\[\[CONNECT_NEIGHBOR:[^\]]+\]\]/gi, "").trim();
+            const connectMatch = fullAnswer.match(/\[\[CONNECT_NEIGHBOR:([^,\]]+),(\d+)\]\]/i);
+            const displayAnswer = fullAnswer.replace(/\n?\s*\[\[JOIN:\d+\]\]/gi, "").replace(/\n?\s*\[\[CALL_FAMILY\]\]/gi, "").replace(/\n?\s*\[\[CONNECT_NEIGHBOR:[^,\]]+,\d+\]\]/gi, "").trim();
             const buf = await fetchTTSBuffer(ttsReady(displayAnswer), ttsCtrl.signal);
             setMessages((prev) => {
               const msgs = [...prev];
@@ -763,8 +776,10 @@ const ElderView = () => {
             }
             if (connectMatch) {
               const neighborName = connectMatch[1].trim();
+              const neighborId = parseInt(connectMatch[2], 10);
               setOpenPanel("helping");
-              window.dispatchEvent(new CustomEvent("NHH-connect-neighbor", { detail: { name: neighborName } }));
+              setPendingConnectId(neighborId);
+              setPendingConnectName(neighborName);
             }
           }
         } catch {
@@ -794,6 +809,15 @@ const ElderView = () => {
       setPendingJoinId(null);
     }
   }, [pendingJoinId, openPanel]);
+
+  // Dispatch connect event only after CommunityPanel has mounted and registered its listener
+  useEffect(() => {
+    if (pendingConnectId !== null && openPanel === "helping") {
+      window.dispatchEvent(new CustomEvent("NHH-connect-neighbor", { detail: { name: pendingConnectName, id: pendingConnectId } }));
+      setPendingConnectId(null);
+      setPendingConnectName("");
+    }
+  }, [pendingConnectId, openPanel]);
 
   // Listen for family's response to the call
   useEffect(() => {

@@ -1631,9 +1631,9 @@ def get_system_prompt(patient_id: str = "") -> str:
 
         for p in latest_dict.get("helpPosts", []):
             if p.get("type") == "offer" and p.get("category", "").lower() == "ride":
-                ride_lines.append(f" • {p.get('name')}: {p.get('message')}")
+                ride_lines.append(f" • [ID: {p.get('id', 0)}] {p.get('name')}: {p.get('message')}")
             if p.get("category", "").lower() == "companionship":
-                companion_lines.append(f" • {p.get('name')}: {p.get('message')}")
+                companion_lines.append(f" • [ID: {p.get('id', 0)}] {p.get('name')}: {p.get('message')}")
         
     activities = "\n".join(act_lines) if act_lines else "None posted right now."
     ride_offers = "\n".join(ride_lines) if ride_lines else "None posted right now."
@@ -1706,7 +1706,7 @@ def get_system_prompt(patient_id: str = "") -> str:
     **STRICT RULE:** If no condition is met, end with a period. DO NOT append "none" or any other text.
 
     * **IF user explicitly asks to join or be signed up for an activity:** This is within your scope. Confirm registration enthusiastically (e.g., "I've signed you up for that now!") and append `[[JOIN:ID]]`.  
-    * **IF user explicitly asks to connect with a neighbor:** Confirm warmly "I will connect you with [Name] now." + append `[[CONNECT_NEIGHBOR:Name]]`.  
+    * **IF user explicitly asks to connect with a neighbor:** Confirm warmly "I will connect you with [Name] now." + append `[[CONNECT_NEIGHBOR:Name,ID]]`.  
     * **IF user asks to call/talk to family:** Reply exactly: "I will connect you to [Name] now." + append `[[CALL_FAMILY]]`.
     """
 
