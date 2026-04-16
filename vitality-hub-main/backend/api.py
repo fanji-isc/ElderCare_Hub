@@ -1566,8 +1566,13 @@ def generate_clinician_summary(patient_id: str = ""):
 
     Home data insights:
     - Smart Toilet: [If the patient's toilet data (e.g., hydration levels, bathroom visits) reveals any insights that are not already captured in the medical record but are relevant to their clinical risks, include them here in 1-2 short sentences. For example, "Toilet color level has been consistently at Level 4 (Dehydrated) for the past week, which may be contributing to orthostatic symptoms."]
-    - Smart Fridge: [If the patient's fridge data (e.g., inventory management, meal patterns) reveals any insights that are not already captured in the medical record but are relevant to their clinical risks, include them here in 1-2 short sentences. For example, "Fridge inventory shows multiple expired items and no fresh produce, which may indicate poor nutrition contributing to weakness."]
+    - Smart Fridge: [If the patient's fridge data (e.g., inventory management, meal patterns, nutritional intake) reveals any insights that are not already captured in the medical record but are relevant to their clinical risks, include them here in 1-2 short sentences. For example, "Fridge inventory shows multiple expired items and no fresh produce, which may indicate poor nutrition contributing to weakness."]
     - Garmin Device: [If the patient's garmin data (e.g., gait metrics, sleep patterns, stress levels) reveals any insights that are not already captured in the medical record but are relevant to their clinical risks, include them here in 1-2 short sentences. For example, "Garmin data shows a significant decrease in gait speed and increased variability over the past month, which may indicate worsening fall risk."]
+
+    # MAPPING RULES:
+    - ALL hydration, urine color, and bathroom frequency data MUST be included under the 'Smart Toilet' bullet.
+    - Food inventory and meal patterns MUST be included under the 'Smart Fridge' bullet.
+    - ALL gait, heart rate (HRV), and sleep metrics MUST be included under the 'Garmin Device' bullet.
 
     # TONE:
     Be clear, concise, and clinically grounded. Write as a clinician-to-clinician summary. Focus only on high-impact risks and actionable insights. Avoid unnecessary detail or exhaustive condition lists.
