@@ -1508,6 +1508,7 @@ def get_patient_desc(patient_id: str = ""):
     )
     return response.output_text
 
+# TODO: Split the home summary section into a separate agent that only gets called if home data is available
 @app.post("/api/clinician_summary/generate")
 def generate_clinician_summary(patient_id: str = ""):
     patient_fhir = get_patient_context(patient_id)
@@ -1541,43 +1542,74 @@ def generate_clinician_summary(patient_id: str = ""):
     Format your response exactly like this example — a titled header line, then dash-prefixed bullets (no more than 5 bullets in each section):
 
     Summary (based on medical record):
-    [A concise but data-rich clinical narrative in 1-2 bullet points. Synthesize the patient's history, current risks, medications, and contributing factors. Emphasize causality, time course, and interactions. **DO NOT USE THE GARMIN OR HOME DATA IN THIS SECTION** — ONLY THE FHIR MEDICAL RECORD.]
+    [A concise but data-rich clinical narrative in 1-2 bullet points. Synthesize the patient's history, current risks, medications, and contributing factors as well as any related care plans in place. Emphasize causality, time course, and interactions.]
 
     Suggested actions:
     [Provide a short list of clear, clinically appropriate next steps based on the summary. Each action should be on its own bullet-point, concise, practical, and directly linked to the patient's risks and care gaps. Format in the style 'Physical therapy referral: urgent gait reassessment; right-leg compensation has persisted beyond expected post-op recovery window']
 
+    # TONE:
+    Be clear, concise, and clinically grounded. Write as a clinician-to-clinician summary. Focus only on high-impact risks and actionable insights. Avoid unnecessary detail or exhaustive condition lists.
+    """
+
+    home_analyst = """
+    # ROLE: Home Health Expert
+
+    # CONTEXT: 
+    You are an expert medical data analyst speaking directly to a clinician. You are building on top of the work of a FHIR R4 analyst. When given the patient data, your task is to write a comprehensive home health analysis to be appended to the clinical summary.
+    Prioritize clinical synthesis over enumeration. Combine related findings into a single narrative, highlighting cause-and-effect relationships (e.g., poor sleep contributing to symptoms, nutritional issues increasing risk).
+
+    DO NOT invent data that is not present in the input.
+
+    # RESPONSE STRUCTURE:
+    The format of the answer should be plain text — no markdown, no asterisks, no bold. Keep each explanation concise but data-rich. DO NOT invent data not present in the input. 
+    Format your response exactly like this example — a titled header line, then dash-prefixed bullets (no more than 5 bullets in each section):
+
     Home data insights:
-    [If home data is available:]
     - Smart Toilet: [If the patient's toilet data (e.g., hydration levels, bathroom visits) reveals any insights that are not already captured in the medical record but are relevant to their clinical risks, include them here in 1-2 short sentences. For example, "Toilet color level has been consistently at Level 4 (Dehydrated) for the past week, which may be contributing to orthostatic symptoms."]
     - Smart Fridge: [If the patient's fridge data (e.g., inventory management, meal patterns) reveals any insights that are not already captured in the medical record but are relevant to their clinical risks, include them here in 1-2 short sentences. For example, "Fridge inventory shows multiple expired items and no fresh produce, which may indicate poor nutrition contributing to weakness."]
     - Garmin Device: [If the patient's garmin data (e.g., gait metrics, sleep patterns, stress levels) reveals any insights that are not already captured in the medical record but are relevant to their clinical risks, include them here in 1-2 short sentences. For example, "Garmin data shows a significant decrease in gait speed and increased variability over the past month, which may indicate worsening fall risk."]
-    [Else:]
-    - No home data available for this patient.
-    
+
     # TONE:
     Be clear, concise, and clinically grounded. Write as a clinician-to-clinician summary. Focus only on high-impact risks and actionable insights. Avoid unnecessary detail or exhaustive condition lists.
     """
 
     try:
-        response = client.responses.create(
+        fhir_response = client.responses.create(
             model="gpt-5-nano",
             instructions=medical_analyst,
             input=f"""Analyze this FHIR bundle and provide a short summary of their clinical risks:
 
                     {patient_fhir}
-
-                    And their home data insights (gait, hydration, sleep, etc):
-                    {get_resident_context(patient_id) if patient_id == "1" else "- No home data available for this patient."}
                     """
         )
+        fhir_text = fhir_response.output_text
+
+        if patient_id == "1":
+            home_data = get_resident_context(patient_id)
+            home_response = client.responses.create(
+                model="gpt-5-nano",
+                instructions=home_analyst,
+                input=f"""Analyze their Home Data and provide a short summary of their home data insights (gait, hydration, sleep, etc) in the same style as the FHIR analysis:
+                        
+                        Home data:
+                        {home_data}
+
+                        FHIR analysis:
+                        {fhir_text}
+                        """
+            ) 
+            home_text = home_response.output_text
+        else:
+            home_text = "Home data insights: \n- No home data available for this patient."
+
     except openai.RateLimitError:
         raise HTTPException(status_code=429, detail="OpenAI rate limit reached. Please try again in a moment.")
     except openai.InternalServerError as e:
         raise HTTPException(status_code=503, detail=f"OpenAI service temporarily unavailable: {e.message}")
     except openai.APIError as e:
         raise HTTPException(status_code=502, detail=f"OpenAI API error: {e.message}")
-    summary_text = response.output_text
 
+    summary_text = f"{fhir_text}\n\n{home_text}"
     conn = get_iris()
     try:
         cur = conn.cursor()
