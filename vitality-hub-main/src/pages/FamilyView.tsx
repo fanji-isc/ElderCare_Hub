@@ -362,8 +362,43 @@ const FamilyView = () => {
   const [openModal, setOpenModal] = useState<string | null>(null);
   const [incomingCall, setIncomingCall] = useState(false);
   const [callConnected, setCallConnected] = useState(false);
-  const [frankCallState, setFrankCallState] = useState<"idle" | "calling" | "connected" | "declined">("idle");
+  const [familyCallState, setFamilyCallState] = useState<"idle" | "calling" | "connected" | "declined">("idle");
   const [callSeconds, setCallSeconds] = useState(0);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [shareDescription, setShareDescription] = useState("");
+  const [selectedData, setSelectedData] = useState<Record<string, boolean>>({
+    heart: false, sleep: false, nutrition: false, stress: false, 
+    steps: false, gait: false, hydration: false
+  });
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const handleGenerateReport = async () => {
+    setIsGenerating(true);
+    try {
+      const payload = {
+        patient_id: HOME_ID,
+        patient_name: `${first_name} ${last_name}`,
+        description: shareDescription,
+        included_metrics: Object.keys(selectedData).filter(key => selectedData[key])
+      };
+
+      const response = await fetch(`${API_BASE}/api/generate-report`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) throw new Error("Failed to generate report");
+
+      toast.success("Report generated successfully!");
+      setShareModalOpen(false);
+    } catch (error) {
+      toast.error("Error generating report. Please try again.");
+      console.error(error);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   useEffect(() => {
     const sync = () => {
@@ -385,24 +420,24 @@ const FamilyView = () => {
     const handler = (e: StorageEvent) => {
       if (e.key !== "nhh-family-call-state") return;
       const val = JSON.parse(e.newValue ?? "{}");
-      if (val.status === "accepted") setFrankCallState("connected");
+      if (val.status === "accepted") setFamilyCallState("connected");
       if (val.status === "declined") {
-        setFrankCallState("declined");
-        setTimeout(() => setFrankCallState("idle"), 3000);
+        setFamilyCallState("declined");
+        setTimeout(() => setFamilyCallState("idle"), 3000);
       }
-      if (val.status === "idle") setFrankCallState("idle");
+      if (val.status === "idle") setFamilyCallState("idle");
     };
     window.addEventListener("storage", handler);
     // Also poll for same-tab navigation
     const interval = setInterval(() => {
       const val = JSON.parse(localStorage.getItem("nhh-family-call-state") ?? "{}");
-      if (val.status === "accepted" && frankCallState !== "connected") setFrankCallState("connected");
-      if (val.status === "idle" && frankCallState !== "idle") setFrankCallState("idle");
+      if (val.status === "accepted" && familyCallState !== "connected") setFamilyCallState("connected");
+      if (val.status === "idle" && familyCallState !== "idle") setFamilyCallState("idle");
     }, 500);
     return () => { window.removeEventListener("storage", handler); clearInterval(interval); };
-  }, [frankCallState]);
+  }, [familyCallState]);
 
-  const isFamilyConnected = callConnected || frankCallState === "connected";
+  const isFamilyConnected = callConnected || familyCallState === "connected";
   useEffect(() => {
     if (!isFamilyConnected) { setCallSeconds(0); return; }
     const t = setInterval(() => setCallSeconds(s => s + 1), 1000);
@@ -411,12 +446,12 @@ const FamilyView = () => {
   const fmtTime = (s: number) =>
     `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 
-  const startFrankCall = () => {
-    setFrankCallState("calling");
+  const startFamilyCall = () => {
+    setFamilyCallState("calling");
     localStorage.setItem("nhh-family-call-state", JSON.stringify({ status: "ringing", timestamp: Date.now() }));
   };
-  const endFrankCall = () => {
-    setFrankCallState("idle");
+  const endFamilyCall = () => {
+    setFamilyCallState("idle");
     localStorage.setItem("nhh-family-call-state", JSON.stringify({ status: "idle", timestamp: Date.now() }));
   };
 
@@ -727,7 +762,7 @@ const FamilyView = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* ── Outgoing call to Frank ───────────────────────────────── */}
-      {frankCallState === "calling" && (
+      {familyCallState === "calling" && (
         <div className="fixed inset-x-0 top-0 z-[9999] flex items-center justify-between gap-4 px-6 py-5 bg-gradient-to-r from-emerald-600 to-teal-600 shadow-2xl text-white">
           <div className="flex items-center gap-4">
             <div className="relative flex items-center justify-center">
@@ -742,7 +777,7 @@ const FamilyView = () => {
               <p className="text-sm font-medium text-white/90">Waiting for {first_name} to pick up</p>
             </div>
           </div>
-          <button onClick={endFrankCall} className="flex items-center gap-2 rounded-full bg-rose-500 px-5 py-2.5 text-sm font-bold shadow-lg hover:bg-rose-400 active:scale-95 transition-all">
+          <button onClick={endFamilyCall} className="flex items-center gap-2 rounded-full bg-rose-500 px-5 py-2.5 text-sm font-bold shadow-lg hover:bg-rose-400 active:scale-95 transition-all">
             <PhoneOff className="h-4 w-4" /> Cancel
           </button>
         </div>
@@ -778,7 +813,7 @@ const FamilyView = () => {
       )}
 
       {/* ── Connected banner (Frank called us / we called Frank) ─── */}
-      {(callConnected || frankCallState === "connected") && (
+      {(callConnected || familyCallState === "connected") && (
         <div className="fixed inset-x-0 top-0 z-[9999] flex items-center justify-between px-6 py-3 bg-emerald-600 text-white shadow-lg">
           <div className="flex items-center gap-3">
             <div className="h-2 w-2 rounded-full bg-white animate-pulse" />
@@ -786,7 +821,7 @@ const FamilyView = () => {
             <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-mono font-semibold">{fmtTime(callSeconds)}</span>
           </div>
           <button
-            onClick={callConnected ? endCall : endFrankCall}
+            onClick={callConnected ? endCall : endFamilyCall}
             className="flex items-center gap-2 rounded-full bg-white/20 px-3 py-1.5 text-xs font-semibold hover:bg-white/30 transition"
           >
             <PhoneOff className="h-3.5 w-3.5" /> End Call
@@ -801,35 +836,35 @@ const FamilyView = () => {
         {/* ── Page header ──────────────────────────────────────────── */}
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-xl font-bold text-foreground leading-tight">Welcome, Frank's Family</h2>
+            <h2 className="text-xl font-bold text-foreground leading-tight">Welcome, {first_name}'s Family</h2>
           </div>
           <div className="flex items-center gap-2">
-            {frankCallState === "idle" && (
-              <Button variant="outline" size="sm" onClick={startFrankCall}>
+            {familyCallState === "idle" && (
+              <Button variant="outline" size="sm" onClick={startFamilyCall}>
                 <Phone className="mr-1.5 h-3.5 w-3.5" />
                 Call {first_name}
               </Button>
             )}
-            {frankCallState === "calling" && (
-              <Button size="sm" onClick={endFrankCall} className="animate-pulse bg-amber-500 hover:bg-amber-600 border-0">
+            {familyCallState === "calling" && (
+              <Button size="sm" onClick={endFamilyCall} className="animate-pulse bg-amber-500 hover:bg-amber-600 border-0">
                 <PhoneCall className="mr-1.5 h-3.5 w-3.5" />
                 Calling…
               </Button>
             )}
-            {frankCallState === "connected" && (
-              <Button size="sm" onClick={endFrankCall} className="bg-emerald-600 hover:bg-emerald-700 border-0 gap-2">
+            {familyCallState === "connected" && (
+              <Button size="sm" onClick={endFamilyCall} className="bg-emerald-600 hover:bg-emerald-700 border-0 gap-2">
                 <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
                 Connected · End
                 <PhoneOff className="h-3.5 w-3.5" />
               </Button>
             )}
-            {frankCallState === "declined" && (
+            {familyCallState === "declined" && (
               <Button size="sm" disabled className="bg-rose-100 text-rose-600 border-0">
                 <PhoneOff className="mr-1.5 h-3.5 w-3.5" />
                 Declined
               </Button>
             )}
-            <Button size="sm" onClick={() => toast.info("Opening share options…")}>
+            <Button size="sm" onClick={() => setShareModalOpen(true)}>
               <Share2 className="mr-1.5 h-3.5 w-3.5" />
               Share Report
             </Button>
@@ -922,6 +957,55 @@ const FamilyView = () => {
             <DialogTitle>{openModal ? modalTitle[openModal] : ""}</DialogTitle>
           </DialogHeader>
           {renderModalContent()}
+        </DialogContent>
+      </Dialog>
+      {/* ── Share Report Modal ────────────────────────────────────────── */}
+      <Dialog open={shareModalOpen} onOpenChange={setShareModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Generate Family Report</DialogTitle>
+            <p className="text-sm text-muted-foreground">Select which data points to include in the shared summary.</p>
+          </DialogHeader>
+          
+          <div className="space-y-6 py-4">
+            {/* 9 Tickboxes Grid */}
+            <div className="grid grid-cols-2 gap-3">
+              {Object.keys(selectedData).map((key) => (
+                <div key={key} className="flex items-center space-x-2">
+                  <button 
+                    onClick={() => setSelectedData(prev => ({ ...prev, [key]: !prev[key] }))}
+                    className="flex items-center gap-2 text-sm font-medium"
+                  >
+                    {selectedData[key] ? (
+                      <CheckSquare className="h-5 w-5 text-emerald-600" />
+                    ) : (
+                      <Square className="h-5 w-5 text-muted-foreground" />
+                    )}
+                    <span className="capitalize">{key === 'nutrition' ? 'Nutrition' : key}</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {/* Description Box */}
+            <div className="space-y-2">
+              <label className="text-sm font-semibold">Notes / Highlights</label>
+              <textarea
+                className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                placeholder={`e.g., ${first_name} had a great week, but we are keeping an eye on his steps...`}
+                value={shareDescription}
+                onChange={(e) => setShareDescription(e.target.value)}
+              />
+            </div>
+
+            <Button 
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white" 
+              onClick={handleGenerateReport}
+              disabled={isGenerating}
+            >
+              {isGenerating ? "Generating..." : "Generate & Share Report"}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 
