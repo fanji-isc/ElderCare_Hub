@@ -1783,6 +1783,9 @@ def get_check_in_prompt(mode: str = ""):
         """
     return ""
 
+@app.get("/api/generate-report")
+def generate_report(patient_id: str = "", patient_name: str = "", description: str = "", included_metrics: list = None):
+    pass
 # ── AI response endpoints ────────────────────────────────────────────────────────
 
 @app.post("/api/answer/stream")
