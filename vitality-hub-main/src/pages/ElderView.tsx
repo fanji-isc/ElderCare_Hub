@@ -282,7 +282,7 @@ const ElderView = () => {
   const [pendingJoinId, setPendingJoinId] = useState<number | null>(null);
   const [pendingConnectId, setPendingConnectId] = useState<number | null>(null);
   const [pendingConnectName, setPendingConnectName] = useState<string>("");
-  const emptyVitals: Vitals = { heartRate: 0, steps: 0, stressLevel: 0, sleepHours: 0, hydrationNote: "", hydrationColorLevel: 0, waterLiters: 0, expiringItems: [], currentItems: [], mealsCount: 0, gaitNote: "", fallRiskAlert: false };
+  const emptyVitals: Vitals = { heartRate: 0, steps: 0, stressLevel: 0, sleepHours: 0, hydrationNote: "", hydrationColorLevel: 0, waterLiters: 0, expiringItems: [], currentItems: [], mealsCount: 0, gaitNote: "", fallRiskAlert: false, stepMetrics: { stepsTrend: "", avgSteps: "", maxSteps: "", prevAvgSteps: 0, trendPctSteps: 0, trendStepsUp: false } };
   const [vitals, setVitals] = useState<Vitals>(emptyVitals);
   const vitalsRef = useRef<Vitals>(emptyVitals);
   vitalsRef.current = vitals;
