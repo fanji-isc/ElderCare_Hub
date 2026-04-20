@@ -38,7 +38,15 @@ type Vitals = {
   mealsCount: number;
   gaitNote: string;
   fallRiskAlert: boolean;
-};
+  stepMetrics: {
+    stepsTrend: string;
+    avgSteps: string;
+    maxSteps: string;
+    prevAvgSteps: number;
+    trendPctSteps: number;
+    trendStepsUp: boolean;
+  };
+}; 
 type Msg = { role: "user" | "assistant"; content: string };
 type Med = { drug: string; status: string; authored: string; dosage: string };
 type Appt = { status: string; start: string; end: string; type: string; practitioner: string; location: string };
@@ -543,15 +551,6 @@ const ElderView = () => {
   const sleepS     = sleepStatus(vitals.sleepHours);
   const heartS     = heartStatus(vitals.heartRate);
   const stepsS     = stepsStatus(vitals.steps);
-  const stepsTrendLabel = (() => {
-    if (stepHistory.length < 2) return stepsS.label;
-    const prev = stepHistory.slice(0, -1).reduce((s, d) => s + d.steps, 0) / (stepHistory.length - 1);
-    if (prev === 0) return stepsS.label;
-    const pct = Math.round(((vitals.steps - prev) / prev) * 100);
-    if (pct <= -20) return `${vitals.steps.toLocaleString()} steps · ↓ ${Math.abs(pct)}%`;
-    if (pct >= 20)  return `${vitals.steps.toLocaleString()} steps · ↑ ${pct}%`;
-    return stepsS.label;
-  })();
   const stressS    = stressStatus(vitals.stressLevel);
   const hydrationS = hydrationStatus(vitals.hydrationColorLevel);
   const gaitS      = gaitStatus(gaitMetrics.symmetry, gaitMetrics.variability, gaitMetrics.speed, gaitMetrics.cadence, gaitMetrics.worseStride, gaitMetrics.worseGCT);
@@ -594,13 +593,7 @@ const ElderView = () => {
             </div>
           </ModalCard>
         );
-      // TODO: migrate to backend (is stepHistory used elsewhere or can it be changed to have these consts?)
       case "steps": {
-        const avgSteps = stepHistory.length ? Math.round(stepHistory.reduce((s, d) => s + d.steps, 0) / stepHistory.length) : 0;
-        const maxSteps = stepHistory.length ? Math.max(...stepHistory.map(d => d.steps)) : 0;
-        const prevAvg  = stepHistory.length > 1 ? Math.round(stepHistory.slice(0, -1).reduce((s, d) => s + d.steps, 0) / (stepHistory.length - 1)) : 0;
-        const trendPct = prevAvg > 0 ? Math.round(((vitals.steps - prevAvg) / prevAvg) * 100) : 0;
-        const trendUp  = trendPct >= 0;
         return (
           <ModalCard icon={Footprints} iconBg="bg-ecg" gradient="from-blue-50 to-sky-50"
             title="Steps Today" subtitle={stepsS.note}>
@@ -610,9 +603,9 @@ const ElderView = () => {
                   <p className={`text-4xl font-bold ${stepsS.color}`}>{vitals.steps > 0 ? vitals.steps.toLocaleString() : "—"}</p>
                   <p className="mt-0.5 text-sm text-muted-foreground">{stepsS.label} today</p>
                 </div>
-                {prevAvg > 0 && (
-                  <div className={`text-right ${trendUp ? "text-emerald-600" : "text-rose-600"}`}>
-                    <p className="text-xl font-bold">{trendUp ? "+" : ""}{trendPct}%</p>
+                {vitals.stepMetrics.prevAvg > 0 && (
+                  <div className={`text-right ${vitals.stepMetrics.trendUp ? "text-emerald-600" : "text-rose-600"}`}>
+                    <p className="text-xl font-bold">{vitals.stepMetrics.trendUp ? "+" : ""}{vitals.stepMetrics.trendPct}%</p>
                     <p className="text-xs text-muted-foreground">vs. recent avg</p>
                   </div>
                 )}
@@ -620,11 +613,11 @@ const ElderView = () => {
               {stepHistory.length > 1 && (
                 <div className="grid grid-cols-3 gap-3 text-center">
                   <div className="rounded-xl bg-muted/40 p-3">
-                    <p className="text-base font-bold text-foreground">{avgSteps.toLocaleString()}</p>
+                    <p className="text-base font-bold text-foreground">{vitals.stepMetrics.avgSteps}</p>
                     <p className="text-xs text-muted-foreground">Daily avg</p>
                   </div>
                   <div className="rounded-xl bg-muted/40 p-3">
-                    <p className="text-base font-bold text-emerald-600">{maxSteps.toLocaleString()}</p>
+                    <p className="text-base font-bold text-emerald-600">{vitals.stepMetrics.maxSteps}</p>
                     <p className="text-xs text-muted-foreground">Best day</p>
                   </div>
                   <div className="rounded-xl bg-muted/40 p-3">
@@ -1190,7 +1183,7 @@ const ElderView = () => {
               <HealthCard icon={Moon} iconBg="bg-sleep/15 text-sleep" cardBg="bg-sky-50" title="Sleep Analysis" label={sleepS.label} labelColor={sleepS.color} onClick={() => setOpenModal("sleep")} />
               <HealthCard icon={Utensils} iconBg="bg-teal-500/15 text-teal-600" cardBg="bg-sky-50" title="Nutrition & Diet" label={nutritionS.label} labelColor={nutritionS.color} onClick={() => setOpenModal("nutrition")} />
               <HealthCard icon={Brain} iconBg="bg-stress/15 text-stress" cardBg="bg-sky-50" title="Stress" label={stressS.label} labelColor={stressS.color} onClick={() => setOpenModal("stress")} />
-              <HealthCard icon={Footprints} iconBg="bg-ecg/15 text-ecg" cardBg="bg-sky-50" title="Steps Today" label={stepsTrendLabel} labelColor={stepsS.color} onClick={() => setOpenModal("steps")} />
+              <HealthCard icon={Footprints} iconBg="bg-ecg/15 text-ecg" cardBg="bg-sky-50" title="Steps Today" label={vitals.stepMetrics.stepsTrend} labelColor={stepsS.color} onClick={() => setOpenModal("steps")} />
               <HealthCard icon={Shield} iconBg="bg-amber-500/15 text-amber-600" cardBg="bg-sky-50" title="Gait Analysis" label={gaitS.label} labelColor={gaitS.color} onClick={() => setOpenModal("gait")} />
               <HealthCard icon={Droplets} iconBg="bg-teal-500/15 text-teal-600" cardBg="bg-sky-50" title="Hydration" label={hydrationS.label} labelColor={hydrationS.color} onClick={() => setOpenModal("hydration")} />
               <HealthCard icon={Pill} iconBg="bg-blue-500/15 text-blue-600" cardBg="bg-sky-50" title="Medication" label="Active Rx" labelColor="text-blue-600" onClick={() => setOpenModal("medication")} />
