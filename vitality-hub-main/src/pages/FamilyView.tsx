@@ -28,6 +28,7 @@ const HOME_ID = "PATIENT_001";
 const first_name = "Frank";
 const last_name = "Larson";
 
+// Helper: Return the most recent entry by date
 function pickLatest(list: any[]): any | null {
   if (!Array.isArray(list) || list.length === 0) return null;
   return [...list].sort((a, b) =>
@@ -35,19 +36,20 @@ function pickLatest(list: any[]): any | null {
   )[0];
 }
 
+// Helper: Return the stress level from the latest day's awake readings (or 0 if none)
 function extractStress(day: any): number {
   const awake = (day?.allDayStress?.aggregatorList ?? []).find((a: any) => a.type === "AWAKE");
   return Math.round(Number(awake?.averageStressLevel ?? 0));
 }
 
+// Helper: Return the sleep hours from the latest night's sleep session (or 0 if none)
 function extractSleep(sleepJson: any): number {
   if (!Array.isArray(sleepJson)) return 0;
   const latest = pickLatest(sleepJson.filter((x: any) =>
     typeof x?.calendarDate === "string" &&
     (x?.deepSleepSeconds != null || x?.lightSleepSeconds != null || x?.remSleepSeconds != null)
   ));
-  if (!latest) return 0;
-  return (Number(latest.deepSleepSeconds ?? 0) + Number(latest.lightSleepSeconds ?? 0) + Number(latest.remSleepSeconds ?? 0)) / 3600;
+  return latest ? (Number(latest.deepSleepSeconds ?? 0) + Number(latest.lightSleepSeconds ?? 0) + Number(latest.remSleepSeconds ?? 0)) / 3600 : 0;
 }
 
 // ── Health card status helpers ─────────────────────────────────────────────────
@@ -119,7 +121,6 @@ function MedicationDetail() {
       try {
         const res = await fetch(`${API_BASE}/api/fhir/patient-medications?first_name=${first_name}&last_name=${last_name}`);
         if (!res.ok) throw new Error("Patient not found or server error");
-        
         const data = await res.json();
         setMeds(data);
       } catch (e: any) {
@@ -128,8 +129,7 @@ function MedicationDetail() {
         setLoading(false);
       }
     };
-
-    if (first_name && last_name) fetchMeds();
+    fetchMeds();
   }, [first_name, last_name]);
 
   if (loading) return <div className="flex items-center justify-center py-12"><p className="text-sm text-muted-foreground">Loading medications…</p></div>;
@@ -185,7 +185,6 @@ function AppointmentsDetail() {
       try {
         const res = await fetch(`${API_BASE}/api/fhir/patient-appointments?first_name=${first_name}&last_name=${last_name}`);
         if (!res.ok) throw new Error("Patient not found or server error");
-        
         const data: Appt[] = await res.json();
         setAppts(Array.isArray(data) ? data : []);
       } catch (e: any) {
@@ -194,8 +193,7 @@ function AppointmentsDetail() {
         setLoading(false);
       }
     };
-
-    if (first_name && last_name) fetchAppts();
+    fetchAppts();
   }, [first_name, last_name]);
 
   const toggle = (key: string) => setChecked(prev => ({ ...prev, [key]: !prev[key] }));
@@ -311,21 +309,15 @@ function ModalCard({
 
 // ── HealthCard ────────────────────────────────────────────────────────────────
 function HealthCard({
-  icon: Icon, iconBg, cardBg, title, label, labelColor, subtitle, onClick,
+  icon: Icon, iconBg, title, label, labelColor, subtitle, onClick,
 }: {
-  icon: React.ElementType;
-  iconBg: string;
-  cardBg: string;
-  title: string;
-  label: string;
-  labelColor: string;
-  subtitle?: string;
-  onClick: () => void;
+  icon: React.ElementType; iconBg: string; title: string; label: string; 
+  labelColor: string; subtitle?: string; onClick: () => void;
 }) {
   return (
     <div
       onClick={onClick}
-      className={`rounded-2xl shadow-card overflow-hidden cursor-pointer group hover:shadow-lg transition-shadow px-5 py-6 flex flex-col justify-center ${cardBg}`}
+      className="rounded-2xl shadow-card overflow-hidden cursor-pointer group hover:shadow-lg transition-shadow px-5 py-6 flex flex-col justify-center bg-sky-50"
     >
       <div className="flex items-center gap-3 mb-4">
         <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${iconBg}`}>
@@ -342,17 +334,20 @@ function HealthCard({
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 const FamilyView = () => {
+  // Card data states
   const [vitals, setVitals] = useState<Vitals>({ heartRate: 0, steps: 0, stressLevel: 0, sleepHours: 0, mealsCount: 0 });
   const [stepHistory, setStepHistory] = useState<{ day: string; steps: number }[]>([]);
   const [hydrationLevel, setHydrationLevel] = useState(0);
   const [gaitMetrics, setGaitMetrics] = useState({ symmetry: 0, variability: 0, speed: 0, cadence: 0, worseStride: 0, worseGCT: 0 });
   const [familySummary, setFamilySummary] = useState<{ status: string; summary: string } | null>(null);
   const [loaded, setLoaded] = useState(false);
+  // UI states
   const [openModal, setOpenModal] = useState<string | null>(null);
   const [incomingCall, setIncomingCall] = useState(false);
   const [callConnected, setCallConnected] = useState(false);
   const [familyCallState, setFamilyCallState] = useState<"idle" | "calling" | "connected" | "declined">("idle");
   const [callSeconds, setCallSeconds] = useState(0);
+  // Share report states
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [shareDescription, setShareDescription] = useState("");
   const [selectedData, setSelectedData] = useState<Record<string, boolean>>({
@@ -389,42 +384,34 @@ const FamilyView = () => {
     }
   };
 
+  // Call state cross-tab syncing
   useEffect(() => {
+    const resetToIdle = () => {
+      localStorage.setItem("nhh-family-call-state", JSON.stringify({ status: "idle", timestamp: Date.now() }));
+      setFamilyCallState("idle");
+    };
+
+    const initialVal = JSON.parse(localStorage.getItem("nhh-family-call-state") ?? "{}");
+    if (initialVal.status === "declined" || initialVal.status === "ringing") resetToIdle();
+
     const sync = () => {
       const val = JSON.parse(localStorage.getItem("nhh-call-state") ?? "{}");
       if (val.status === "ringing") { setIncomingCall(true); setCallConnected(false); }
       else if (val.status === "idle") { setIncomingCall(false); setCallConnected(false); }
+
+      const familyVal = JSON.parse(localStorage.getItem("nhh-family-call-state") ?? "{}");
+      if (familyVal.status === "accepted") { setFamilyCallState("connected"); } 
+      else if (familyVal.status === "declined") {
+        setFamilyCallState("declined");
+        setTimeout(() => { resetToIdle(); }, 3000);
+      } else if (familyVal.status === "idle") { setFamilyCallState("idle"); }
     };
+
     sync(); // check on mount
     const interval = setInterval(sync, 500); // poll every 500ms (same-tab navigation)
-    const handler = (e: StorageEvent) => { // cross-tab events
-      if (e.key === "nhh-call-state") sync();
-    };
-    window.addEventListener("storage", handler);
-    return () => { clearInterval(interval); window.removeEventListener("storage", handler); };
+    window.addEventListener("storage", sync);
+    return () => { clearInterval(interval); window.removeEventListener("storage", sync); };
   }, []);
-
-  // Listen for Frank's response to family's call
-  useEffect(() => {
-    const handler = (e: StorageEvent) => {
-      if (e.key !== "nhh-family-call-state") return;
-      const val = JSON.parse(e.newValue ?? "{}");
-      if (val.status === "accepted") setFamilyCallState("connected");
-      if (val.status === "declined") {
-        setFamilyCallState("declined");
-        setTimeout(() => setFamilyCallState("idle"), 3000);
-      }
-      if (val.status === "idle") setFamilyCallState("idle");
-    };
-    window.addEventListener("storage", handler);
-    // Also poll for same-tab navigation
-    const interval = setInterval(() => {
-      const val = JSON.parse(localStorage.getItem("nhh-family-call-state") ?? "{}");
-      if (val.status === "accepted" && familyCallState !== "connected") setFamilyCallState("connected");
-      if (val.status === "idle" && familyCallState !== "idle") setFamilyCallState("idle");
-    }, 500);
-    return () => { window.removeEventListener("storage", handler); clearInterval(interval); };
-  }, [familyCallState]);
 
   const isFamilyConnected = callConnected || familyCallState === "connected";
   useEffect(() => {
@@ -432,8 +419,8 @@ const FamilyView = () => {
     const t = setInterval(() => setCallSeconds(s => s + 1), 1000);
     return () => clearInterval(t);
   }, [isFamilyConnected]);
-  const fmtTime = (s: number) =>
-    `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+
+  const fmtTime = (s: number) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 
   const startFamilyCall = () => {
     setFamilyCallState("calling");
@@ -476,34 +463,29 @@ const FamilyView = () => {
         const gaitJson: any[] = gaitRes.ok ? await gaitRes.json() : [];
         const fridgeJson: any[] = fridgeRes.ok ? await fridgeRes.json() : [];
 
-        if (summaryRes.ok) {
-          const summaryData = await summaryRes.json();
-          setFamilySummary(summaryData);
-        }
+        if (summaryRes.ok) setFamilySummary(await summaryRes.json());
     
         // Derive gait risk from latest day's sessions (average key metrics)
-        const latestGait = [...gaitJson]
-          .filter((d: any) => d?.calendarDate)
-          .sort((a: any, b: any) => String(b.calendarDate).localeCompare(String(a.calendarDate)))[0];
+        const latestGait = pickLatest(gaitJson.filter((x: any) =>
+          typeof x?.calendarDate === "string" &&
+          Array.isArray(x.sessions) &&
+          x.sessions.length > 0
+        ));
         if (latestGait?.sessions?.length) {
           // Use the last session — same as WalkingActivityChart
           const s = latestGait.sessions[latestGait.sessions.length - 1];
-          const worseStride = Math.min(Number(s.strideLength?.leftCm ?? 999), Number(s.strideLength?.rightCm ?? 999));
-          const worseGCT    = Math.max(Number(s.groundContactTimeMs?.left ?? 0), Number(s.groundContactTimeMs?.right ?? 0));
           setGaitMetrics({
             symmetry:    Number(s.stepSymmetryPct ?? 0),
             variability: Number(s.strideVariabilityPct ?? 0),
             speed:       Number(s.gaitSpeedMs ?? 0),
             cadence:     Number(s.cadence ?? 0),
-            worseStride,
-            worseGCT,
+            worseStride: Math.min(Number(s.strideLength?.leftCm ?? 999), Number(s.strideLength?.rightCm ?? 999)),
+            worseGCT:    Math.max(Number(s.groundContactTimeMs?.left ?? 0), Number(s.groundContactTimeMs?.right ?? 0)),
           });
         }
 
         // Derive hydration level from latest day's last reading
-        const latestToilet = [...toiletJson]
-          .filter((d: any) => d?.calendarDate)
-          .sort((a: any, b: any) => String(b.calendarDate).localeCompare(String(a.calendarDate)))[0];
+        const latestToilet = pickLatest(toiletJson.filter(t => Array.isArray(t.readings) && t.readings.length > 0));
         const lastReading = latestToilet?.readings?.at(-1);
         if (lastReading?.colorLevel) setHydrationLevel(Math.min(8, Math.max(1, Number(lastReading.colorLevel))));
 
@@ -512,26 +494,24 @@ const FamilyView = () => {
           .sort((a: any, b: any) => a.calendarDate.localeCompare(b.calendarDate));
 
         setStepHistory(
-          allDays
-            .filter((d: any) => d?.totalSteps != null)
-            .slice(-14)
-            .map((d: any) => ({
-              day: new Date(d.calendarDate + "T12:00:00").toLocaleDateString("en-US", { month: "numeric", day: "numeric" }),
-              steps: Number(d.totalSteps),
-            }))
+          allDays.filter((d: any) => d?.totalSteps != null).slice(-14).map((d: any) => ({
+            day: new Date(d.calendarDate + "T12:00:00").toLocaleDateString("en-US", { month: "numeric", day: "numeric" }),
+            steps: Number(d.totalSteps),
+          }))
         );
 
-        const latestFridge = [...fridgeJson].sort((a, b) =>
-          String(b?.calendarDate || "").localeCompare(String(a?.calendarDate || ""))
-        )[0];
-
+        const latestFridge = pickLatest(fridgeJson.filter((x: any) =>
+          typeof x?.calendarDate === "string" &&
+          Array.isArray(x.mealsDetected)
+        ));
         const day = allDays[allDays.length - 1] ?? null;
+
         setVitals({
           heartRate: Number(day?.currentDayRestingHeartRate ?? day?.restingHeartRate ?? 0),
           steps: Number(day?.totalSteps ?? 0),
           stressLevel: extractStress(day),
           sleepHours: extractSleep(sleepJson),
-          mealsCount: (latestFridge.mealsDetected ?? []).length
+          mealsCount: (latestFridge?.mealsDetected ?? []).length
         });
       } catch (error) {
         console.error("Error loading data:", error);
@@ -540,7 +520,7 @@ const FamilyView = () => {
     })();
   }, []);
 
-  if (!loaded || !familySummary) {
+  if (!loaded) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <div className="text-center">
@@ -564,8 +544,12 @@ const FamilyView = () => {
     if (pct >= 20)  return { label: `${curr.toLocaleString()} steps · ↑ ${pct}%`, subtitle: undefined };
     return { label: steps.label, subtitle: undefined };
   })();
+  const avgSteps = stepHistory.length ? Math.round(stepHistory.reduce((s, d) => s + d.steps, 0) / stepHistory.length) : 0;
+  const maxSteps = stepHistory.length ? Math.max(...stepHistory.map((d) => d.steps)) : 0;
+  const prevAvgSteps = stepHistory.length > 1 ? Math.round(stepHistory.slice(0, -1).reduce((s, d) => s + d.steps, 0) / (stepHistory.length - 1)) : 0;
+  const trendPctSteps = prevAvgSteps > 0 ? Math.round(((vitals.steps - prevAvgSteps) / prevAvgSteps) * 100) : 0;
+  const trendStepsUp = trendPctSteps >= 0;
   const stress    = stressStatus(vitals.stressLevel);
-  const stressBarColor = stress.status === "good" ? "bg-emerald-500" : stress.status === "fair" ? "bg-amber-500" : "bg-rose-500";
   const hydration = hydrationStatus(hydrationLevel);
   const gait      = gaitStatus(gaitMetrics.symmetry, gaitMetrics.variability, gaitMetrics.speed, gaitMetrics.cadence, gaitMetrics.worseStride, gaitMetrics.worseGCT);
   const nutrition = nutritionStatus(vitals.mealsCount)
@@ -573,39 +557,25 @@ const FamilyView = () => {
   const statusConfig = {
     good: {
       icon: ShieldCheck, gradient: "from-emerald-50 to-teal-50", border: "border-emerald-200",
-      iconBg: "bg-emerald-500", text: "text-emerald-900", sub: "text-emerald-700",
-      badge: "bg-emerald-100 text-emerald-700 border border-emerald-200",
-      title: `${first_name} is doing well today`
+      iconBg: "bg-emerald-500", text: "text-emerald-900", title: `${first_name} is doing well today`
     },
     fair: {
       icon: AlertCircle, gradient: "from-amber-50 to-yellow-50", border: "border-amber-200",
-      iconBg: "bg-amber-500", text: "text-amber-900", sub: "text-amber-700",
-      badge: "bg-amber-100 text-amber-700 border border-amber-200",
-      title: `${first_name} is generally okay`
+      iconBg: "bg-amber-500", text: "text-amber-900", title: `${first_name} is generally okay`
     },
     warn: {
       icon: AlertTriangle, gradient: "from-rose-50 to-red-50", border: "border-rose-200",
-      iconBg: "bg-rose-500", text: "text-rose-900", sub: "text-rose-700",
-      badge: "bg-rose-100 text-rose-700 border border-rose-200",
-      title: `${first_name} may need your attention`
+      iconBg: "bg-rose-500", text: "text-rose-900", title: `${first_name} may need your attention`
     },
   }[familySummary.status];
 
   const renderModalContent = () => {
     switch (openModal) {
-      case "heart":
-        return (
-          <div className="flex flex-col gap-4">
-            <HeartRateChart />
-            <ECGVisualization />
-          </div>
-        );
-      case "sleep":
-        return <SleepChart />;
+      case "heart": return <div className="flex flex-col gap-4"><HeartRateChart /><ECGVisualization /></div>;
+      case "sleep": return <SleepChart />;
       case "stress":
         return (
-          <ModalCard icon={Brain} iconBg="bg-stress" gradient="from-purple-50 to-violet-50"
-            title="Stress" subtitle={stress.note}>
+          <ModalCard icon={Brain} iconBg="bg-stress" gradient="from-purple-50 to-violet-50" title="Stress" subtitle={stress.note}>
             <div className="space-y-4 max-w-md">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Score today</span>
@@ -615,32 +585,20 @@ const FamilyView = () => {
                 </span>
               </div>
               <div className="h-3 rounded-full bg-muted overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all ${stressBarColor}`}
-                  style={{ width: `${Math.min(100, vitals.stressLevel)}%` }}
-                />
+                <div className={`h-full rounded-full transition-all ${stress.status === "good" ? "bg-emerald-500" : stress.status === "fair" ? "bg-amber-500" : "bg-rose-500"}`} style={{ width: `${Math.min(100, vitals.stressLevel)}%` }} />
               </div>
               <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                <span className="rounded-lg bg-emerald-50 px-2 py-2 text-emerald-700 font-medium">0–35 · Calm</span>
-                <span className="rounded-lg bg-amber-50 px-2 py-2 text-amber-700 font-medium">36–60 · Mild</span>
+                <span className="rounded-lg bg-emerald-50 px-2 py-2 text-emerald-700 font-medium">0-35 · Calm</span>
+                <span className="rounded-lg bg-amber-50 px-2 py-2 text-amber-700 font-medium">36-60 · Mild</span>
                 <span className="rounded-lg bg-rose-50 px-2 py-2 text-rose-700 font-medium">61+ · Elevated</span>
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Derived from Garmin heart rate variability analysis throughout the day. Scores are averaged across awake hours only.
+                Derived from Garmin heart rate variability analysis throughout the day. Scores are averaged across waking hours only.
               </p>
             </div>
           </ModalCard>
         );
-      case "steps": {
-        const avgSteps = stepHistory.length
-          ? Math.round(stepHistory.reduce((s, d) => s + d.steps, 0) / stepHistory.length)
-          : 0;
-        const maxSteps = stepHistory.length ? Math.max(...stepHistory.map((d) => d.steps)) : 0;
-        const prevAvg = stepHistory.length > 1
-          ? Math.round(stepHistory.slice(0, -1).reduce((s, d) => s + d.steps, 0) / (stepHistory.length - 1))
-          : 0;
-        const trendPct = prevAvg > 0 ? Math.round(((vitals.steps - prevAvg) / prevAvg) * 100) : 0;
-        const trendUp = trendPct >= 0;
+      case "steps": 
         return (
           <ModalCard icon={Footprints} iconBg="bg-ecg" gradient="from-blue-50 to-sky-50"
             title="Steps Today" subtitle={steps.note}>
@@ -653,9 +611,9 @@ const FamilyView = () => {
                   </p>
                   <p className="mt-0.5 text-sm text-muted-foreground">{steps.label} today</p>
                 </div>
-                {prevAvg > 0 && (
-                  <div className={`text-right ${trendUp ? "text-emerald-600" : "text-rose-600"}`}>
-                    <p className="text-xl font-bold">{trendUp ? "+" : ""}{trendPct}%</p>
+                {prevAvgSteps > 0 && (
+                  <div className={`text-right ${trendStepsUp ? "text-emerald-600" : "text-rose-600"}`}>
+                    <p className="text-xl font-bold">{trendStepsUp ? "+" : ""}{trendPctSteps}%</p>
                     <p className="text-xs text-muted-foreground">vs. recent avg</p>
                   </div>
                 )}
@@ -724,13 +682,9 @@ const FamilyView = () => {
             </div>
           </ModalCard>
         );
-      }
-      case "gait":
-        return <WalkingActivityChart />;
-      case "nutrition":
-        return <SmartFridgeCard />;
-      case "hydration":
-        return <HydrationIndicator />;
+      case "gait": return <WalkingActivityChart />;
+      case "nutrition": return <SmartFridgeCard />;
+      case "hydration": return <HydrationIndicator />;
       case "medication":
         return (
           <ModalCard icon={Pill} iconBg="bg-blue-500" gradient="from-blue-50 to-indigo-50"
@@ -745,8 +699,7 @@ const FamilyView = () => {
             <AppointmentsDetail />
           </ModalCard>
         );
-      default:
-        return null;
+      default: return null;
     }
   };
 
@@ -888,56 +841,56 @@ const FamilyView = () => {
         {/* ── 9-card grid (3 × 3) ───────────────────────────────────── */}
         <div className="grid grid-cols-3 gap-3 flex-1" style={{ gridTemplateRows: 'repeat(3, 1fr)' }}>
           <HealthCard
-            icon={Heart} iconBg="bg-heart/15 text-heart" cardBg="bg-sky-50"
+            icon={Heart} iconBg="bg-heart/15 text-heart"
             title="Heart Health"
             label={heart.label} labelColor={heart.color}
             onClick={() => setOpenModal("heart")}
           />
           <HealthCard
-            icon={Moon} iconBg="bg-sleep/15 text-sleep" cardBg="bg-sky-50"
+            icon={Moon} iconBg="bg-sleep/15 text-sleep"
             title="Sleep Analysis"
             label={sleep.label} labelColor={sleep.color}
             onClick={() => setOpenModal("sleep")}
           />
           <HealthCard
-            icon={Utensils} iconBg="bg-teal-500/15 text-teal-600" cardBg="bg-sky-50"
+            icon={Utensils} iconBg="bg-teal-500/15 text-teal-600"
             title="Nutrition & Diet"
             label={nutrition.label} labelColor={nutrition.color}            
             onClick={() => setOpenModal("nutrition")}            
           />
           <HealthCard
-            icon={Brain} iconBg="bg-stress/15 text-stress" cardBg="bg-sky-50"
+            icon={Brain} iconBg="bg-stress/15 text-stress"
             title="Stress"
             label={stress.label} labelColor={stress.color}
             onClick={() => setOpenModal("stress")}
           />
           <HealthCard
-            icon={Footprints} iconBg="bg-ecg/15 text-ecg" cardBg="bg-sky-50"
+            icon={Footprints} iconBg="bg-ecg/15 text-ecg"
             title="Steps Today"
             label={stepsTrend.label} labelColor={steps.color}
             subtitle={stepsTrend.subtitle}
             onClick={() => setOpenModal("steps")}
           />
           <HealthCard
-            icon={Shield} iconBg="bg-amber-500/15 text-amber-600" cardBg="bg-sky-50"
+            icon={Shield} iconBg="bg-amber-500/15 text-amber-600"
             title="Gait Analysis"
             label={gait.label} labelColor={gait.color}
             onClick={() => setOpenModal("gait")}
           />
           <HealthCard
-            icon={Droplets} iconBg="bg-teal-500/15 text-teal-600" cardBg="bg-sky-50"
+            icon={Droplets} iconBg="bg-teal-500/15 text-teal-600"
             title="Hydration"
             label={hydration.label} labelColor={hydration.color}
             onClick={() => setOpenModal("hydration")}
           />
           <HealthCard
-            icon={Pill} iconBg="bg-blue-500/15 text-blue-600" cardBg="bg-sky-50"
+            icon={Pill} iconBg="bg-blue-500/15 text-blue-600"
             title="Medication"
             label="Active Rx" labelColor="text-blue-600"
             onClick={() => setOpenModal("medication")}
           />
           <HealthCard
-            icon={Calendar} iconBg="bg-violet-500/15 text-violet-600" cardBg="bg-sky-50"
+            icon={Calendar} iconBg="bg-violet-500/15 text-violet-600"
             title="Appointments"
             label="Upcoming" labelColor="text-violet-600"
             onClick={() => setOpenModal("appointments")}
@@ -949,13 +902,13 @@ const FamilyView = () => {
       {/* ── Detail modal ──────────────────────────────────────────────── */}
       <Dialog open={openModal !== null} onOpenChange={() => setOpenModal(null)}>
         <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-y-auto">
-          {/* Title is visually hidden — each modal's own card header serves as the visible title */}
           <DialogHeader className="sr-only">
             <DialogTitle>{openModal ? modalTitle[openModal] : ""}</DialogTitle>
           </DialogHeader>
           {renderModalContent()}
         </DialogContent>
       </Dialog>
+
       {/* ── Share Report Modal ────────────────────────────────────────── */}
       <Dialog open={shareModalOpen} onOpenChange={setShareModalOpen}>
         <DialogContent className="sm:max-w-md">
@@ -965,7 +918,6 @@ const FamilyView = () => {
           </DialogHeader>
           
           <div className="space-y-6 py-4">
-            {/* 9 Tickboxes Grid */}
             <div className="grid grid-cols-2 gap-3">
               {Object.keys(selectedData).map((key) => (
                 <div key={key} className="flex items-center space-x-2">
@@ -973,11 +925,7 @@ const FamilyView = () => {
                     onClick={() => setSelectedData(prev => ({ ...prev, [key]: !prev[key] }))}
                     className="flex items-center gap-2 text-sm font-medium"
                   >
-                    {selectedData[key] ? (
-                      <CheckSquare className="h-5 w-5 text-emerald-600" />
-                    ) : (
-                      <Square className="h-5 w-5 text-muted-foreground" />
-                    )}
+                    {selectedData[key] ? ( <CheckSquare className="h-5 w-5 text-emerald-600" /> ) : ( <Square className="h-5 w-5 text-muted-foreground" /> )}
                     <span className="capitalize">{key === 'nutrition' ? 'Nutrition' : key}</span>
                   </button>
                 </div>

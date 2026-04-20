@@ -103,7 +103,14 @@ def build_neighbourhood_context(patient_id: str = ""):
         lines.append(instructions)
     return "\n".join(lines)
 
-def build_step_history(dailySummaryJson: list) -> list:
+def extract_steps(dailySummaryJson: list, vitals_steps: int) -> tuple[list, dict]:
+    def stepsStatus(steps: int) -> str:
+        if steps == 0:    return "No data"
+        if steps >= 5000: return "Very active"
+        if steps >= 2500: return "Moderately active"
+        if steps >= 1000: return "Light activity"
+        return                   "Very little movement"
+    
     all_days = sorted(
         [d for d in dailySummaryJson if d.get("calendarDate")],
         key=lambda x: x.get("calendarDate")
@@ -117,7 +124,30 @@ def build_step_history(dailySummaryJson: list) -> list:
             "day": formatted_date,
             "steps": d.get("totalSteps")
         })
-    return step_history
+
+    step_metrics = {
+        "stepsTrend": stepsStatus(vitals_steps),
+        "avgSteps": "0",
+        "maxSteps": "0",
+        "prevAvgSteps": 0,
+        "trendPctSteps": 0,
+        "trendStepsUp": True
+    }
+    if step_history:
+        step_metrics["avgSteps"] = str(round(sum(d["steps"] for d in step_history) / len(step_history)))
+        step_metrics["maxSteps"] = str(max(d["steps"] for d in step_history))
+        if len(step_history) > 1:
+            prev_avg = sum(d["steps"] for d in step_history[:-1]) / (len(step_history) - 1)
+            step_metrics["prevAvgSteps"] = round(prev_avg)
+            if prev_avg != 0:
+                pct_change = round(((vitals_steps - prev_avg) / prev_avg) * 100)
+                step_metrics["trendPctSteps"] = pct_change
+                step_metrics["trendStepsUp"] = pct_change >= 0
+                if pct_change >= 20:
+                    step_metrics["stepsTrend"] = f"{stepsStatus(vitals_steps)} · ↑ {pct_change}%"
+                elif pct_change <= -20:
+                    step_metrics["stepsTrend"] = f"{stepsStatus(vitals_steps)} · ↓ {abs(pct_change)}%"
+    return step_history, step_metrics
 
 def extract_fridge(patient_id: str = "") -> dict:
     fridgeJson = get_iris_data(patient_id, "fridge")
@@ -569,7 +599,6 @@ def llm_ready_fridge(fridge_list):
         
     return trend_summary, inventory_str
 
-# TODO: check where vitals is called to see if more/different keys should be included
 @app.get("/api/build-patient-dashboard")
 def get_patient_dashboard(patient_id: str = "") -> dict:
     dailyJson = get_iris_data(patient_id, "dailySummary")
@@ -585,11 +614,14 @@ def get_patient_dashboard(patient_id: str = "") -> dict:
     gaitNote, gaitConcern, gaitMetrics = extract_gait(patient_id)    
     phoneCalls = extract_phone_calls(patient_id)
     hoursAsleep = extract_sleep(patient_id)
-    stepHistory = build_step_history(dailyJson)
+    steps = latest_dailySummary.get("totalSteps", 0)
+    stepHistory, stepMetrics = extract_steps(dailyJson, steps)
 
     return {
         "heartRate": latest_dailySummary.get("currentDayRestingHeartRate") or latest_dailySummary.get("restingHeartRate") or 0,
-        "steps": latest_dailySummary.get("totalSteps") or 0,
+        "steps": steps,
+        "stepHistory": stepHistory,
+        "stepMetrics": stepMetrics,
         "stressLevel": stressLevel,
         "sleepHours": hoursAsleep,
         "hydrationNote": hydrationNote,
@@ -602,8 +634,7 @@ def get_patient_dashboard(patient_id: str = "") -> dict:
         "phoneCallTrend": phoneCalls.get("phoneCallTrend"),
         "gaitNote": gaitNote,
         "fallRiskAlert": dehydrated and gaitConcern,
-        "gaitMetrics": gaitMetrics,
-        "stepHistory": stepHistory
+        "gaitMetrics": gaitMetrics
     }
 
 # ── Interpret IRIS Home data endpoints ──────────────────────────────────────────
