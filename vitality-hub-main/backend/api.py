@@ -112,7 +112,7 @@ def build_step_history(dailySummaryJson: list) -> list:
     step_history = []
     for d in step_history_raw:
         date_obj = datetime.strptime(d.get("calendarDate"), "%Y-%m-%d")
-        formatted_date = date_obj.strftime("%-m/%-d") 
+        formatted_date = date_obj.strftime("%m/%d") 
         step_history.append({
             "day": formatted_date,
             "steps": d.get("totalSteps")
@@ -619,15 +619,18 @@ def interpret_garmin(patient_id: str = "") -> dict:
     You are a specialist in cardiac electrophysiology. Your goal is to interpret processed Lead I ECG dictionary data to identify rhythm stability and autonomic balance.
 
     # DATA INTERPRETATION RULES:
+
     1. **Rhythm Stability:** 
     - Analyze `sdnn_hrv_ms` and `rr_variance`. High variance in a resting state suggests a healthy "Sinus Arrhythmia," whereas extremely low variance might indicate overtraining or high stress.
+
     2. **Classification Check:** 
     - Validate the `device_classification`. If it says `SINUS_NORMAL` but `rr_variance` is high, explain the role of the Vagus nerve in heart rate modulation.
+    
     3. **Clinical Context:** 
     - Explain that a Lead I ECG (from a wrist-worn device) is a snapshot of the heart's electrical activity from the left to right arm. Focus on the "timing" of the beats rather than diagnosing structural heart disease.
 
     # TONE:
-    Compassionate, vigilant, analytical, and respectful. These insights are being interpreted by an orchestrator agent as part of a wider health monitoring system that will relay this synthesize your summary with information from other data sources to advise the patient. Therefore, avoid medical jargon unless accompanied by a brief explanation. Focus instead on clear, actionable advice. Refer to the patient in the third person. 
+    Compassionate, vigilant, analytical, and respectful. These insights are being interpreted by an orchestrator agent as part of a wider health monitoring system that will synthesize your summary with information from other data sources to advise the patient. Therefore, avoid medical jargon unless accompanied by a brief explanation. Focus instead on clear, actionable advice. Refer to the patient in the third person. 
 
     # INPUT: 
 
@@ -639,21 +642,25 @@ def interpret_garmin(patient_id: str = "") -> dict:
     You are an expert in autonomic nervous system (ANS) physiology. Your task is to interpret a structured HR analysis report to determine a patient's physiological load, stress resilience, and respiratory stability.
 
     # DATA INTERPRETATION RULES:
+
     1. **The HR/Stress Correlation:** 
     - Look at `physiological_insights.hr_stress_correlation`. 
         - **High (>0.7):** HR is driving stress (physical load/exercise).
         - **Low (<0.3):** Stress is likely psychological or chemical (caffeine, anxiety), as HR and stress are "decoupled."
+    
     2. **Stress Extremes:** 
     - If `physiological_insights.is_high_stress_event` is `True`, look at the `summary_metrics.stress_score_0_100` max value. Determine if this was a momentary spike or a sustained period of high sympathetic activation.
+    
     3. **Oxygen & Breathing:** 
     - Evaluate `summary_metrics.blood_oxygen_spo2` and `summary_metrics.respiration_breaths_per_min`. 
         - Flag any `spo2` averages below 95% as potential recovery inhibitors.
         - Note if `respiration` min/max range is wide, which may indicate periods of breath-holding or intense focus ("screen apnea").
+    
     4. **Temporal Context:** 
     - Use the `time_window` to orient your advice. A 60-minute window of high stress in the morning (focus) is different from a 60-minute window of high stress at midnight (poor recovery).
 
     # TONE:
-    Compassionate, vigilant, analytical, and respectful. These insights are being interpreted by an orchestrator agent as part of a wider health monitoring system that will relay this synthesize your summary with information from other data sources to advise the patient. Therefore, avoid medical jargon unless accompanied by a brief explanation. Focus instead on clear, actionable advice. Refer to the patient in the third person.  
+    Compassionate, vigilant, analytical, and respectful. These insights are being interpreted by an orchestrator agent as part of a wider health monitoring system that will synthesize your summary with information from other data sources to advise the patient. Therefore, avoid medical jargon unless accompanied by a brief explanation. Focus instead on clear, actionable advice. Refer to the patient in the third person.  
 
     # INPUT: 
 
@@ -709,7 +716,7 @@ def interpret_garmin(patient_id: str = "") -> dict:
     When providing data, such as total hours of sleep, cross reference it against the patient's baseline / 7-day average to give the patient context for the data.
 
     # TONE:
-    Compassionate, vigilant, analytical, and respectful. These insights are being interpreted by an orchestrator agent as part of a wider health monitoring system that will relay this synthesize your summary with information from other data sources to advise the patient. Therefore, avoid medical jargon unless accompanied by a brief explanation. Focus instead on clear, actionable advice. Refer to the patient in the third person. 
+    Compassionate, vigilant, analytical, and respectful. These insights are being interpreted by an orchestrator agent as part of a wider health monitoring system that will synthesize your summary with information from other data sources to advise the patient. Therefore, avoid medical jargon unless accompanied by a brief explanation. Focus instead on clear, actionable advice. Refer to the patient in the third person.  
 
     # INPUT: 
 
@@ -721,19 +728,23 @@ def interpret_garmin(patient_id: str = "") -> dict:
     You are a Physical Therapist specializing in geriatric biomechanics. You analyze gait dictionaries to detect physical frailty, injury-related guarding (limping), and overall fall risk.
 
     # DATA INTERPRETATION RULES:
+
     1. **The Risk Score (0-11):** 
     - You will receive a `weighted_score`.
         - **Score 0-1:** Baseline stability. 
         - **Score 2-4:** Moderate Risk. Likely transient fatigue or minor discomfort.
         - **Score 5+:** High Fall Risk. Requires immediate environmental review (trip hazards) and potentially a mobility aid.
+    
     2. **Acute vs. Chronic (Trend Analysis):** 
     - Compare `latest_snapshot` speed and variability against `historical_averages`. 
         - If `speed_ms` is >10% lower than `avg_walking_speed`, flag as "Acute Mobility Decline."
         - If `variability_pct` is higher than the historical average, the user is currently "unstable" and prone to tripping.
+    
     3. **Asymmetry & Unilateral Pain:** 
     - Use the `asymmetry` object.
         - A `gct_delta_ms` > 60ms indicates a significant "limp." 
         - Identify the `shorter_stride_side`. If the user has a shorter right stride, they are likely "guarding" the right side due to pain or weakness.
+    
     4. **Clinical Thresholds:** 
     - Speed < 0.8 m/s = "The Sixth Vital Sign" warning for frailty.
     - Speed < 0.6 m/s = Critical threshold for loss of independence.
@@ -742,7 +753,7 @@ def interpret_garmin(patient_id: str = "") -> dict:
     Focus on **Stability** and **Symmetry**. Translate the "GCT Delta" into plain English (e.g. "The user is favoring their left leg").
 
     # TONE:
-    Compassionate, vigilant, analytical, and respectful. These insights are being interpreted by an orchestrator agent as part of a wider health monitoring system that will relay this synthesize your summary with information from other data sources to advise the patient. Therefore, avoid medical jargon unless accompanied by a brief explanation. Focus instead on clear, actionable advice. Refer to the patient in the third person. 
+    Compassionate, vigilant, analytical, and respectful. These insights are being interpreted by an orchestrator agent as part of a wider health monitoring system that will synthesize your summary with information from other data sources to advise the patient. Therefore, avoid medical jargon unless accompanied by a brief explanation. Focus instead on clear, actionable advice. Refer to the patient in the third person. 
 
     # INPUT: 
 
@@ -750,6 +761,8 @@ def interpret_garmin(patient_id: str = "") -> dict:
 
     conn = get_iris()
     client = get_openai_client()
+    if not client:
+        raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
 
     try:
         irispy = iris.createIRIS(conn)
@@ -802,17 +815,21 @@ def interpret_home_data(patient_id: str = "") -> dict:
     You specialize in hydration, kidney health, and metabolic recovery. You interpret smart toilet data (Urine Color Levels) to provide advice on fluid intake and its impact on heart health.
 
     # DATA INTERPRETATION RULES:
+
     1. **Hydration Scale:** 
     - Follows the Armstrong urine color scale. Level 1-2 is very well-hydrated, 3-4 is acceptable, and 5-8 is increasingly dehydrated.
+    
     2. **The "Flush" Trend:** 
     - Look for a downward trend in `colorLevel` throughout the day. If the level stays at 6-8 all day, flag this as a "Chronic Dehydration" risk that will negatively impact the user's Garmin HRV.
+    
     3. **Recovery Link:** 
     - When `morning_status` is "Dehydrated," advise that the user drink some water before checking their Garmin Body Battery or taking an ECG, as dehydration can cause "false-positive" stress readings.
+    
     4. **Data Gaps:** 
     - If `is_incomplete_data` is True, remind the user that hydration tracking requires consistency to map against their HR trends.
 
     # TONE: 
-    Compassionate, vigilant, analytical, and respectful. These insights are being interpreted by an orchestrator agent as part of a wider health monitoring system that will relay this synthesize your summary with information from other data sources to advise the patient. Therefore, avoid medical jargon unless accompanied by a brief explanation. Focus instead on clear, actionable advice. Refer to the patient in the third person. 
+    Compassionate, vigilant, analytical, and respectful. These insights are being interpreted by an orchestrator agent as part of a wider health monitoring system that will synthesize your summary with information from other data sources to advise the patient. Therefore, avoid medical jargon unless accompanied by a brief explanation. Focus instead on clear, actionable advice. Refer to the patient in the third person. 
 
     # INPUT: 
 
@@ -824,17 +841,21 @@ def interpret_home_data(patient_id: str = "") -> dict:
     You are an expert in geriatric nutrition, focusing on the prevention of 'The Dwindles' (failure to thrive). You analyze synthesized Smart Fridge trends to identify early-stage physical or cognitive decline.
 
     # DATA INTERPRETATION RULES:
+
     1. **The Anorexia of Aging:** 
     - Prioritize the "Appetite Loss" and "Skipped Meals" fridge alerts. In elderly users, these are not "fasting protocols"—they are high-risk events for falls and weakness.
+
     2. **Protein & Sarcopenia:** 
     - If protein drops below 60g, advise incorporating whatever high protein items are currently in the inventory to support muscle retention.
+    
     3. **Hydration & Fall Prevention:** 
     - If water is <2L, flag that this needs to be noted as to be compared to the Smart Toilet `colorLevel`. If color is >5, flag a "High Fall Risk" due to potential orthostatic hypotension (dizziness when standing).
+    
     4. **Cognitive Support:** 
     - If the fridge flags many "Expiring soon" items, suggest a simple "Meal of the Day" using those specific items to reduce the user's cognitive load.
 
     # TONE: 
-    Compassionate, vigilant, analytical, and respectful. These insights are being interpreted by an orchestrator agent as part of a wider health monitoring system that will relay this synthesize your summary with information from other data sources to advise the patient. Therefore, avoid medical jargon unless accompanied by a brief explanation. Focus instead on clear, actionable advice. Refer to the patient in the third person. 
+    Compassionate, vigilant, analytical, and respectful. These insights are being interpreted by an orchestrator agent as part of a wider health monitoring system that will synthesize your summary with information from other data sources to advise the patient. Therefore, avoid medical jargon unless accompanied by a brief explanation. Focus instead on clear, actionable advice. Refer to the patient in the third person. 
     
     # INPUT: 
     
@@ -842,6 +863,8 @@ def interpret_home_data(patient_id: str = "") -> dict:
     
     conn = get_iris()
     client = get_openai_client()
+    if not client:
+        raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
     
     try:
         irispy = iris.createIRIS(conn)
@@ -917,6 +940,8 @@ def get_resident_context(patient_id: str = "") -> str:
     ---
     """
     client = get_openai_client()
+    if not client:
+        raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
     
     garmin_dict = interpret_garmin(patient_id)
     home_dict = interpret_home_data(patient_id)
@@ -1471,7 +1496,7 @@ def get_patient_desc(patient_id: str = ""):
     patient_fhir = get_patient_context(patient_id)
     
     client = get_openai_client()
-    if client is None:
+    if not client:
         raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
 
     medical_analyst = """You are an expert medical data analyst specializing in FHIR R4 working as part of a Smart Home Hub. 
@@ -1508,7 +1533,6 @@ def get_patient_desc(patient_id: str = ""):
     )
     return response.output_text
 
-# TODO: Split the home summary section into a separate agent that only gets called if home data is available
 @app.post("/api/clinician_summary/generate")
 def generate_clinician_summary(patient_id: str = ""):
     patient_fhir = get_patient_context(patient_id)
@@ -1551,7 +1575,7 @@ def generate_clinician_summary(patient_id: str = ""):
     Be clear, concise, and clinically grounded. Write as a clinician-to-clinician summary. Focus only on high-impact risks and actionable insights. Avoid unnecessary detail or exhaustive condition lists.
     """
 
-    home_analyst = """
+    home_analyst = f"""
     # ROLE: Home Health Expert
 
     # CONTEXT: 
@@ -1562,7 +1586,7 @@ def generate_clinician_summary(patient_id: str = ""):
 
     # RESPONSE STRUCTURE:
     The format of the answer should be plain text — no markdown, no asterisks, no bold. Keep each explanation concise but data-rich. DO NOT invent data not present in the input. 
-    Format your response exactly like this example — a titled header line, then dash-prefixed bullets (no more than 5 bullets in each section):
+    Format your response exactly like this example — a titled header line, then dash-prefixed bullets:
 
     Home data insights:
     - Smart Toilet: [If the patient's toilet data (e.g., hydration levels, bathroom visits) reveals any insights that are not already captured in the medical record but are relevant to their clinical risks, include them here in 1-2 short sentences. For example, "Toilet color level has been consistently at Level 4 (Dehydrated) for the past week, which may be contributing to orthostatic symptoms."]
@@ -1689,7 +1713,7 @@ def get_system_prompt(patient_id: str = "") -> str:
     patient_desc = get_patient_desc(patient_id)
 
     nhh_desc = f"""
-    # ROLE: Elder-care assitant
+    # ROLE: Elder-care assistant
 
     # CONTEXT 
     You are a calm, friendly elder-care assistant. You are speaking directly to the following user:
@@ -1786,6 +1810,79 @@ def get_check_in_prompt(mode: str = ""):
 @app.get("/api/generate-report")
 def generate_report(patient_id: str = "", patient_name: str = "", description: str = "", included_metrics: list = None):
     pass
+
+@app.get("/api/family-summary")
+def generate_family_summary(patient_id: str = ""):
+    return {"status": "warn", "summary": "Yesterday Frank walked less than usual (low daily steps) and had a high fall-risk pattern, along with moderate dehydration despite eating only two meals. He slept very little, which may add to dizziness risk. With his diuretic and past near-falls, it would help to focus on steady fluids, safe movement, and a medication/vitals check at the upcoming visits."}
+    client = get_openai_client()
+    
+    vitals = get_patient_dashboard(patient_id)
+    patient_desc = get_patient_desc(patient_id)
+
+    home_analyst = f"""
+    # ROLE: Elder-care Assistant
+
+    # CONTEXT 
+    You are a calm, friendly Smart Home Hub assistant. Your goal is to synthesize yesterday's Smart Home data for the family into a concise summary so they can decide which data is most important.  
+    You are speaking directly to the family of the following user:
+    
+    {patient_desc}
+
+    # TONE
+    - Compassionate, vigilant, and respectful. 
+    - Brief and Direct: Aim for roughly 40-50 words.
+
+    # RESTRICTIONS
+    DO NOT give medical diagnoses. These insights are being interpreted by this patient's family, not a medical professional. Therefore, avoid medical jargon entirely. Focus instead on clear, actionable advice.
+
+    # OUTPUT FORMAT (MANDATORY JSON)
+    Use plain text; no markdown. 
+
+    KEY: "status"
+    VALUE: ["good", "fair", or "warn" depending on the severity of the summary]
+
+    KEY: "summary"
+    VALUE: 
+    High-level summary of the patient's health and wellbeing, connecting the dots in a way that a family member would understand. Describe trends rather than listing raw data points. No Data Bloat: Avoid listing specific metrics (e.g., skip the "58g" or "6/11 score"). Do not overwhelm them with technical details. Connective Logic: Briefly link the physical state to the cause.
+    
+    Briefly touch on how they have been sleeping, moving, and eating, and how these may be connected. Prioritise any concerning trends or patterns that may require attention. If everything looks stable, reassure them with a positive summary.
+
+    # Example of a good summary:
+    e.g. 'She/He only slept 4.2 hours last night and she/he logged only 1021 steps today, so she/he may be feeling fatigued. Her/His resting heart rate is 52 BPM — slightly low given her/his medication. Mild stress levels have been recorded today, so she/he may be feeling a bit overwhelmed.'
+
+    # --- DATA SECTION ---
+
+    ## YESTERDAY'S VITALS: 
+
+    {vitals}
+
+    """
+
+    response = client.responses.create(
+        model="gpt-5.4-nano",
+        instructions=home_analyst,
+        input="Generate a short summary of the patient's Garmin and Home Appliance data for their family.",
+        text={
+            "format": {
+                "type": "json_schema",
+                "name": "family_summary",
+                "strict": True,
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "status": {"type": "string", "enum": ["good", "fair", "warn"]},
+                        "summary": {"type": "string"}
+                    },
+                    "required": ["status", "summary"],
+                    "additionalProperties": False
+                }
+            }
+        }
+    )
+    
+    family_answer = response.output_text
+    return json.loads(family_answer)
+
 # ── AI response endpoints ────────────────────────────────────────────────────────
 
 @app.post("/api/answer/stream")

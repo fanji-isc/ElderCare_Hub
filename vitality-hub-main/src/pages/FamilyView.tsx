@@ -108,18 +108,6 @@ function nutritionStatus(mealsCount: number) {
   return  { label: `${mealsCount} meals tracked`, color: colour};
 }
 
-function overallStatus(vitals: Vitals) {
-  const s = [
-    sleepStatus(vitals.sleepHours).status,
-    heartStatus(vitals.heartRate).status,
-    stepsStatus(vitals.steps).status,
-    stressStatus(vitals.stressLevel).status,
-  ];
-  if (s.includes("warn")) return "warn";
-  if (s.includes("fair")) return "fair";
-  return "good";
-}
-
 // ── MedicationDetail ──────────────────────────────────────────────────────────
 function MedicationDetail() {
   const [meds, setMeds] = useState<Med[]>([]);
@@ -358,6 +346,7 @@ const FamilyView = () => {
   const [stepHistory, setStepHistory] = useState<{ day: string; steps: number }[]>([]);
   const [hydrationLevel, setHydrationLevel] = useState(0);
   const [gaitMetrics, setGaitMetrics] = useState({ symmetry: 0, variability: 0, speed: 0, cadence: 0, worseStride: 0, worseGCT: 0 });
+  const [familySummary, setFamilySummary] = useState<{ status: string; summary: string } | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [openModal, setOpenModal] = useState<string | null>(null);
   const [incomingCall, setIncomingCall] = useState(false);
@@ -473,18 +462,24 @@ const FamilyView = () => {
   useEffect(() => {
     (async () => {
       try {
-        const [dailyRes, sleepRes, toiletRes, gaitRes, fridgeRes] = await Promise.all([
+        const [dailyRes, sleepRes, toiletRes, gaitRes, fridgeRes, summaryRes] = await Promise.all([
           fetch(`${API_BASE}/api/iris_data?patient_id=${HOME_ID}&column=dailySummary`),
           fetch(`${API_BASE}/api/iris_data?patient_id=${HOME_ID}&column=sleep`),
           fetch(`${API_BASE}/api/iris_data?patient_id=${HOME_ID}&column=toilet`),
           fetch(`${API_BASE}/api/iris_data?patient_id=${HOME_ID}&column=gait`),
           fetch(`${API_BASE}/api/iris_data?patient_id=${HOME_ID}&column=fridge`),
+          fetch(`${API_BASE}/api/family-summary?patient_id=${HOME_ID}`),
         ]);
         const dailyJson = dailyRes.ok ? await dailyRes.json() : [];
         const sleepJson = sleepRes.ok ? await sleepRes.json() : [];
         const toiletJson: any[] = toiletRes.ok ? await toiletRes.json() : [];
         const gaitJson: any[] = gaitRes.ok ? await gaitRes.json() : [];
         const fridgeJson: any[] = fridgeRes.ok ? await fridgeRes.json() : [];
+
+        if (summaryRes.ok) {
+          const summaryData = await summaryRes.json();
+          setFamilySummary(summaryData);
+        }
     
         // Derive gait risk from latest day's sessions (average key metrics)
         const latestGait = [...gaitJson]
@@ -538,15 +533,27 @@ const FamilyView = () => {
           sleepHours: extractSleep(sleepJson),
           mealsCount: (latestFridge.mealsDetected ?? []).length
         });
-      } catch { /* silent */ }
+      } catch (error) {
+        console.error("Error loading data:", error);
+      }
       finally { setLoaded(true); }
     })();
   }, []);
 
+  if (!loaded || !familySummary) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent mx-auto mb-4"></div>
+          <p className="text-muted-foreground animate-pulse">Loading {first_name}'s health dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
   const sleep     = sleepStatus(vitals.sleepHours);
   const heart     = heartStatus(vitals.heartRate);
   const steps     = stepsStatus(vitals.steps);
-  const stress    = stressStatus(vitals.stressLevel);
   const stepsTrend = (() => {
     if (stepHistory.length < 2) return { label: steps.label, subtitle: undefined };
     const prev = stepHistory.slice(0, -1).reduce((s, d) => s + d.steps, 0) / (stepHistory.length - 1);
@@ -557,42 +564,32 @@ const FamilyView = () => {
     if (pct >= 20)  return { label: `${curr.toLocaleString()} steps · ↑ ${pct}%`, subtitle: undefined };
     return { label: steps.label, subtitle: undefined };
   })();
-
+  const stress    = stressStatus(vitals.stressLevel);
+  const stressBarColor = stress.status === "good" ? "bg-emerald-500" : stress.status === "fair" ? "bg-amber-500" : "bg-rose-500";
   const hydration = hydrationStatus(hydrationLevel);
   const gait      = gaitStatus(gaitMetrics.symmetry, gaitMetrics.variability, gaitMetrics.speed, gaitMetrics.cadence, gaitMetrics.worseStride, gaitMetrics.worseGCT);
   const nutrition = nutritionStatus(vitals.mealsCount)
-  const overall = loaded ? overallStatus(vitals) : "good";
 
   const statusConfig = {
     good: {
       icon: ShieldCheck, gradient: "from-emerald-50 to-teal-50", border: "border-emerald-200",
       iconBg: "bg-emerald-500", text: "text-emerald-900", sub: "text-emerald-700",
       badge: "bg-emerald-100 text-emerald-700 border border-emerald-200",
-      message: `${first_name} is doing well today`, sub2: "All vitals look healthy — no concerns to report.",
+      title: `${first_name} is doing well today`
     },
     fair: {
       icon: AlertCircle, gradient: "from-amber-50 to-yellow-50", border: "border-amber-200",
       iconBg: "bg-amber-500", text: "text-amber-900", sub: "text-amber-700",
       badge: "bg-amber-100 text-amber-700 border border-amber-200",
-      message: `${first_name} is generally okay`, sub2: "A few things are slightly off — worth keeping an eye on.",
+      title: `${first_name} is generally okay`
     },
     warn: {
       icon: AlertTriangle, gradient: "from-rose-50 to-red-50", border: "border-rose-200",
       iconBg: "bg-rose-500", text: "text-rose-900", sub: "text-rose-700",
       badge: "bg-rose-100 text-rose-700 border border-rose-200",
-      message: `${first_name} may need your attention`, sub2: "Some vitals are outside the normal range — consider checking in.",
+      title: `${first_name} may need your attention`
     },
-  }[overall];
-
-  const StatusIcon = statusConfig.icon;
-
-  const highlights: string[] = [];
-  if (vitals.sleepHours > 0) highlights.push(sleep.status === "good" ? `He slept ${vitals.sleepHours.toFixed(1)} hours, so he should be feeling well rested.` : `He only slept ${vitals.sleepHours.toFixed(1)} hours last night.`);
-  if (vitals.steps > 0) highlights.push(steps.status === "good" ? `He's been active with ${vitals.steps.toLocaleString()} steps today.` : `He logged ${vitals.steps.toLocaleString()} steps today — try and encourage him to go for a walk.`);
-  if (vitals.heartRate > 0) highlights.push(`His resting heart rate is ${vitals.heartRate} BPM — ${heart.label.toLowerCase()}.`);
-  highlights.push(stress.status === "good" ? "He is feeling calm today." : `${stress.label} levels have been recorded today.`);
-
-  const stressBarColor = stress.status === "good" ? "bg-emerald-500" : stress.status === "fair" ? "bg-amber-500" : "bg-rose-500";
+  }[familySummary.status];
 
   const renderModalContent = () => {
     switch (openModal) {
@@ -875,14 +872,14 @@ const FamilyView = () => {
         <div className={`mb-6 rounded-2xl border bg-gradient-to-r overflow-hidden shadow-card ${statusConfig.gradient} ${statusConfig.border}`}>
           <div className="flex items-start gap-4 p-5">
             <div className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl shadow-sm ${statusConfig.iconBg}`}>
-              <StatusIcon className="h-5 w-5 text-white" />
+              <statusConfig.icon className="h-5 w-5 text-white" />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-2 mb-1">
-                <h3 className={`text-base font-bold ${statusConfig.text}`}>{statusConfig.message}</h3>
+                <h3 className={`text-base font-bold ${statusConfig.text}`}>{statusConfig.title}</h3>
               </div>
-              {highlights.length > 0 && (
-                <p className="mt-2 text-sm text-foreground/75 leading-relaxed">{highlights.join(" ")}</p>
+              {(
+                <p className="mt-2 text-sm text-foreground/75 leading-relaxed">{familySummary.summary}</p>
               )}
             </div>
           </div>
