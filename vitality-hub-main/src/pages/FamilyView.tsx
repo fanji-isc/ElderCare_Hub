@@ -1,26 +1,25 @@
 import { useState, useEffect, useRef } from "react";
+import { Header } from "@/components/Header";
+import { HeartRateChart } from "@/components/HeartRateChart";
+import { ECGVisualization } from "@/components/ECGVisualization";
+import { SleepChart } from "@/components/SleepChart";
+import { HydrationIndicator } from "@/components/HydrationIndicator";
+import { WalkingActivityChart } from "@/components/WalkingActivityChart";
+import { SmartFridgeCard } from "@/components/SmartFridgeCard";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Heart, Moon, Utensils, Brain, Footprints, Shield, Droplets, Pill,
   ShieldCheck, AlertCircle, AlertTriangle,
   Phone, PhoneOff, PhoneIncoming, PhoneCall, Share2,
   Calendar, CheckSquare, Square,
 } from "lucide-react";
-import { Header } from "@/components/Header";
-import { HeartRateChart } from "@/components/HeartRateChart";
-import { SleepChart } from "@/components/SleepChart";
-import { WalkingActivityChart } from "@/components/WalkingActivityChart";
-import { SmartFridgeCard } from "@/components/SmartFridgeCard";
-import { ECGVisualization } from "@/components/ECGVisualization";
-import { HydrationIndicator } from "@/components/HydrationIndicator";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine,
 } from "recharts";
 import { toast } from "sonner";
 
-type Vitals = { heartRate: number; steps: number; stressLevel: number; sleepHours: number;  mealsCount: number; hydrationNote: string; hydrationColorLevel: number; 
-                waterLiters: number; expiringItems: string[]; currentItems: string[]; gaitNote: string; fallRiskAlert: boolean; }; 
+type Vitals = { steps: number; stressLevel: number; };
 type Med = { drug: string; status: string; authored: string; dosage: string };
 type Appt = { status: string; start: string; end: string; type: string; practitioner: string; location: string };
 
@@ -29,62 +28,53 @@ const HOME_ID = "PATIENT_001";
 const first_name = "Frank";
 const last_name = "Larson";
 
-// ── Health card status helpers ─────────────────────────────────────────────────
-function heartStatus(bpm: number) {
-  if (bpm === 0)              return { label: "No data",           color: "text-muted-foreground" };
-  if (bpm >= 55 && bpm <= 85) return { label: "Normal range",      color: "text-emerald-600" };
-  if (bpm > 85 && bpm <= 100) return { label: "Slightly elevated", color: "text-amber-600" };
-  if (bpm < 55 && bpm > 0)    return { label: "Slightly low",      color: "text-amber-600" };
-  return                       { label: "Check with doctor",       color: "text-rose-600" };
+// ── ModalCard ─────────────────────────────────────────────────────────────────
+function ModalCard({
+  icon: Icon, iconBg, gradient, title, subtitle, children,
+}: {
+  icon: React.ElementType; iconBg: string; gradient: string;
+  title: string; subtitle?: string; children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-2xl bg-card shadow-card overflow-hidden">
+      <div className={`flex items-center gap-3 border-b border-border px-5 py-3.5 bg-gradient-to-r ${gradient}`}>
+        <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${iconBg} text-primary-foreground`}>
+          <Icon className="h-4 w-4" />
+        </div>
+        <div className="flex-1">
+          <p className="text-sm font-semibold text-foreground leading-tight">{title}</p>
+          {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
+        </div>
+        <span title="HIPAA Protected Health Information" className="flex-shrink-0"><HipaaShieldIcon className="h-4 w-4" /></span>
+      </div>
+      <div className="p-5">{children}</div>
+    </div>
+  );
 }
 
-function stepsStatus(steps: number) {
-  if (steps === 0)   return { label: "No data",              note: "Activity data unavailable",                              color: "text-muted-foreground" };
-  if (steps >= 5000) return { label: "Very active",          note: `${steps.toLocaleString()} steps — excellent!`,           color: "text-emerald-600" };
-  if (steps >= 2500) return { label: "Moderately active",    note: `${steps.toLocaleString()} steps — good movement`,        color: "text-emerald-600" };
-  if (steps >= 1000) return { label: "Light activity",       note: `${steps.toLocaleString()} steps — quieter day`,          color: "text-amber-600" };
-  return                    { label: "Very little movement", note: `${steps.toLocaleString()} steps — may want to check in`, color: "text-rose-600" };
-}
-
-function stressStatus(v: number) {
-  if (v === 0)  return { label: "Calm",        note: "Stress levels look great",       color: "text-emerald-600", status: "good" as const };
-  if (v <= 35)  return { label: "Calm",        note: "Very relaxed today",             color: "text-emerald-600", status: "good" as const };
-  if (v <= 60)  return { label: "Mild stress", note: "Some stress — likely normal",    color: "text-amber-600",   status: "fair" as const };
-  return        { label: "High stress",  note: "Elevated stress — worth a call", color: "text-rose-600",    status: "warn" as const };
-}
-
-function sleepStatus(h: number) {
-  if (h === 0)   return { label: "No data",       color: "text-muted-foreground" };
-  if (h >= 7)    return { label: "Well rested",   color: "text-emerald-600" };
-  if (h >= 5.5)  return { label: "Light sleep",   color: "text-amber-600" };
-  return          { label: "Poor sleep",          color: "text-rose-600" };
-}
-
-function hydrationStatus(level: number) {
-  if (level === 0) return { label: "No data",          color: "text-muted-foreground" };
-  if (level <= 2)  return { label: "Excellent",        color: "text-emerald-600" };
-  if (level <= 3)  return { label: "Normal",           color: "text-emerald-600" };
-  if (level <= 4)  return { label: "Drink More Water", color: "text-amber-600" };
-  if (level <= 5)  return { label: "Mild Dehydration", color: "text-amber-600" };
-  if (level <= 6)  return { label: "Dehydrated",       color: "text-rose-600" };
-  return                  { label: "Very Dehydrated",  color: "text-rose-600" };
-}
-
-function gaitStatus(symmetryPct: number, variabilityPct: number, speedMs: number, cadence: number, worseStride: number, worseGCT: number) {
-  if (symmetryPct === 0) return { label: "No data",  color: "text-muted-foreground" };
-  const isHigh = cadence < 80  || speedMs < 0.7  || worseStride < 90  || worseGCT > 950 || symmetryPct < 78  || variabilityPct > 10;
-  if (isHigh) return { label: "Irregular gait",      color: "text-rose-600" };
-  const isMed  = cadence < 100 || speedMs < 1.0  || worseStride < 140 || worseGCT > 650 || symmetryPct < 95  || variabilityPct > 5;
-  if (isMed)  return { label: "Some asymmetry",      color: "text-amber-600" };
-  return             { label: "Steady and Balanced", color: "text-emerald-600" };
-}
-
-function nutritionStatus(mealsCount: number) {
-  let colour = "text-emerald-600"
-  if (mealsCount === 2) colour = "text-amber-600";
-  if (mealsCount === 1) colour = "text-orange-600";
-  if (mealsCount === 0)  return  { label: `No meals tracked`, color: "text-rose-600"};
-  return  { label: `${mealsCount} meals tracked`, color: colour};
+// ── HealthCard ────────────────────────────────────────────────────────────────
+function HealthCard({
+  icon: Icon, iconBg, title, label, labelColor, subtitle, onClick,
+}: {
+  icon: React.ElementType; iconBg: string; title: string; label: string; 
+  labelColor: string; subtitle?: string; onClick: () => void;
+}) {
+  return (
+    <div
+      onClick={onClick}
+      className="rounded-2xl shadow-card overflow-hidden cursor-pointer group hover:shadow-lg transition-shadow px-5 py-6 flex flex-col justify-center bg-sky-50"
+    >
+      <div className="flex items-center gap-3 mb-4">
+        <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${iconBg}`}>
+          <Icon className="h-5 w-5" />
+        </div>
+        <span className="text-base font-semibold text-foreground flex-1">{title}</span>
+        <span title="HIPAA Protected Health Information" className="flex-shrink-0"><HipaaShieldIcon className="h-4 w-4" /></span>
+      </div>
+      <p className={`text-sm font-medium leading-tight ${labelColor}`}>{label}</p>
+      {subtitle && <p className="mt-1 text-xs text-muted-foreground leading-tight">{subtitle}</p>}
+    </div>
+  );
 }
 
 // ── MedicationDetail ──────────────────────────────────────────────────────────
@@ -260,65 +250,16 @@ function HipaaShieldIcon({ className }: { className?: string }) {
   );
 }
 
-// ── ModalCard ─────────────────────────────────────────────────────────────────
-function ModalCard({
-  icon: Icon, iconBg, gradient, title, subtitle, children,
-}: {
-  icon: React.ElementType; iconBg: string; gradient: string;
-  title: string; subtitle?: string; children: React.ReactNode;
-}) {
-  return (
-    <div className="rounded-2xl bg-card shadow-card overflow-hidden">
-      <div className={`flex items-center gap-3 border-b border-border px-5 py-3.5 bg-gradient-to-r ${gradient}`}>
-        <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${iconBg} text-primary-foreground`}>
-          <Icon className="h-4 w-4" />
-        </div>
-        <div className="flex-1">
-          <p className="text-sm font-semibold text-foreground leading-tight">{title}</p>
-          {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
-        </div>
-        <span title="HIPAA Protected Health Information" className="flex-shrink-0"><HipaaShieldIcon className="h-4 w-4" /></span>
-      </div>
-      <div className="p-5">{children}</div>
-    </div>
-  );
-}
-
-// ── HealthCard ────────────────────────────────────────────────────────────────
-function HealthCard({
-  icon: Icon, iconBg, title, label, labelColor, subtitle, onClick,
-}: {
-  icon: React.ElementType; iconBg: string; title: string; label: string; 
-  labelColor: string; subtitle?: string; onClick: () => void;
-}) {
-  return (
-    <div
-      onClick={onClick}
-      className="rounded-2xl shadow-card overflow-hidden cursor-pointer group hover:shadow-lg transition-shadow px-5 py-6 flex flex-col justify-center bg-sky-50"
-    >
-      <div className="flex items-center gap-3 mb-4">
-        <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${iconBg}`}>
-          <Icon className="h-5 w-5" />
-        </div>
-        <span className="text-base font-semibold text-foreground flex-1">{title}</span>
-        <span title="HIPAA Protected Health Information" className="flex-shrink-0"><HipaaShieldIcon className="h-4 w-4" /></span>
-      </div>
-      <p className={`text-sm font-medium leading-tight ${labelColor}`}>{label}</p>
-      {subtitle && <p className="mt-1 text-xs text-muted-foreground leading-tight">{subtitle}</p>}
-    </div>
-  );
-}
-
 // ─── Page ─────────────────────────────────────────────────────────────────────
 const FamilyView = () => {
   // Card data states
-  const emptyVitals: Vitals = { heartRate: 0, steps: 0, stressLevel: 0, sleepHours: 0, hydrationNote: "", hydrationColorLevel: 0, waterLiters: 0, expiringItems: [], currentItems: [], mealsCount: 0, gaitNote: "", fallRiskAlert: false };
+  const emptyVitals: Vitals = { steps: 0, stressLevel: 0 };
   const [vitals, setVitals] = useState<Vitals>(emptyVitals);
   const vitalsRef = useRef<Vitals>(emptyVitals);
   vitalsRef.current = vitals;
   const [stepHistory, setStepHistory] = useState<{ day: string; steps: number }[]>([]);
-  const [gaitMetrics, setGaitMetrics] = useState({ symmetry: 0, variability: 0, speed: 0, cadence: 0, worseStride: 0, worseGCT: 0 });
   const [stepMetrics, setStepMetrics] = useState({ stepsTrend: "", avgSteps: "", maxSteps: "", prevAvgSteps: 0, trendPctSteps: 0, trendStepsUp: false });
+  const [healthStatus, setHealthStatus] = useState({ sleep: {}, heart: {}, stress: {}, steps: {}, hydration: {}, gait: {}, nutrition: {} });
   const [familySummary, setFamilySummary] = useState<{ status: string; summary: string } | null>(null);
   const [loaded, setLoaded] = useState(false);
   // UI states
@@ -444,12 +385,6 @@ const FamilyView = () => {
         setVitals(loaded);
         vitalsRef.current = loaded;
 
-        // Extract latest session gait metrics for health card status
-        const incomingGaitMetrics = dashboardData.gaitMetrics || {};
-        setGaitMetrics({ 
-            ...incomingGaitMetrics 
-        });
-
         // Extract latest session step metrics for health card status
         const incomingStepMetrics = dashboardData.stepMetrics || {};
         setStepMetrics({
@@ -461,6 +396,10 @@ const FamilyView = () => {
 
         // Fetch AI family summary
         if (summaryRes.ok) setFamilySummary(await summaryRes.json());
+
+        // Build health card status values
+        const allStatus = dashboardData.status;
+        setHealthStatus({...allStatus});
 
       } catch (error) {
         console.error("Error loading data:", error);
@@ -474,19 +413,11 @@ const FamilyView = () => {
       <div className="flex h-screen items-center justify-center bg-background">
         <div className="text-center">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent mx-auto mb-4"></div>
-          <p className="text-muted-foreground animate-pulse">Loading {first_name}'s health dashboard...</p>
+          <p className="text-muted-foreground animate-pulse">Loading {first_name}'s home data...</p>
         </div>
       </div>
     );
   }
-
-  const sleep     = sleepStatus(vitals.sleepHours);
-  const heart     = heartStatus(vitals.heartRate);
-  const steps     = stepsStatus(vitals.steps);
-  const stress    = stressStatus(vitals.stressLevel);
-  const hydration = hydrationStatus(vitals.hydrationColorLevel);
-  const gait      = gaitStatus(gaitMetrics.symmetry, gaitMetrics.variability, gaitMetrics.speed, gaitMetrics.cadence, gaitMetrics.worseStride, gaitMetrics.worseGCT);
-  const nutrition = nutritionStatus(vitals.mealsCount)
 
   const statusConfig = {
     good: {
@@ -509,17 +440,17 @@ const FamilyView = () => {
       case "sleep": return <SleepChart />;
       case "stress":
         return (
-          <ModalCard icon={Brain} iconBg="bg-stress" gradient="from-purple-50 to-violet-50" title="Stress" subtitle={stress.note}>
+          <ModalCard icon={Brain} iconBg="bg-stress" gradient="from-purple-50 to-violet-50" title="Stress" subtitle={healthStatus.stress.note}>
             <div className="space-y-4 max-w-md">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Score today</span>
-                <span className={`text-2xl font-bold ${stress.color}`}>
+                <span className={`text-2xl font-bold ${healthStatus.stress.color}`}>
                   {vitals.stressLevel > 0 ? vitals.stressLevel : "—"}
                   <span className="text-sm font-normal text-muted-foreground"> / 100</span>
                 </span>
               </div>
               <div className="h-3 rounded-full bg-muted overflow-hidden">
-                <div className={`h-full rounded-full transition-all ${stress.status === "good" ? "bg-emerald-500" : stress.status === "fair" ? "bg-amber-500" : "bg-rose-500"}`} style={{ width: `${vitals.stressLevel}%` }} />
+                <div className={`h-full rounded-full transition-all ${healthStatus.stress.status === "good" ? "bg-emerald-500" : healthStatus.stress.status === "fair" ? "bg-amber-500" : "bg-rose-500"}`} style={{ width: `${vitals.stressLevel}%` }} />
               </div>
               <div className="grid grid-cols-3 gap-2 text-center text-xs">
                 <span className="rounded-lg bg-emerald-50 px-2 py-2 text-emerald-700 font-medium">0-35 · Calm</span>
@@ -535,15 +466,15 @@ const FamilyView = () => {
       case "steps": 
         return (
           <ModalCard icon={Footprints} iconBg="bg-ecg" gradient="from-blue-50 to-sky-50"
-            title="Steps Today" subtitle={steps.note}>
+            title="Steps Today" subtitle={healthStatus.steps.note}>
             <div className="space-y-5">
               {/* Today + trend vs recent average */}
               <div className="flex items-end justify-between">
                 <div>
-                  <p className={`text-4xl font-bold ${steps.color}`}>
+                  <p className={`text-4xl font-bold ${healthStatus.steps.color}`}>
                     {vitals.steps > 0 ? vitals.steps.toLocaleString() : "—"}
                   </p>
-                  <p className="mt-0.5 text-sm text-muted-foreground">{steps.label} today</p>
+                  <p className="mt-0.5 text-sm text-muted-foreground">{healthStatus.steps.label} today</p>
                 </div>
                 {stepMetrics.prevAvgSteps > 0 && (
                   <div className={`text-right ${stepMetrics.trendStepsUp ? "text-emerald-600" : "text-rose-600"}`}>
@@ -774,13 +705,13 @@ const FamilyView = () => {
 
         {/* ── 9-card grid (3 × 3) ───────────────────────────────────── */}
         <div className="grid grid-cols-3 gap-3">
-          <HealthCard icon={Heart}      iconBg="bg-heart/15 text-heart"           title="Heart Health"     label={heart.label}           labelColor={heart.color}     onClick={() => setOpenModal("heart")} />
-          <HealthCard icon={Moon}       iconBg="bg-sleep/15 text-sleep"           title="Sleep Analysis"   label={sleep.label}           labelColor={sleep.color}     onClick={() => setOpenModal("sleep")} />
-          <HealthCard icon={Utensils}   iconBg="bg-teal-500/15 text-teal-600"     title="Nutrition & Diet" label={nutrition.label}       labelColor={nutrition.color} onClick={() => setOpenModal("nutrition")} />
-          <HealthCard icon={Brain}      iconBg="bg-stress/15 text-stress"         title="Stress"           label={stress.label}          labelColor={stress.color}    onClick={() => setOpenModal("stress")} />
-          <HealthCard icon={Footprints} iconBg="bg-ecg/15 text-ecg"               title="Steps Today"      label={stepMetrics.stepsTrend} labelColor={steps.color}     onClick={() => setOpenModal("steps")} />
-          <HealthCard icon={Shield}     iconBg="bg-amber-500/15 text-amber-600"   title="Gait Analysis"    label={gait.label}            labelColor={gait.color}      onClick={() => setOpenModal("gait")} />
-          <HealthCard icon={Droplets}   iconBg="bg-teal-500/15 text-teal-600"     title="Hydration"        label={hydration.label}       labelColor={hydration.color} onClick={() => setOpenModal("hydration")} />
+          <HealthCard icon={Heart}      iconBg="bg-heart/15 text-heart"           title="Heart Health"     label={healthStatus.heart.label}           labelColor={healthStatus.heart.color}     onClick={() => setOpenModal("heart")} />
+          <HealthCard icon={Moon}       iconBg="bg-sleep/15 text-sleep"           title="Sleep Analysis"   label={healthStatus.sleep.label}           labelColor={healthStatus.sleep.color}     onClick={() => setOpenModal("sleep")} />
+          <HealthCard icon={Utensils}   iconBg="bg-teal-500/15 text-teal-600"     title="Nutrition & Diet" label={healthStatus.nutrition.label}       labelColor={healthStatus.nutrition.color} onClick={() => setOpenModal("nutrition")} />
+          <HealthCard icon={Brain}      iconBg="bg-stress/15 text-stress"         title="Stress"           label={healthStatus.stress.label}          labelColor={healthStatus.stress.color}    onClick={() => setOpenModal("stress")} />
+          <HealthCard icon={Footprints} iconBg="bg-ecg/15 text-ecg"               title="Steps Today"      label={stepMetrics.stepsTrend} labelColor={healthStatus.steps.color}     onClick={() => setOpenModal("steps")} />
+          <HealthCard icon={Shield}     iconBg="bg-amber-500/15 text-amber-600"   title="Gait Analysis"    label={healthStatus.gait.label}            labelColor={healthStatus.gait.color}      onClick={() => setOpenModal("gait")} />
+          <HealthCard icon={Droplets}   iconBg="bg-teal-500/15 text-teal-600"     title="Hydration"        label={healthStatus.hydration.label}       labelColor={healthStatus.hydration.color} onClick={() => setOpenModal("hydration")} />
           <HealthCard icon={Pill}       iconBg="bg-blue-500/15 text-blue-600"     title="Medication"       label="Active Rx"              labelColor="text-blue-600"    onClick={() => setOpenModal("medication")} />
           <HealthCard icon={Calendar}   iconBg="bg-violet-500/15 text-violet-600" title="Appointments"     label="Upcoming"               labelColor="text-violet-600"  onClick={() => setOpenModal("appointments")} />
         </div>
