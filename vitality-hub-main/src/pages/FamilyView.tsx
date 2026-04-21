@@ -62,11 +62,11 @@ function heartStatus(bpm: number) {
 }
 
 function stepsStatus(steps: number) {
-  if (steps === 0)   return { label: "No data",            note: "Activity data unavailable",                        color: "text-muted-foreground", status: "fair" as const };
-  if (steps >= 5000) return { label: "Very active",        note: `${steps.toLocaleString()} steps — excellent!`,     color: "text-emerald-600",       status: "good" as const };
-  if (steps >= 2500) return { label: "Moderately active",  note: `${steps.toLocaleString()} steps — good movement`,  color: "text-emerald-600",       status: "good" as const };
-  if (steps >= 1000) return { label: "Light activity",     note: `${steps.toLocaleString()} steps — quieter day`,    color: "text-amber-600",         status: "fair" as const };
-  return             { label: "Very little movement", note: `${steps.toLocaleString()} steps — may want to check in`, color: "text-rose-600",       status: "warn" as const };
+  if (steps === 0)   return { label: "No data",              note: "Activity data unavailable",                              color: "text-muted-foreground",  status: "fair" as const };
+  if (steps >= 5000) return { label: "Very active",          note: `${steps.toLocaleString()} steps — excellent!`,           color: "text-emerald-600",       status: "good" as const };
+  if (steps >= 2500) return { label: "Moderately active",    note: `${steps.toLocaleString()} steps — good movement`,        color: "text-emerald-600",       status: "good" as const };
+  if (steps >= 1000) return { label: "Light activity",       note: `${steps.toLocaleString()} steps — quieter day`,          color: "text-amber-600",         status: "fair" as const };
+  return                    { label: "Very little movement", note: `${steps.toLocaleString()} steps — may want to check in`, color: "text-rose-600",          status: "warn" as const };
 }
 
 function stressStatus(v: number) {

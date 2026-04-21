@@ -106,11 +106,11 @@ def build_neighbourhood_context(patient_id: str = ""):
 def extract_steps(dailySummaryJson: list, vitals_steps: int) -> tuple[list, dict]:
     def stepsStatus(steps: int) -> str:
         if steps == 0:    return "No data"
-        if steps >= 5000: return "Very active"
-        if steps >= 2500: return "Moderately active"
-        if steps >= 1000: return "Light activity"
-        return                   "Very little movement"
-    
+        if steps >= 5000: return f"{vitals_steps} steps · Very active"
+        if steps >= 2500: return f"{vitals_steps} steps · Moderately active"
+        if steps >= 1000: return f"{vitals_steps} steps · Light activity"
+        return                   f"{vitals_steps} steps · Very little movement"
+
     all_days = sorted(
         [d for d in dailySummaryJson if d.get("calendarDate")],
         key=lambda x: x.get("calendarDate")
@@ -144,9 +144,9 @@ def extract_steps(dailySummaryJson: list, vitals_steps: int) -> tuple[list, dict
                 step_metrics["trendPctSteps"] = pct_change
                 step_metrics["trendStepsUp"] = pct_change >= 0
                 if pct_change >= 20:
-                    step_metrics["stepsTrend"] = f"{stepsStatus(vitals_steps)} · ↑ {pct_change}%"
+                    step_metrics["stepsTrend"] = f"{vitals_steps} steps · ↑ {pct_change}%"
                 elif pct_change <= -20:
-                    step_metrics["stepsTrend"] = f"{stepsStatus(vitals_steps)} · ↓ {abs(pct_change)}%"
+                    step_metrics["stepsTrend"] = f"{vitals_steps} steps · ↓ {abs(pct_change)}%"
     return step_history, step_metrics
 
 def extract_fridge(patient_id: str = "") -> dict:
@@ -622,7 +622,7 @@ def get_patient_dashboard(patient_id: str = "") -> dict:
         "steps": steps,
         "stepHistory": stepHistory,
         "stepMetrics": stepMetrics,
-        "stressLevel": stressLevel,
+        "stressLevel": min(stressLevel, 100),
         "sleepHours": hoursAsleep,
         "hydrationNote": hydrationNote,
         "hydrationColorLevel": hydrationColorLevel,

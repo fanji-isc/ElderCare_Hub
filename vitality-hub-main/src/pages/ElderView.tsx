@@ -38,14 +38,6 @@ type Vitals = {
   mealsCount: number;
   gaitNote: string;
   fallRiskAlert: boolean;
-  stepMetrics: {
-    stepsTrend: string;
-    avgSteps: string;
-    maxSteps: string;
-    prevAvgSteps: number;
-    trendPctSteps: number;
-    trendStepsUp: boolean;
-  };
 }; 
 type Msg = { role: "user" | "assistant"; content: string };
 type Med = { drug: string; status: string; authored: string; dosage: string };
@@ -53,52 +45,52 @@ type Appt = { status: string; start: string; end: string; type: string; practiti
 
 // ── Health card status helpers ─────────────────────────────────────────────────
 function heartStatus(bpm: number) {
-  if (bpm === 0)              return { label: "No data",           note: "Heart rate unavailable",                   color: "text-muted-foreground",  status: "fair" as const };
-  if (bpm >= 55 && bpm <= 85) return { label: "Normal range",      note: `${bpm} BPM — healthy resting rate`,        color: "text-emerald-600",       status: "good" as const };
-  if (bpm > 85 && bpm <= 100) return { label: "Slightly elevated", note: `${bpm} BPM — monitor if it persists`,      color: "text-amber-600",         status: "fair" as const };
-  if (bpm < 55 && bpm > 0)    return { label: "Slightly low",      note: `${bpm} BPM — could be normal if athletic`, color: "text-amber-600",         status: "fair" as const };
-  return                             { label: "Check with doctor",  note: `${bpm} BPM — outside normal range`,       color: "text-rose-600",          status: "warn" as const };
+  if (bpm === 0)              return { label: "No data",           color: "text-muted-foreground" };
+  if (bpm >= 55 && bpm <= 85) return { label: "Normal range",      color: "text-emerald-600" };
+  if (bpm > 85 && bpm <= 100) return { label: "Slightly elevated", color: "text-amber-600" };
+  if (bpm < 55 && bpm > 0)    return { label: "Slightly low",      color: "text-amber-600" };
+  return                             { label: "Check with doctor", color: "text-rose-600" };
 }
 
 function stepsStatus(steps: number) {
-  if (steps === 0)   return { label: "No data",            note: "Activity data unavailable",                          color: "text-muted-foreground",  status: "fair" as const };
-  if (steps >= 5000) return { label: "Very active",        note: `${steps.toLocaleString()} steps — excellent!`,       color: "text-emerald-600",       status: "good" as const };
-  if (steps >= 2500) return { label: "Moderately active",  note: `${steps.toLocaleString()} steps — good movement`,    color: "text-emerald-600",       status: "good" as const };
-  if (steps >= 1000) return { label: "Light activity",     note: `${steps.toLocaleString()} steps — quieter day`,      color: "text-amber-600",         status: "fair" as const };
-  return                  { label: "Very little movement", note: `${steps.toLocaleString()} steps — try a short walk`, color: "text-rose-600",          status: "warn" as const };
+  if (steps === 0)   return { label: "No data",            note: "Activity data unavailable",         color: "text-muted-foreground" };
+  if (steps >= 5000) return { label: "Very active",        note: `${steps} steps — excellent!`,       color: "text-emerald-600" };
+  if (steps >= 2500) return { label: "Moderately active",  note: `${steps} steps — good movement`,    color: "text-emerald-600" };
+  if (steps >= 1000) return { label: "Light activity",     note: `${steps} steps — quieter day`,      color: "text-amber-600" };
+  return                  { label: "Very little movement", note: `${steps} steps — try a short walk`, color: "text-rose-600" };
 }
 
 function stressStatus(v: number) {
-  if (v === 0)  return { label: "Calm",        note: "Stress levels look great",    color: "text-emerald-600", status: "good" as const, barColor: "bg-emerald-500" };
-  if (v <= 35)  return { label: "Calm",        note: "Very relaxed today",          color: "text-emerald-600", status: "good" as const, barColor: "bg-emerald-500" };
-  if (v <= 60)  return { label: "Mild stress", note: "Some stress — likely normal", color: "text-amber-600",   status: "fair" as const, barColor: "bg-amber-500" };
-  return              { label: "High stress",  note: "Elevated — try to relax",     color: "text-rose-600",    status: "warn" as const, barColor: "bg-rose-500" };
+  if (v === 0)  return { label: "Calm",        note: "Stress levels look great",    color: "text-emerald-600", barColor: "bg-emerald-500" };
+  if (v <= 35)  return { label: "Calm",        note: "Very relaxed today",          color: "text-emerald-600", barColor: "bg-emerald-500" };
+  if (v <= 60)  return { label: "Mild stress", note: "Some stress — likely normal", color: "text-amber-600",   barColor: "bg-amber-500" };
+  return              { label: "High stress",  note: "Elevated — try to relax",     color: "text-rose-600",    barColor: "bg-rose-500" };
 }
 
 function sleepStatus(h: number) {
-  if (h === 0)  return { label: "No data",     note: "Sleep data unavailable",                   color: "text-muted-foreground",  status: "fair" as const };
-  if (h >= 7)   return { label: "Well rested", note: `${h.toFixed(1)} hrs — great for his age`,  color: "text-emerald-600",       status: "good" as const };
-  if (h >= 5.5) return { label: "Light sleep", note: `${h.toFixed(1)} hrs — a bit below ideal`,  color: "text-amber-600",         status: "fair" as const };
-  return               { label: "Poor sleep",  note: `Only ${h.toFixed(1)} hrs — worth monitoring`, color: "text-rose-600",       status: "warn" as const };
+  if (h === 0)  return { label: "No data",     color: "text-muted-foreground" };
+  if (h >= 7)   return { label: "Well rested", color: "text-emerald-600" };
+  if (h >= 5.5) return { label: "Light sleep", color: "text-amber-600" };
+  return               { label: "Poor sleep",  color: "text-rose-600" };
 }
 
 function hydrationStatus(level: number) {
-  if (level === 0) return { label: "No data",          note: "Hydration data unavailable",       color: "text-muted-foreground", status: "fair" as const };
-  if (level <= 2)  return { label: "Excellent",        note: "Well hydrated — great job!",       color: "text-emerald-600",      status: "good" as const };
-  if (level <= 3)  return { label: "Normal",           note: "Hydration looks normal",           color: "text-emerald-600",      status: "good" as const };
-  if (level <= 4)  return { label: "Drink More Water", note: "Could use a bit more water",       color: "text-amber-600",        status: "fair" as const };
-  if (level <= 5)  return { label: "Mild Dehydration", note: "Drink a glass of water now",       color: "text-amber-600",        status: "fair" as const };
-  if (level <= 6)  return { label: "Dehydrated",       note: "Needs more fluids soon",           color: "text-rose-600",         status: "warn" as const };
-  return                  { label: "Very Dehydrated",  note: "Drink water — this is important",  color: "text-rose-600",         status: "warn" as const };
+  if (level === 0) return { label: "No data",          color: "text-muted-foreground" };
+  if (level <= 2)  return { label: "Excellent",        color: "text-emerald-600" };
+  if (level <= 3)  return { label: "Normal",           color: "text-emerald-600" };
+  if (level <= 4)  return { label: "Drink More Water", color: "text-amber-600" };
+  if (level <= 5)  return { label: "Mild Dehydration", color: "text-amber-600" };
+  if (level <= 6)  return { label: "Dehydrated",       color: "text-rose-600" };
+  return                  { label: "Very Dehydrated",  color: "text-rose-600" };
 }
 
 function gaitStatus(symmetryPct: number, variabilityPct: number, speedMs: number, cadence: number, worseStride: number, worseGCT: number) {
-  if (symmetryPct === 0) return { label: "No data", note: "Gait data unavailable",          color: "text-muted-foreground", status: "fair" as const };
+  if (symmetryPct === 0) return { label: "No data",  color: "text-muted-foreground" };
   const isHigh = cadence < 80  || speedMs < 0.7  || worseStride < 90  || worseGCT > 950 || symmetryPct < 78  || variabilityPct > 10;
-  if (isHigh) return { label: "Irregular gait",     note: "Significant gait irregularities detected", color: "text-rose-600",    status: "warn" as const };
+  if (isHigh) return { label: "Irregular gait",      color: "text-rose-600" };
   const isMed  = cadence < 100 || speedMs < 1.0  || worseStride < 140 || worseGCT > 650 || symmetryPct < 95  || variabilityPct > 5;
-  if (isMed)  return { label: "Some asymmetry", note: "Some asymmetry — worth monitoring",        color: "text-amber-600",   status: "fair" as const };
-  return             { label: "Steady and Balanced",      note: "Gait looks steady and balanced",           color: "text-emerald-600", status: "good" as const };
+  if (isMed)  return { label: "Some asymmetry",      color: "text-amber-600" };
+  return             { label: "Steady and Balanced", color: "text-emerald-600" };
 }
 
 function nutritionStatus(mealsCount: number) {
@@ -134,14 +126,14 @@ function ModalCard({
 
 // ── HealthCard ────────────────────────────────────────────────────────────────
 function HealthCard({
-  icon: Icon, iconBg, cardBg, title, label, labelColor, onClick,
+  icon: Icon, iconBg, title, label, labelColor, onClick,
 }: {
-  icon: React.ElementType; iconBg: string; cardBg: string;
+  icon: React.ElementType; iconBg: string;
   title: string; label: string; labelColor: string; onClick: () => void;
 }) {
   return (
     <div onClick={onClick}
-      className={`rounded-2xl shadow-card overflow-hidden cursor-pointer group hover:shadow-lg transition-shadow px-5 py-6 flex flex-col justify-center ${cardBg}`}>
+      className={`rounded-2xl shadow-card overflow-hidden cursor-pointer group hover:shadow-lg transition-shadow px-5 py-6 flex flex-col justify-center bg-sky-50`}>
       <div className="flex items-center gap-3 mb-4">
         <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${iconBg}`}>
           <Icon className="h-5 w-5" />
@@ -276,21 +268,25 @@ const ElderView = () => {
   const today = new Date(2026, 3, 30).toLocaleDateString("en-US", {
     weekday: "long", month: "long", day: "numeric",
   });
-  // Set vitals
+  // Health card state
   const [openPanel, setOpenPanel] = useState<Panel>(null);
   const [demoOpen, setDemoOpen] = useState(false);
   const [pendingJoinId, setPendingJoinId] = useState<number | null>(null);
   const [pendingConnectId, setPendingConnectId] = useState<number | null>(null);
   const [pendingConnectName, setPendingConnectName] = useState<string>("");
-  const emptyVitals: Vitals = { heartRate: 0, steps: 0, stressLevel: 0, sleepHours: 0, hydrationNote: "", hydrationColorLevel: 0, waterLiters: 0, expiringItems: [], currentItems: [], mealsCount: 0, gaitNote: "", fallRiskAlert: false, stepMetrics: { stepsTrend: "", avgSteps: "", maxSteps: "", prevAvgSteps: 0, trendPctSteps: 0, trendStepsUp: false } };
+  const emptyVitals: Vitals = { heartRate: 0, steps: 0, stressLevel: 0, sleepHours: 0, hydrationNote: "", hydrationColorLevel: 0, waterLiters: 0, expiringItems: [], currentItems: [], mealsCount: 0, gaitNote: "", fallRiskAlert: false };
   const [vitals, setVitals] = useState<Vitals>(emptyVitals);
   const vitalsRef = useRef<Vitals>(emptyVitals);
   vitalsRef.current = vitals;
-
-  // Health card state
   const [gaitMetrics, setGaitMetrics] = useState({ symmetry: 0, variability: 0, speed: 0, cadence: 0, worseStride: 0, worseGCT: 0 });
+  const [stepMetrics, setStepMetrics] = useState({ stepsTrend: "", avgSteps: "", maxSteps: "", prevAvgSteps: 0, trendPctSteps: 0, trendStepsUp: false });
   const [stepHistory, setStepHistory] = useState<{ day: string; steps: number }[]>([]);
   const [openModal, setOpenModal] = useState<string | null>(null);
+  const modalTitle: Record<string, string> = {
+    heart: "Heart Health", sleep: "Sleep Analysis", stress: "Stress",
+    steps: "Steps Today", gait: "Gait Analysis", nutrition: "Nutrition & Diet",
+    hydration: "Hydration", medication: "Medications", appointments: "Appointments",
+  };
 
   // Phone call state
   const [callState, setCallState] = useState<"idle" | "calling" | "connected" | "declined">("idle");
@@ -317,6 +313,172 @@ const ElderView = () => {
 
   const [systemMsg, setSystemMsg] = useState<string>("");
 
+  // Fetch dashboard data on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/build-patient-dashboard?patient_id=${HOME_ID}`);
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({ detail: "Unknown Error" }));
+          throw new Error(errorData.detail || "Fetch failed");
+        }
+        const dashboardData = await res.json() as any;
+        const loaded: Vitals = {
+          ...dashboardData
+        };
+        setVitals(loaded);
+        vitalsRef.current = loaded;
+
+        // Extract latest session gait metrics for health card status
+        const incomingGaitMetrics = dashboardData.gaitMetrics || {};
+        setGaitMetrics({ 
+            ...incomingGaitMetrics 
+        });
+
+        // Extract latest session step metrics for health card status
+        const incomingStepMetrics = dashboardData.stepMetrics || {};
+        setStepMetrics({
+          ...incomingStepMetrics
+        });
+
+        // Build step history for trend chart
+        setStepHistory(dashboardData.stepHistory ?? []);
+      } catch (error) { console.error("Error fetching patient dashboard:", error); }
+    })();
+  }, []);
+
+  // ── Derived health card status values ────────────────────────────────────
+  const sleepS     = sleepStatus(vitals.sleepHours);
+  const heartS     = heartStatus(vitals.heartRate);
+  const stepsS     = stepsStatus(vitals.steps);
+  const stressS    = stressStatus(vitals.stressLevel);
+  const hydrationS = hydrationStatus(vitals.hydrationColorLevel);
+  const gaitS      = gaitStatus(gaitMetrics.symmetry, gaitMetrics.variability, gaitMetrics.speed, gaitMetrics.cadence, gaitMetrics.worseStride, gaitMetrics.worseGCT);
+  const nutritionS = nutritionStatus(vitals.mealsCount);
+
+  const renderModalContent = () => {
+    switch (openModal) {
+      case "heart":
+        return (
+          <div className="flex flex-col gap-4">
+            <HeartRateChart />
+            <ECGVisualization />
+          </div>
+        );
+      case "sleep":
+        return <SleepChart />;
+      case "stress":
+        return (
+          <ModalCard icon={Brain} iconBg="bg-stress" gradient="from-purple-50 to-violet-50"
+            title="Stress" subtitle={stressS.note}>
+            <div className="space-y-4 max-w-md">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Score today</span>
+                <span className={`text-2xl font-bold ${stressS.color}`}>
+                  {vitals.stressLevel > 0 ? vitals.stressLevel : "—"}
+                  <span className="text-sm font-normal text-muted-foreground"> / 100</span>
+                </span>
+              </div>
+              <div className="h-3 rounded-full bg-muted overflow-hidden">
+                <div className={`h-full rounded-full transition-all ${stressS.barColor}`} style={{ width: `${vitals.stressLevel}%` }} />
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                <span className="rounded-lg bg-emerald-50 px-2 py-2 text-emerald-700 font-medium">0-35 · Calm</span>
+                <span className="rounded-lg bg-amber-50 px-2 py-2 text-amber-700 font-medium">36-60 · Mild</span>
+                <span className="rounded-lg bg-rose-50 px-2 py-2 text-rose-700 font-medium">61+ · Elevated</span>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Derived from Garmin heart rate variability analysis throughout the day. Scores are averaged across awake hours only.
+              </p>
+            </div>
+          </ModalCard>
+        );
+      case "steps": {
+        return (
+          <ModalCard icon={Footprints} iconBg="bg-ecg" gradient="from-blue-50 to-sky-50"
+            title="Steps Today" subtitle={stepsS.note}>
+            <div className="space-y-5">
+              <div className="flex items-end justify-between">
+                <div>
+                  <p className={`text-4xl font-bold ${stepsS.color}`}>{vitals.steps > 0 ? vitals.steps.toLocaleString() : "—"}</p>
+                  <p className="mt-0.5 text-sm text-muted-foreground">{stepsS.label} today</p>
+                </div>
+                {stepMetrics.prevAvg > 0 && (
+                  <div className={`text-right ${stepMetrics.trendUp ? "text-emerald-600" : "text-rose-600"}`}>
+                    <p className="text-xl font-bold">{stepMetrics.trendUp ? "+" : ""}{stepMetrics.trendPct}%</p>
+                    <p className="text-xs text-muted-foreground">vs. recent avg</p>
+                  </div>
+                )}
+              </div>
+              {stepHistory.length > 1 && (
+                <div className="grid grid-cols-3 gap-3 text-center">
+                  <div className="rounded-xl bg-muted/40 p-3">
+                    <p className="text-base font-bold text-foreground">{stepMetrics.avgSteps}</p>
+                    <p className="text-xs text-muted-foreground">Daily avg</p>
+                  </div>
+                  <div className="rounded-xl bg-muted/40 p-3">
+                    <p className="text-base font-bold text-emerald-600">{stepMetrics.maxSteps}</p>
+                    <p className="text-xs text-muted-foreground">Best day</p>
+                  </div>
+                  <div className="rounded-xl bg-muted/40 p-3">
+                    <p className="text-base font-bold text-muted-foreground">{stepHistory.length}d</p>
+                    <p className="text-xs text-muted-foreground">Tracked</p>
+                  </div>
+                </div>
+              )}
+              {stepHistory.length > 1 && (
+                <>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{stepHistory.length}-day trend</p>
+                  <div className="h-52">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={stepHistory} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="stepsGradientElder" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="hsl(var(--ecg))" stopOpacity={0.35} />
+                            <stop offset="100%" stopColor="hsl(var(--ecg))" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                        <XAxis dataKey="day" tick={{ fontSize: 11, fill: "hsl(215,16%,50%)" }} axisLine={false} tickLine={false} />
+                        <YAxis tick={{ fontSize: 11, fill: "hsl(215,16%,50%)" }} axisLine={false} tickLine={false} />
+                        <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid hsl(var(--border))" }} formatter={(v: number) => [v.toLocaleString(), "Steps"]} />
+                        <ReferenceLine y={5000} stroke="hsl(var(--success))" strokeDasharray="4 4" label={{ value: "Goal 5k", fontSize: 9, fill: "hsl(var(--success))", position: "right" }} />
+                        <Area type="monotone" dataKey="steps" stroke="hsl(var(--ecg))" strokeWidth={2.5} fill="url(#stepsGradientElder)" dot={{ r: 3, fill: "hsl(var(--ecg))", strokeWidth: 0 }} isAnimationActive={false} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                </>
+              )}
+            </div>
+          </ModalCard>
+        );
+      }
+      case "gait":
+        return <WalkingActivityChart />;
+      case "nutrition":
+        return <SmartFridgeCard />;
+      case "hydration":
+        return <HydrationIndicator />;
+      case "medication":
+        return (
+          <ModalCard icon={Pill} iconBg="bg-blue-500" gradient="from-blue-50 to-indigo-50"
+            title="Medications" subtitle="Active prescriptions">
+            <MedicationDetail />
+          </ModalCard>
+        );
+      case "appointments":
+        return (
+          <ModalCard icon={Calendar} iconBg="bg-violet-500" gradient="from-violet-50 to-purple-50"
+            title="Appointments" subtitle="Upcoming scheduled visits">
+            <AppointmentsDetail />
+          </ModalCard>
+        );
+      default:
+        return null;
+    }
+  };
+
+  // Fetch system prompt on mount
   useEffect(() => {
     const fetchSystemPrompt = async () => {
       try {
@@ -384,7 +546,6 @@ const ElderView = () => {
       audio.onerror  = () => { URL.revokeObjectURL(url); audioRef.current = null; resolve(); };
       audio.play().catch(() => { URL.revokeObjectURL(url); audioRef.current = null; resolve(); });
     });
-
   const ttsReady = (text: string): string => {
     const t = text.trim().replace(/[\r\n]+/g, " ");
     return /[.!?]$/.test(t) ? t : t + ".";
@@ -397,7 +558,6 @@ const ElderView = () => {
     const buf = await fetchTTSBuffer(text, controller.signal);
     if (buf && !controller.signal.aborted) await decodeAndPlay(buf, controller.signal);
   };
-
   const streamAnswer = async (
     text: string,
     history: Msg[],
@@ -453,7 +613,8 @@ const ElderView = () => {
     return fullText;
   };
 
-  const runCheckIn = async (_v: Vitals, mode: "fall" | "mental") => {
+  // Fetch demo mode assistant message on mount
+  const runCheckIn = async (mode: "fall" | "mental") => {
     if (runningRef.current || isRecording) return;
     runningRef.current = true;
     setIsThinking(true);
@@ -517,172 +678,8 @@ const ElderView = () => {
   };
 
   useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch(`${API_BASE}/api/build-patient-dashboard?patient_id=${HOME_ID}`);
-        if (!res.ok) {
-          const errorData = await res.json().catch(() => ({ detail: "Unknown Error" }));
-          throw new Error(errorData.detail || "Fetch failed");
-        }
-        const dashboardData = await res.json() as any;
-        const loaded: Vitals = {
-          ...dashboardData
-        };
-        setVitals(loaded);
-        vitalsRef.current = loaded;
-
-        // Extract latest session gait metrics for health card status
-        const incomingMetrics = dashboardData.gaitMetrics || {};
-        setGaitMetrics({ 
-            ...incomingMetrics 
-        });
-
-        // Build step history for trend chart
-        setStepHistory(dashboardData.stepHistory ?? []);
-      } catch (error) { console.error("Error fetching patient dashboard:", error); }
-    })();
-  }, []);
-
-  useEffect(() => {
     scrollBottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isThinking]);
-
-  // ── Derived health card status values ────────────────────────────────────
-  const sleepS     = sleepStatus(vitals.sleepHours);
-  const heartS     = heartStatus(vitals.heartRate);
-  const stepsS     = stepsStatus(vitals.steps);
-  const stressS    = stressStatus(vitals.stressLevel);
-  const hydrationS = hydrationStatus(vitals.hydrationColorLevel);
-  const gaitS      = gaitStatus(gaitMetrics.symmetry, gaitMetrics.variability, gaitMetrics.speed, gaitMetrics.cadence, gaitMetrics.worseStride, gaitMetrics.worseGCT);
-  const nutritionS = nutritionStatus(vitals.mealsCount);
-
-  const renderModalContent = () => {
-    switch (openModal) {
-      case "heart":
-        return (
-          <div className="flex flex-col gap-4">
-            <HeartRateChart />
-            <ECGVisualization />
-          </div>
-        );
-      case "sleep":
-        return <SleepChart />;
-      case "stress":
-        return (
-          <ModalCard icon={Brain} iconBg="bg-stress" gradient="from-purple-50 to-violet-50"
-            title="Stress" subtitle={stressS.note}>
-            <div className="space-y-4 max-w-md">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Score today</span>
-                <span className={`text-2xl font-bold ${stressS.color}`}>
-                  {vitals.stressLevel > 0 ? vitals.stressLevel : "—"}
-                  <span className="text-sm font-normal text-muted-foreground"> / 100</span>
-                </span>
-              </div>
-              <div className="h-3 rounded-full bg-muted overflow-hidden">
-                <div className={`h-full rounded-full transition-all ${stressS.barColor}`} style={{ width: `${Math.min(100, vitals.stressLevel)}%` }} />
-              </div>
-              <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                <span className="rounded-lg bg-emerald-50 px-2 py-2 text-emerald-700 font-medium">0-35 · Calm</span>
-                <span className="rounded-lg bg-amber-50 px-2 py-2 text-amber-700 font-medium">36-60 · Mild</span>
-                <span className="rounded-lg bg-rose-50 px-2 py-2 text-rose-700 font-medium">61+ · Elevated</span>
-              </div>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Derived from Garmin heart rate variability analysis throughout the day. Scores are averaged across awake hours only.
-              </p>
-            </div>
-          </ModalCard>
-        );
-      case "steps": {
-        return (
-          <ModalCard icon={Footprints} iconBg="bg-ecg" gradient="from-blue-50 to-sky-50"
-            title="Steps Today" subtitle={stepsS.note}>
-            <div className="space-y-5">
-              <div className="flex items-end justify-between">
-                <div>
-                  <p className={`text-4xl font-bold ${stepsS.color}`}>{vitals.steps > 0 ? vitals.steps.toLocaleString() : "—"}</p>
-                  <p className="mt-0.5 text-sm text-muted-foreground">{stepsS.label} today</p>
-                </div>
-                {vitals.stepMetrics.prevAvg > 0 && (
-                  <div className={`text-right ${vitals.stepMetrics.trendUp ? "text-emerald-600" : "text-rose-600"}`}>
-                    <p className="text-xl font-bold">{vitals.stepMetrics.trendUp ? "+" : ""}{vitals.stepMetrics.trendPct}%</p>
-                    <p className="text-xs text-muted-foreground">vs. recent avg</p>
-                  </div>
-                )}
-              </div>
-              {stepHistory.length > 1 && (
-                <div className="grid grid-cols-3 gap-3 text-center">
-                  <div className="rounded-xl bg-muted/40 p-3">
-                    <p className="text-base font-bold text-foreground">{vitals.stepMetrics.avgSteps}</p>
-                    <p className="text-xs text-muted-foreground">Daily avg</p>
-                  </div>
-                  <div className="rounded-xl bg-muted/40 p-3">
-                    <p className="text-base font-bold text-emerald-600">{vitals.stepMetrics.maxSteps}</p>
-                    <p className="text-xs text-muted-foreground">Best day</p>
-                  </div>
-                  <div className="rounded-xl bg-muted/40 p-3">
-                    <p className="text-base font-bold text-muted-foreground">{stepHistory.length}d</p>
-                    <p className="text-xs text-muted-foreground">Tracked</p>
-                  </div>
-                </div>
-              )}
-              {stepHistory.length > 1 && (
-                <>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{stepHistory.length}-day trend</p>
-                  <div className="h-52">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={stepHistory} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
-                        <defs>
-                          <linearGradient id="stepsGradientElder" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="hsl(var(--ecg))" stopOpacity={0.35} />
-                            <stop offset="100%" stopColor="hsl(var(--ecg))" stopOpacity={0} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                        <XAxis dataKey="day" tick={{ fontSize: 11, fill: "hsl(215,16%,50%)" }} axisLine={false} tickLine={false} />
-                        <YAxis tick={{ fontSize: 11, fill: "hsl(215,16%,50%)" }} axisLine={false} tickLine={false} />
-                        <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid hsl(var(--border))" }} formatter={(v: number) => [v.toLocaleString(), "Steps"]} />
-                        <ReferenceLine y={5000} stroke="hsl(var(--success))" strokeDasharray="4 4" label={{ value: "Goal 5k", fontSize: 9, fill: "hsl(var(--success))", position: "right" }} />
-                        <Area type="monotone" dataKey="steps" stroke="hsl(var(--ecg))" strokeWidth={2.5} fill="url(#stepsGradientElder)" dot={{ r: 3, fill: "hsl(var(--ecg))", strokeWidth: 0 }} isAnimationActive={false} />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </div>
-                </>
-              )}
-            </div>
-          </ModalCard>
-        );
-      }
-      case "gait":
-        return <WalkingActivityChart />;
-      case "nutrition":
-        return <SmartFridgeCard />;
-      case "hydration":
-        return <HydrationIndicator />;
-      case "medication":
-        return (
-          <ModalCard icon={Pill} iconBg="bg-blue-500" gradient="from-blue-50 to-indigo-50"
-            title="Medications" subtitle="Active prescriptions">
-            <MedicationDetail />
-          </ModalCard>
-        );
-      case "appointments":
-        return (
-          <ModalCard icon={Calendar} iconBg="bg-violet-500" gradient="from-violet-50 to-purple-50"
-            title="Appointments" subtitle="Upcoming scheduled visits">
-            <AppointmentsDetail />
-          </ModalCard>
-        );
-      default:
-        return null;
-    }
-  };
-
-  const modalTitle: Record<string, string> = {
-    heart: "Heart Health", sleep: "Sleep Analysis", stress: "Stress",
-    steps: "Steps Today", gait: "Gait Analysis", nutrition: "Nutrition & Diet",
-    hydration: "Hydration", medication: "Medications", appointments: "Appointments",
-  };
 
   const startRecording = async () => {
     if (isRecording || isThinking) return;
@@ -973,7 +970,7 @@ const ElderView = () => {
           {demoOpen && (
             <div className="absolute right-0 top-9 w-44 rounded-xl border border-border bg-background shadow-lg py-1 z-[70]">
               <button
-                onClick={() => { setDemoOpen(false); unlockAudio(); runCheckIn(vitalsRef.current, "fall"); }}
+                onClick={() => { setDemoOpen(false); unlockAudio(); runCheckIn("fall"); }}
                 disabled={isThinking || isRecording}
                 className="flex w-full items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -981,7 +978,7 @@ const ElderView = () => {
                 Fall Risk
               </button>
               <button
-                onClick={() => { setDemoOpen(false); unlockAudio(); runCheckIn(vitalsRef.current, "mental"); }}
+                onClick={() => { setDemoOpen(false); unlockAudio(); runCheckIn("mental"); }}
                 disabled={isThinking || isRecording}
                 className="flex w-full items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -1179,15 +1176,15 @@ const ElderView = () => {
 
             {/* 9-card grid */}
             <div className="grid grid-cols-3 gap-3">
-              <HealthCard icon={Heart} iconBg="bg-heart/15 text-heart" cardBg="bg-sky-50" title="Heart Health" label={heartS.label} labelColor={heartS.color} onClick={() => setOpenModal("heart")} />
-              <HealthCard icon={Moon} iconBg="bg-sleep/15 text-sleep" cardBg="bg-sky-50" title="Sleep Analysis" label={sleepS.label} labelColor={sleepS.color} onClick={() => setOpenModal("sleep")} />
-              <HealthCard icon={Utensils} iconBg="bg-teal-500/15 text-teal-600" cardBg="bg-sky-50" title="Nutrition & Diet" label={nutritionS.label} labelColor={nutritionS.color} onClick={() => setOpenModal("nutrition")} />
-              <HealthCard icon={Brain} iconBg="bg-stress/15 text-stress" cardBg="bg-sky-50" title="Stress" label={stressS.label} labelColor={stressS.color} onClick={() => setOpenModal("stress")} />
-              <HealthCard icon={Footprints} iconBg="bg-ecg/15 text-ecg" cardBg="bg-sky-50" title="Steps Today" label={vitals.stepMetrics.stepsTrend} labelColor={stepsS.color} onClick={() => setOpenModal("steps")} />
-              <HealthCard icon={Shield} iconBg="bg-amber-500/15 text-amber-600" cardBg="bg-sky-50" title="Gait Analysis" label={gaitS.label} labelColor={gaitS.color} onClick={() => setOpenModal("gait")} />
-              <HealthCard icon={Droplets} iconBg="bg-teal-500/15 text-teal-600" cardBg="bg-sky-50" title="Hydration" label={hydrationS.label} labelColor={hydrationS.color} onClick={() => setOpenModal("hydration")} />
-              <HealthCard icon={Pill} iconBg="bg-blue-500/15 text-blue-600" cardBg="bg-sky-50" title="Medication" label="Active Rx" labelColor="text-blue-600" onClick={() => setOpenModal("medication")} />
-              <HealthCard icon={Calendar} iconBg="bg-violet-500/15 text-violet-600" cardBg="bg-sky-50" title="Appointments" label="Upcoming" labelColor="text-violet-600" onClick={() => setOpenModal("appointments")} />
+              <HealthCard icon={Heart}      iconBg="bg-heart/15 text-heart"           title="Heart Health"     label={heartS.label}           labelColor={heartS.color}     onClick={() => setOpenModal("heart")} />
+              <HealthCard icon={Moon}       iconBg="bg-sleep/15 text-sleep"           title="Sleep Analysis"   label={sleepS.label}           labelColor={sleepS.color}     onClick={() => setOpenModal("sleep")} />
+              <HealthCard icon={Utensils}   iconBg="bg-teal-500/15 text-teal-600"     title="Nutrition & Diet" label={nutritionS.label}       labelColor={nutritionS.color} onClick={() => setOpenModal("nutrition")} />
+              <HealthCard icon={Brain}      iconBg="bg-stress/15 text-stress"         title="Stress"           label={stressS.label}          labelColor={stressS.color}    onClick={() => setOpenModal("stress")} />
+              <HealthCard icon={Footprints} iconBg="bg-ecg/15 text-ecg"               title="Steps Today"      label={stepMetrics.stepsTrend} labelColor={stepsS.color}     onClick={() => setOpenModal("steps")} />
+              <HealthCard icon={Shield}     iconBg="bg-amber-500/15 text-amber-600"   title="Gait Analysis"    label={gaitS.label}            labelColor={gaitS.color}      onClick={() => setOpenModal("gait")} />
+              <HealthCard icon={Droplets}   iconBg="bg-teal-500/15 text-teal-600"     title="Hydration"        label={hydrationS.label}       labelColor={hydrationS.color} onClick={() => setOpenModal("hydration")} />
+              <HealthCard icon={Pill}       iconBg="bg-blue-500/15 text-blue-600"     title="Medication"       label="Active Rx"              labelColor="text-blue-600"    onClick={() => setOpenModal("medication")} />
+              <HealthCard icon={Calendar}   iconBg="bg-violet-500/15 text-violet-600" title="Appointments"     label="Upcoming"               labelColor="text-violet-600"  onClick={() => setOpenModal("appointments")} />
             </div>
 
           </div>
