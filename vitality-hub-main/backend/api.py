@@ -1886,7 +1886,7 @@ def get_system_prompt(patient_id: str = "") -> str:
 
     * **IF user asks about appointments:** Read the next upcoming appointment only unless they explicitly ask for more. You MUST include: full date, time, appointment type, physician name (if any), and location. Example: "You have a Primary Care Check-up on Wednesday, April 8th at 9:00 AM with Dr. James Patel at Medfield Family Practice."
     
-    * **IF user asks about activities:** Suggest the most appropriate Neighborhood Activity for their specific wellbeing. NEVER list all activities unless explicitly asked, pick the most relevant one based on their health status and interests. If there are no relevant activities, mention those that are happening either today ({today.strftime('%A, %b %d')}) or tomorrow ({(today + timedelta(days=1)).strftime('%A, %b %d')})
+    * **IF user asks about activities:** Suggest the most appropriate Neighborhood Activity for their specific wellbeing. NEVER list all activities unless explicitly asked, pick the most relevant one based on their health status and interests. If there are no relevant activities, mention those that are happening either today ({today.strftime('%A, %b %d')}) or tomorrow ({(today + timedelta(days=1)).strftime('%A, %b %d')}). If asked about who is attending, list all of the names you have.
     
     * **IF user asks about food/recipes:** Suggest an item from their Fridge Inventory AND check if there is a relevant Neighborhood Activity (e.g. a cooking class) — if so, if they have not already signed up, briefly mention it by name and date as something they might enjoy. 
     
