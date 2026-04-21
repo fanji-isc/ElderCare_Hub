@@ -103,7 +103,34 @@ def build_neighbourhood_context(patient_id: str = ""):
         lines.append(instructions)
     return "\n".join(lines)
 
-def build_step_history(dailySummaryJson: list) -> list:
+def heartStatus(bpm: int) -> dict:
+    if bpm == 0:        return {"label": "No data", "color": "text-muted-foreground"}
+    if 0 < bpm < 55:    return {"label": "Slightly low", "color": "text-amber-600"}
+    if 55 <= bpm <= 85: return {"label": "Normal range", "color": "text-emerald-600"}
+    if 85 < bpm <= 100: return {"label": "Slightly elevated", "color": "text-amber-600"}
+    return                     {"label": "Check with doctor", "color": "text-rose-600"}
+
+def stressStatus(v: int) -> dict:
+    if v == 0: return {"label": "Calm", "note": "Stress levels look great", "color": "text-emerald-600", "barColor": "bg-emerald-500"}
+    if v <= 35: return {"label": "Calm", "note": "Very relaxed today", "color": "text-emerald-600", "barColor": "bg-emerald-500"}
+    if v <= 60: return {"label": "Mild stress", "note": "Some stress — likely normal", "color": "text-amber-600", "barColor": "bg-amber-500"}
+    return {"label": "High stress",  "note": "Elevated — try to relax", "color": "text-rose-600", "barColor": "bg-rose-500"}
+
+def sleepStatus(patient_id: str = "") -> dict:
+    hoursAsleep = extract_sleep(patient_id)
+    if hoursAsleep == 0: return {"label": "No data", "color": "text-muted-foreground"}
+    if hoursAsleep >= 7: return {"label": "Well rested", "color": "text-emerald-600"}
+    if hoursAsleep >= 5.5: return {"label": "Light sleep", "color": "text-amber-600"}
+    return {"label": "Poor sleep",  "color": "text-rose-600"}
+
+def extract_steps(dailySummaryJson: list, vitals_steps: int) -> tuple[list, dict, dict]:
+    def stepsStatus(steps: int) -> str:
+        if steps == 0:    return {"label": "No data", "note": "Activity data unavailable", "color": "text-muted-foreground"}
+        if steps >= 5000: return {"label": "Very active", "note": f"{steps} steps — excellent!", "color": "text-emerald-600"}
+        if steps >= 2500: return {"label": "Moderately active", "note": f"{steps} steps — good movement", "color": "text-emerald-600"}
+        if steps >= 1000: return {"label": "Light activity", "note": f"{steps} steps — quieter day", "color": "text-amber-600"}
+        return                   {"label": "Very little movement", "note": f"{steps} steps — try a short walk", "color": "text-rose-600"}
+
     all_days = sorted(
         [d for d in dailySummaryJson if d.get("calendarDate")],
         key=lambda x: x.get("calendarDate")
@@ -112,14 +139,43 @@ def build_step_history(dailySummaryJson: list) -> list:
     step_history = []
     for d in step_history_raw:
         date_obj = datetime.strptime(d.get("calendarDate"), "%Y-%m-%d")
-        formatted_date = date_obj.strftime("%-m/%-d") 
+        formatted_date = date_obj.strftime("%m/%d") 
         step_history.append({
             "day": formatted_date,
             "steps": d.get("totalSteps")
         })
-    return step_history
+    step_status = stepsStatus(vitals_steps)
+    step_metrics = {
+        "stepsTrend": f"{vitals_steps} steps · {step_status['label']}" if vitals_steps > 0 else "No step data",
+        "avgSteps": "0",
+        "maxSteps": "0",
+        "prevAvgSteps": 0,
+        "trendPctSteps": 0,
+        "trendStepsUp": True
+    }
+    if step_history:
+        step_metrics["avgSteps"] = str(round(sum(d["steps"] for d in step_history) / len(step_history)))
+        step_metrics["maxSteps"] = str(max(d["steps"] for d in step_history))
+        if len(step_history) > 1:
+            prev_avg = sum(d["steps"] for d in step_history[:-1]) / (len(step_history) - 1)
+            step_metrics["prevAvgSteps"] = round(prev_avg)
+            if prev_avg != 0:
+                pct_change = round(((vitals_steps - prev_avg) / prev_avg) * 100)
+                step_metrics["trendPctSteps"] = pct_change
+                step_metrics["trendStepsUp"] = pct_change >= 0
+                if pct_change >= 20:
+                    step_metrics["stepsTrend"] = f"{vitals_steps} steps · ↑ {pct_change}%"
+                elif pct_change <= -20:
+                    step_metrics["stepsTrend"] = f"{vitals_steps} steps · ↓ {abs(pct_change)}%"
+    return step_history, step_metrics, step_status
 
-def extract_fridge(patient_id: str = "") -> dict:
+def extract_fridge(patient_id: str = "") -> tuple[dict, dict]:
+    def nutritionStatus(mealsCount: int) -> dict:
+        if mealsCount == 0: return {"label": "No meals tracked", "color": "text-rose-600"}
+        if mealsCount == 1: return {"label": "1 meal tracked", "color": "text-orange-600"}
+        if mealsCount == 2: return {"label": "2 meals tracked", "color": "text-amber-600"}
+        return {"label": f"{mealsCount} meals tracked", "color": "text-emerald-600"}
+    
     fridgeJson = get_iris_data(patient_id, "fridge")
     
     latest_dict = max(fridgeJson, key=lambda x: x.get("calendarDate"), default=None)
@@ -130,16 +186,26 @@ def extract_fridge(patient_id: str = "") -> dict:
         expiring_items = [a.get("item") for a in alerts if a.get("type") == "expiring"]
         nutrition = latest_dict.get("dailyNutrition")
         meals_list = latest_dict.get("mealsDetected")
+        meal_count = len(meals_list) if meals_list else 0
 
         return {
             "waterLiters": nutrition.get("waterLiters"),
             "currentItems": current_items,
             "expiringItems": expiring_items,
-            "mealsCount": len(meals_list),
-        }
-    return {"waterLiters": 50, "currentItems": [], "expiringItems": [], "mealsCount": 0}
+            "mealsCount": meal_count,
+        }, nutritionStatus(meal_count)
+    return {"waterLiters": 50, "currentItems": [], "expiringItems": [], "mealsCount": 0}, nutritionStatus(0)
 
-def extract_hydration(patient_id: str = "") -> tuple[str, int, bool]:
+def extract_hydration(patient_id: str = "") -> tuple[str, int, bool, dict]:
+    def hydrationStatus(level: int) -> dict:
+        if level == 0: return {"label": "No data", "color": "text-muted-foreground"}
+        if level <= 2: return {"label": "Excellent", "color": "text-emerald-600"}
+        if level <= 3: return {"label": "Normal", "color": "text-emerald-600"}
+        if level <= 4: return {"label": "Drink More Water", "color": "text-amber-600"}
+        if level <= 5: return {"label": "Mild Dehydration", "color": "text-amber-600"}
+        if level <= 6: return {"label": "Dehydrated", "color": "text-rose-600"}
+        return {"label": "Very Dehydrated", "color": "text-rose-600"}
+
     toiletJson = get_iris_data(patient_id, "toilet")
     
     hydrationNote = ""
@@ -158,9 +224,34 @@ def extract_hydration(patient_id: str = "") -> tuple[str, int, bool]:
         ]        
         hydrationNote = next((note for max_lvl, note in levels if hydrationColorLevel <= max_lvl), "severely dehydrated — needs attention soon")
     dehydrated = "dehydrated" in hydrationNote.lower()
-    return hydrationNote, hydrationColorLevel, dehydrated
+    return hydrationNote, hydrationColorLevel, dehydrated, hydrationStatus(hydrationColorLevel)
 
-def extract_gait(patient_id: str = "") -> tuple[str, bool, dict]:
+def extract_gait(patient_id: str = "") -> tuple[str, bool, dict, dict]:
+    def gaitStatus(metrics: dict) -> dict:
+        if metrics.get("symmetry", 0) == 0:
+            return {"label": "No data", "color": "text-muted-foreground"}
+        is_high = (
+            metrics.get("cadence", 0) < 80 or 
+            metrics.get("speed", 0) < 0.7 or 
+            metrics.get("worseStride", 0) < 90 or 
+            metrics.get("worseGCT", 0) > 950 or 
+            metrics.get("symmetry", 0) < 78 or 
+            metrics.get("variability", 0) > 10
+        )
+        if is_high:
+            return {"label": "Irregular gait", "color": "text-rose-600"}
+        is_med = (
+            metrics.get("cadence", 0) < 100 or 
+            metrics.get("speed", 0) < 1.0 or 
+            metrics.get("worseStride", 0) < 140 or 
+            metrics.get("worseGCT", 0) > 650 or 
+            metrics.get("symmetry", 0) < 95 or 
+            metrics.get("variability", 0) > 5
+        )
+        if is_med:
+            return {"label": "Some asymmetry", "color": "text-amber-600"}
+        return {"label": "Steady and Balanced", "color": "text-emerald-600"}
+    
     gaitJson = get_iris_data(patient_id, "gait")
     
     all_sessions = [s for day in gaitJson for s in day["sessions"]]
@@ -204,7 +295,7 @@ def extract_gait(patient_id: str = "") -> tuple[str, bool, dict]:
         "worseStride": min(stride["leftCm"], stride["rightCm"]),
         "worseGCT": max(gct["left"], gct["right"])
     }
-    return gaitNote, gaitConcern, gait_metrics
+    return gaitNote, gaitConcern, gait_metrics, gaitStatus(gait_metrics)
 
 def extract_phone_calls(patient_id: str = "") -> dict:
     phoneCallJson = get_iris_data(patient_id, "phoneCalls")
@@ -569,7 +660,6 @@ def llm_ready_fridge(fridge_list):
         
     return trend_summary, inventory_str
 
-# TODO: check where vitals is called to see if more/different keys should be included
 @app.get("/api/build-patient-dashboard")
 def get_patient_dashboard(patient_id: str = "") -> dict:
     dailyJson = get_iris_data(patient_id, "dailySummary")
@@ -580,17 +670,52 @@ def get_patient_dashboard(patient_id: str = "") -> dict:
     awake = next((a for a in aggregator_list if a.get("type") == "AWAKE"), {})
     stressLevel = round(awake.get("averageStressLevel"))
 
-    fridge = extract_fridge(patient_id)
-    hydrationNote, hydrationColorLevel, dehydrated = extract_hydration(patient_id)
-    gaitNote, gaitConcern, gaitMetrics = extract_gait(patient_id)    
+    _, nutritionStatus = extract_fridge(patient_id)
+    _, _, _, hydrationStatus = extract_hydration(patient_id)
+    _, _, _, gaitStatus = extract_gait(patient_id)    
+    steps = latest_dailySummary.get("totalSteps", 0)
+    stepHistory, stepMetrics, stepStatus = extract_steps(dailyJson, steps)
+    heart_rate = latest_dailySummary.get("currentDayRestingHeartRate") or latest_dailySummary.get("restingHeartRate") or 0
+
+    return {
+        "steps": steps,
+        "stepHistory": stepHistory,
+        "stepMetrics": stepMetrics,
+        "stressLevel": min(stressLevel, 100),
+        "status": {
+            "steps": stepStatus,
+            "heart": heartStatus(heart_rate),
+            "stress": stressStatus(stressLevel),
+            "sleep": sleepStatus(patient_id),
+            "hydration": hydrationStatus,
+            "gait": gaitStatus,
+            "nutrition": nutritionStatus
+        }
+    }
+
+def get_patient_data(patient_id: str = "") -> dict:
+    dailyJson = get_iris_data(patient_id, "dailySummary")
+    latest_dailySummary = max(dailyJson, key=lambda x: x.get("calendarDate"), default=None)
+
+    # extractStress
+    aggregator_list = latest_dailySummary.get("allDayStress").get("aggregatorList")
+    awake = next((a for a in aggregator_list if a.get("type") == "AWAKE"), {})
+    stressLevel = round(awake.get("averageStressLevel"))
+
+    fridge, _ = extract_fridge(patient_id)
+    hydrationNote, hydrationColorLevel, dehydrated, _ = extract_hydration(patient_id)
+    gaitNote, gaitConcern, gaitMetrics, _ = extract_gait(patient_id)    
     phoneCalls = extract_phone_calls(patient_id)
     hoursAsleep = extract_sleep(patient_id)
-    stepHistory = build_step_history(dailyJson)
+    steps = latest_dailySummary.get("totalSteps", 0)
+    stepHistory, stepMetrics, _ = extract_steps(dailyJson, steps)
 
     return {
         "heartRate": latest_dailySummary.get("currentDayRestingHeartRate") or latest_dailySummary.get("restingHeartRate") or 0,
-        "steps": latest_dailySummary.get("totalSteps") or 0,
-        "stressLevel": stressLevel,
+        "steps": steps,
+        "stepHistory": stepHistory,
+        "stepMetrics": stepMetrics,
+        "stressLevel": min(stressLevel, 100),
         "sleepHours": hoursAsleep,
         "hydrationNote": hydrationNote,
         "hydrationColorLevel": hydrationColorLevel,
@@ -602,8 +727,7 @@ def get_patient_dashboard(patient_id: str = "") -> dict:
         "phoneCallTrend": phoneCalls.get("phoneCallTrend"),
         "gaitNote": gaitNote,
         "fallRiskAlert": dehydrated and gaitConcern,
-        "gaitMetrics": gaitMetrics,
-        "stepHistory": stepHistory
+        "gaitMetrics": gaitMetrics
     }
 
 # ── Interpret IRIS Home data endpoints ──────────────────────────────────────────
@@ -619,15 +743,18 @@ def interpret_garmin(patient_id: str = "") -> dict:
     You are a specialist in cardiac electrophysiology. Your goal is to interpret processed Lead I ECG dictionary data to identify rhythm stability and autonomic balance.
 
     # DATA INTERPRETATION RULES:
+
     1. **Rhythm Stability:** 
     - Analyze `sdnn_hrv_ms` and `rr_variance`. High variance in a resting state suggests a healthy "Sinus Arrhythmia," whereas extremely low variance might indicate overtraining or high stress.
+
     2. **Classification Check:** 
     - Validate the `device_classification`. If it says `SINUS_NORMAL` but `rr_variance` is high, explain the role of the Vagus nerve in heart rate modulation.
+    
     3. **Clinical Context:** 
     - Explain that a Lead I ECG (from a wrist-worn device) is a snapshot of the heart's electrical activity from the left to right arm. Focus on the "timing" of the beats rather than diagnosing structural heart disease.
 
     # TONE:
-    Compassionate, vigilant, analytical, and respectful. These insights are being interpreted by an orchestrator agent as part of a wider health monitoring system that will relay this synthesize your summary with information from other data sources to advise the patient. Therefore, avoid medical jargon unless accompanied by a brief explanation. Focus instead on clear, actionable advice. Refer to the patient in the third person. 
+    Compassionate, vigilant, analytical, and respectful. These insights are being interpreted by an orchestrator agent as part of a wider health monitoring system that will synthesize your summary with information from other data sources to advise the patient. Therefore, avoid medical jargon unless accompanied by a brief explanation. Focus instead on clear, actionable advice. Refer to the patient in the third person. 
 
     # INPUT: 
 
@@ -639,21 +766,25 @@ def interpret_garmin(patient_id: str = "") -> dict:
     You are an expert in autonomic nervous system (ANS) physiology. Your task is to interpret a structured HR analysis report to determine a patient's physiological load, stress resilience, and respiratory stability.
 
     # DATA INTERPRETATION RULES:
+
     1. **The HR/Stress Correlation:** 
     - Look at `physiological_insights.hr_stress_correlation`. 
         - **High (>0.7):** HR is driving stress (physical load/exercise).
         - **Low (<0.3):** Stress is likely psychological or chemical (caffeine, anxiety), as HR and stress are "decoupled."
+    
     2. **Stress Extremes:** 
     - If `physiological_insights.is_high_stress_event` is `True`, look at the `summary_metrics.stress_score_0_100` max value. Determine if this was a momentary spike or a sustained period of high sympathetic activation.
+    
     3. **Oxygen & Breathing:** 
     - Evaluate `summary_metrics.blood_oxygen_spo2` and `summary_metrics.respiration_breaths_per_min`. 
         - Flag any `spo2` averages below 95% as potential recovery inhibitors.
         - Note if `respiration` min/max range is wide, which may indicate periods of breath-holding or intense focus ("screen apnea").
+    
     4. **Temporal Context:** 
     - Use the `time_window` to orient your advice. A 60-minute window of high stress in the morning (focus) is different from a 60-minute window of high stress at midnight (poor recovery).
 
     # TONE:
-    Compassionate, vigilant, analytical, and respectful. These insights are being interpreted by an orchestrator agent as part of a wider health monitoring system that will relay this synthesize your summary with information from other data sources to advise the patient. Therefore, avoid medical jargon unless accompanied by a brief explanation. Focus instead on clear, actionable advice. Refer to the patient in the third person.  
+    Compassionate, vigilant, analytical, and respectful. These insights are being interpreted by an orchestrator agent as part of a wider health monitoring system that will synthesize your summary with information from other data sources to advise the patient. Therefore, avoid medical jargon unless accompanied by a brief explanation. Focus instead on clear, actionable advice. Refer to the patient in the third person.  
 
     # INPUT: 
 
@@ -709,7 +840,7 @@ def interpret_garmin(patient_id: str = "") -> dict:
     When providing data, such as total hours of sleep, cross reference it against the patient's baseline / 7-day average to give the patient context for the data.
 
     # TONE:
-    Compassionate, vigilant, analytical, and respectful. These insights are being interpreted by an orchestrator agent as part of a wider health monitoring system that will relay this synthesize your summary with information from other data sources to advise the patient. Therefore, avoid medical jargon unless accompanied by a brief explanation. Focus instead on clear, actionable advice. Refer to the patient in the third person. 
+    Compassionate, vigilant, analytical, and respectful. These insights are being interpreted by an orchestrator agent as part of a wider health monitoring system that will synthesize your summary with information from other data sources to advise the patient. Therefore, avoid medical jargon unless accompanied by a brief explanation. Focus instead on clear, actionable advice. Refer to the patient in the third person.  
 
     # INPUT: 
 
@@ -721,19 +852,23 @@ def interpret_garmin(patient_id: str = "") -> dict:
     You are a Physical Therapist specializing in geriatric biomechanics. You analyze gait dictionaries to detect physical frailty, injury-related guarding (limping), and overall fall risk.
 
     # DATA INTERPRETATION RULES:
+
     1. **The Risk Score (0-11):** 
     - You will receive a `weighted_score`.
         - **Score 0-1:** Baseline stability. 
         - **Score 2-4:** Moderate Risk. Likely transient fatigue or minor discomfort.
         - **Score 5+:** High Fall Risk. Requires immediate environmental review (trip hazards) and potentially a mobility aid.
+    
     2. **Acute vs. Chronic (Trend Analysis):** 
     - Compare `latest_snapshot` speed and variability against `historical_averages`. 
         - If `speed_ms` is >10% lower than `avg_walking_speed`, flag as "Acute Mobility Decline."
         - If `variability_pct` is higher than the historical average, the user is currently "unstable" and prone to tripping.
+    
     3. **Asymmetry & Unilateral Pain:** 
     - Use the `asymmetry` object.
         - A `gct_delta_ms` > 60ms indicates a significant "limp." 
         - Identify the `shorter_stride_side`. If the user has a shorter right stride, they are likely "guarding" the right side due to pain or weakness.
+    
     4. **Clinical Thresholds:** 
     - Speed < 0.8 m/s = "The Sixth Vital Sign" warning for frailty.
     - Speed < 0.6 m/s = Critical threshold for loss of independence.
@@ -742,7 +877,7 @@ def interpret_garmin(patient_id: str = "") -> dict:
     Focus on **Stability** and **Symmetry**. Translate the "GCT Delta" into plain English (e.g. "The user is favoring their left leg").
 
     # TONE:
-    Compassionate, vigilant, analytical, and respectful. These insights are being interpreted by an orchestrator agent as part of a wider health monitoring system that will relay this synthesize your summary with information from other data sources to advise the patient. Therefore, avoid medical jargon unless accompanied by a brief explanation. Focus instead on clear, actionable advice. Refer to the patient in the third person. 
+    Compassionate, vigilant, analytical, and respectful. These insights are being interpreted by an orchestrator agent as part of a wider health monitoring system that will synthesize your summary with information from other data sources to advise the patient. Therefore, avoid medical jargon unless accompanied by a brief explanation. Focus instead on clear, actionable advice. Refer to the patient in the third person. 
 
     # INPUT: 
 
@@ -750,6 +885,8 @@ def interpret_garmin(patient_id: str = "") -> dict:
 
     conn = get_iris()
     client = get_openai_client()
+    if not client:
+        raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
 
     try:
         irispy = iris.createIRIS(conn)
@@ -802,17 +939,21 @@ def interpret_home_data(patient_id: str = "") -> dict:
     You specialize in hydration, kidney health, and metabolic recovery. You interpret smart toilet data (Urine Color Levels) to provide advice on fluid intake and its impact on heart health.
 
     # DATA INTERPRETATION RULES:
+
     1. **Hydration Scale:** 
     - Follows the Armstrong urine color scale. Level 1-2 is very well-hydrated, 3-4 is acceptable, and 5-8 is increasingly dehydrated.
+    
     2. **The "Flush" Trend:** 
     - Look for a downward trend in `colorLevel` throughout the day. If the level stays at 6-8 all day, flag this as a "Chronic Dehydration" risk that will negatively impact the user's Garmin HRV.
+    
     3. **Recovery Link:** 
     - When `morning_status` is "Dehydrated," advise that the user drink some water before checking their Garmin Body Battery or taking an ECG, as dehydration can cause "false-positive" stress readings.
+    
     4. **Data Gaps:** 
     - If `is_incomplete_data` is True, remind the user that hydration tracking requires consistency to map against their HR trends.
 
     # TONE: 
-    Compassionate, vigilant, analytical, and respectful. These insights are being interpreted by an orchestrator agent as part of a wider health monitoring system that will relay this synthesize your summary with information from other data sources to advise the patient. Therefore, avoid medical jargon unless accompanied by a brief explanation. Focus instead on clear, actionable advice. Refer to the patient in the third person. 
+    Compassionate, vigilant, analytical, and respectful. These insights are being interpreted by an orchestrator agent as part of a wider health monitoring system that will synthesize your summary with information from other data sources to advise the patient. Therefore, avoid medical jargon unless accompanied by a brief explanation. Focus instead on clear, actionable advice. Refer to the patient in the third person. 
 
     # INPUT: 
 
@@ -824,17 +965,21 @@ def interpret_home_data(patient_id: str = "") -> dict:
     You are an expert in geriatric nutrition, focusing on the prevention of 'The Dwindles' (failure to thrive). You analyze synthesized Smart Fridge trends to identify early-stage physical or cognitive decline.
 
     # DATA INTERPRETATION RULES:
+
     1. **The Anorexia of Aging:** 
     - Prioritize the "Appetite Loss" and "Skipped Meals" fridge alerts. In elderly users, these are not "fasting protocols"—they are high-risk events for falls and weakness.
+
     2. **Protein & Sarcopenia:** 
     - If protein drops below 60g, advise incorporating whatever high protein items are currently in the inventory to support muscle retention.
+    
     3. **Hydration & Fall Prevention:** 
     - If water is <2L, flag that this needs to be noted as to be compared to the Smart Toilet `colorLevel`. If color is >5, flag a "High Fall Risk" due to potential orthostatic hypotension (dizziness when standing).
+    
     4. **Cognitive Support:** 
     - If the fridge flags many "Expiring soon" items, suggest a simple "Meal of the Day" using those specific items to reduce the user's cognitive load.
 
     # TONE: 
-    Compassionate, vigilant, analytical, and respectful. These insights are being interpreted by an orchestrator agent as part of a wider health monitoring system that will relay this synthesize your summary with information from other data sources to advise the patient. Therefore, avoid medical jargon unless accompanied by a brief explanation. Focus instead on clear, actionable advice. Refer to the patient in the third person. 
+    Compassionate, vigilant, analytical, and respectful. These insights are being interpreted by an orchestrator agent as part of a wider health monitoring system that will synthesize your summary with information from other data sources to advise the patient. Therefore, avoid medical jargon unless accompanied by a brief explanation. Focus instead on clear, actionable advice. Refer to the patient in the third person. 
     
     # INPUT: 
     
@@ -842,6 +987,8 @@ def interpret_home_data(patient_id: str = "") -> dict:
     
     conn = get_iris()
     client = get_openai_client()
+    if not client:
+        raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
     
     try:
         irispy = iris.createIRIS(conn)
@@ -917,6 +1064,8 @@ def get_resident_context(patient_id: str = "") -> str:
     ---
     """
     client = get_openai_client()
+    if not client:
+        raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
     
     garmin_dict = interpret_garmin(patient_id)
     home_dict = interpret_home_data(patient_id)
@@ -1471,7 +1620,7 @@ def get_patient_desc(patient_id: str = ""):
     patient_fhir = get_patient_context(patient_id)
     
     client = get_openai_client()
-    if client is None:
+    if not client:
         raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
 
     medical_analyst = """You are an expert medical data analyst specializing in FHIR R4 working as part of a Smart Home Hub. 
@@ -1508,7 +1657,6 @@ def get_patient_desc(patient_id: str = ""):
     )
     return response.output_text
 
-# TODO: Split the home summary section into a separate agent that only gets called if home data is available
 @app.post("/api/clinician_summary/generate")
 def generate_clinician_summary(patient_id: str = ""):
     patient_fhir = get_patient_context(patient_id)
@@ -1551,7 +1699,7 @@ def generate_clinician_summary(patient_id: str = ""):
     Be clear, concise, and clinically grounded. Write as a clinician-to-clinician summary. Focus only on high-impact risks and actionable insights. Avoid unnecessary detail or exhaustive condition lists.
     """
 
-    home_analyst = """
+    home_analyst = f"""
     # ROLE: Home Health Expert
 
     # CONTEXT: 
@@ -1562,7 +1710,7 @@ def generate_clinician_summary(patient_id: str = ""):
 
     # RESPONSE STRUCTURE:
     The format of the answer should be plain text — no markdown, no asterisks, no bold. Keep each explanation concise but data-rich. DO NOT invent data not present in the input. 
-    Format your response exactly like this example — a titled header line, then dash-prefixed bullets (no more than 5 bullets in each section):
+    Format your response exactly like this example — a titled header line, then dash-prefixed bullets:
 
     Home data insights:
     - Smart Toilet: [If the patient's toilet data (e.g., hydration levels, bathroom visits) reveals any insights that are not already captured in the medical record but are relevant to their clinical risks, include them here in 1-2 short sentences. For example, "Toilet color level has been consistently at Level 4 (Dehydrated) for the past week, which may be contributing to orthostatic symptoms."]
@@ -1683,13 +1831,13 @@ def get_system_prompt(patient_id: str = "") -> str:
     ride_offers = "\n".join(ride_lines) if ride_lines else "None posted right now."
     companion_offers = "\n".join(companion_lines) if companion_lines else "None posted right now."
 
-    fridge = extract_fridge(patient_id)
+    fridge, _ = extract_fridge(patient_id)
 
     triage_answer = get_resident_context(patient_id)
     patient_desc = get_patient_desc(patient_id)
 
     nhh_desc = f"""
-    # ROLE: Elder-care assitant
+    # ROLE: Elder-care assistant
 
     # CONTEXT 
     You are a calm, friendly elder-care assistant. You are speaking directly to the following user:
@@ -1782,6 +1930,82 @@ def get_check_in_prompt(mode: str = ""):
         If they later ask about activities, suggest things happening tomorrow or later in the week, **NOT TODAY**. It is the evening already.
         """
     return ""
+
+@app.get("/api/generate-report")
+def generate_report(patient_id: str = "", patient_name: str = "", description: str = "", included_metrics: list = None):
+    pass
+
+@app.get("/api/family-summary")
+def generate_family_summary(patient_id: str = ""):
+    return {"status": "warn", "summary": "Yesterday Frank walked less than usual (low daily steps) and had a high fall-risk pattern, along with moderate dehydration despite eating only two meals. He slept very little, which may add to dizziness risk. With his diuretic and past near-falls, it would help to focus on steady fluids, safe movement, and a medication/vitals check at the upcoming visits."}
+    client = get_openai_client()
+    
+    vitals = get_patient_data(patient_id)
+    patient_desc = get_patient_desc(patient_id)
+
+    home_analyst = f"""
+    # ROLE: Elder-care Assistant
+
+    # CONTEXT 
+    You are a calm, friendly Smart Home Hub assistant. Your goal is to synthesize yesterday's Smart Home data for the family into a concise summary so they can decide which data is most important.  
+    You are speaking directly to the family of the following user:
+    
+    {patient_desc}
+
+    # TONE
+    - Compassionate, vigilant, and respectful. 
+    - Brief and Direct: Aim for roughly 40-50 words.
+
+    # RESTRICTIONS
+    DO NOT give medical diagnoses. These insights are being interpreted by this patient's family, not a medical professional. Therefore, avoid medical jargon entirely. Focus instead on clear, actionable advice.
+
+    # OUTPUT FORMAT (MANDATORY JSON)
+    Use plain text; no markdown. 
+
+    KEY: "status"
+    VALUE: ["good", "fair", or "warn" depending on the severity of the summary]
+
+    KEY: "summary"
+    VALUE: 
+    High-level summary of the patient's health and wellbeing, connecting the dots in a way that a family member would understand. Describe trends rather than listing raw data points. No Data Bloat: Avoid listing specific metrics (e.g., skip the "58g" or "6/11 score"). Do not overwhelm them with technical details. Connective Logic: Briefly link the physical state to the cause.
+    
+    Briefly touch on how they have been sleeping, moving, and eating, and how these may be connected. Prioritise any concerning trends or patterns that may require attention. If everything looks stable, reassure them with a positive summary.
+
+    # Example of a good summary:
+    e.g. 'She/He only slept 4.2 hours last night and she/he logged only 1021 steps today, so she/he may be feeling fatigued. Her/His resting heart rate is 52 BPM — slightly low given her/his medication. Mild stress levels have been recorded today, so she/he may be feeling a bit overwhelmed.'
+
+    # --- DATA SECTION ---
+
+    ## YESTERDAY'S VITALS: 
+
+    {vitals}
+
+    """
+
+    response = client.responses.create(
+        model="gpt-5.4-nano",
+        instructions=home_analyst,
+        input="Generate a short summary of the patient's Garmin and Home Appliance data for their family.",
+        text={
+            "format": {
+                "type": "json_schema",
+                "name": "family_summary",
+                "strict": True,
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "status": {"type": "string", "enum": ["good", "fair", "warn"]},
+                        "summary": {"type": "string"}
+                    },
+                    "required": ["status", "summary"],
+                    "additionalProperties": False
+                }
+            }
+        }
+    )
+    
+    family_answer = response.output_text
+    return json.loads(family_answer)
 
 # ── AI response endpoints ────────────────────────────────────────────────────────
 
