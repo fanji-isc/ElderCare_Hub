@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Heart, Moon, Utensils, Brain, Footprints, Shield, Droplets, Pill,
   ShieldCheck, AlertCircle, AlertTriangle,
@@ -19,7 +19,8 @@ import {
 } from "recharts";
 import { toast } from "sonner";
 
-type Vitals = { heartRate: number; steps: number; stressLevel: number; sleepHours: number; mealsCount: number };
+type Vitals = { heartRate: number; steps: number; stressLevel: number; sleepHours: number;  mealsCount: number; hydrationNote: string; hydrationColorLevel: number; 
+                waterLiters: number; expiringItems: string[]; currentItems: string[]; gaitNote: string; fallRiskAlert: boolean; }; 
 type Med = { drug: string; status: string; authored: string; dosage: string };
 type Appt = { status: string; start: string; end: string; type: string; practitioner: string; location: string };
 
@@ -28,45 +29,21 @@ const HOME_ID = "PATIENT_001";
 const first_name = "Frank";
 const last_name = "Larson";
 
-// Helper: Return the most recent entry by date
-function pickLatest(list: any[]): any | null {
-  if (!Array.isArray(list) || list.length === 0) return null;
-  return [...list].sort((a, b) =>
-    String(b?.calendarDate || "").localeCompare(String(a?.calendarDate || ""))
-  )[0];
-}
-
-// Helper: Return the stress level from the latest day's awake readings (or 0 if none)
-function extractStress(day: any): number {
-  const awake = (day?.allDayStress?.aggregatorList ?? []).find((a: any) => a.type === "AWAKE");
-  return Math.round(Number(awake?.averageStressLevel ?? 0));
-}
-
-// Helper: Return the sleep hours from the latest night's sleep session (or 0 if none)
-function extractSleep(sleepJson: any): number {
-  if (!Array.isArray(sleepJson)) return 0;
-  const latest = pickLatest(sleepJson.filter((x: any) =>
-    typeof x?.calendarDate === "string" &&
-    (x?.deepSleepSeconds != null || x?.lightSleepSeconds != null || x?.remSleepSeconds != null)
-  ));
-  return latest ? (Number(latest.deepSleepSeconds ?? 0) + Number(latest.lightSleepSeconds ?? 0) + Number(latest.remSleepSeconds ?? 0)) / 3600 : 0;
-}
-
 // ── Health card status helpers ─────────────────────────────────────────────────
 function heartStatus(bpm: number) {
-  if (bpm === 0)              return { label: "No data",           note: "Heart rate unavailable",                   color: "text-muted-foreground", status: "fair" as const };
-  if (bpm >= 55 && bpm <= 85) return { label: "Normal range",      note: `${bpm} BPM — healthy resting rate`,        color: "text-emerald-600",       status: "good" as const };
-  if (bpm > 85 && bpm <= 100) return { label: "Slightly elevated", note: `${bpm} BPM — monitor if it persists`,      color: "text-amber-600",         status: "fair" as const };
-  if (bpm < 55 && bpm > 0)    return { label: "Slightly low",      note: `${bpm} BPM — could be normal if athletic`, color: "text-amber-600",         status: "fair" as const };
-  return                       { label: "Check with doctor",  note: `${bpm} BPM — outside normal range`,       color: "text-rose-600",          status: "warn" as const };
+  if (bpm === 0)              return { label: "No data",           color: "text-muted-foreground" };
+  if (bpm >= 55 && bpm <= 85) return { label: "Normal range",      color: "text-emerald-600" };
+  if (bpm > 85 && bpm <= 100) return { label: "Slightly elevated", color: "text-amber-600" };
+  if (bpm < 55 && bpm > 0)    return { label: "Slightly low",      color: "text-amber-600" };
+  return                       { label: "Check with doctor",       color: "text-rose-600" };
 }
 
 function stepsStatus(steps: number) {
-  if (steps === 0)   return { label: "No data",              note: "Activity data unavailable",                              color: "text-muted-foreground",  status: "fair" as const };
-  if (steps >= 5000) return { label: "Very active",          note: `${steps.toLocaleString()} steps — excellent!`,           color: "text-emerald-600",       status: "good" as const };
-  if (steps >= 2500) return { label: "Moderately active",    note: `${steps.toLocaleString()} steps — good movement`,        color: "text-emerald-600",       status: "good" as const };
-  if (steps >= 1000) return { label: "Light activity",       note: `${steps.toLocaleString()} steps — quieter day`,          color: "text-amber-600",         status: "fair" as const };
-  return                    { label: "Very little movement", note: `${steps.toLocaleString()} steps — may want to check in`, color: "text-rose-600",          status: "warn" as const };
+  if (steps === 0)   return { label: "No data",              note: "Activity data unavailable",                              color: "text-muted-foreground" };
+  if (steps >= 5000) return { label: "Very active",          note: `${steps.toLocaleString()} steps — excellent!`,           color: "text-emerald-600" };
+  if (steps >= 2500) return { label: "Moderately active",    note: `${steps.toLocaleString()} steps — good movement`,        color: "text-emerald-600" };
+  if (steps >= 1000) return { label: "Light activity",       note: `${steps.toLocaleString()} steps — quieter day`,          color: "text-amber-600" };
+  return                    { label: "Very little movement", note: `${steps.toLocaleString()} steps — may want to check in`, color: "text-rose-600" };
 }
 
 function stressStatus(v: number) {
@@ -77,29 +54,29 @@ function stressStatus(v: number) {
 }
 
 function sleepStatus(h: number) {
-  if (h === 0)   return { label: "No data",       note: "Sleep data unavailable",                 color: "text-muted-foreground", status: "fair" as const };
-  if (h >= 7)    return { label: "Well rested",   note: `${h.toFixed(1)} hrs — great for his age`,     color: "text-emerald-600", status: "good" as const };
-  if (h >= 5.5)  return { label: "Light sleep",   note: `${h.toFixed(1)} hrs — a bit below ideal`,     color: "text-amber-600",   status: "fair" as const };
-  return          { label: "Poor sleep",   note: `Only ${h.toFixed(1)} hrs — worth checking in`, color: "text-rose-600",    status: "warn" as const };
+  if (h === 0)   return { label: "No data",       color: "text-muted-foreground" };
+  if (h >= 7)    return { label: "Well rested",   color: "text-emerald-600" };
+  if (h >= 5.5)  return { label: "Light sleep",   color: "text-amber-600" };
+  return          { label: "Poor sleep",          color: "text-rose-600" };
 }
 
 function hydrationStatus(level: number) {
-  if (level === 0) return { label: "No data",          note: "Hydration data unavailable",             color: "text-muted-foreground", status: "fair" as const };
-  if (level <= 2)  return { label: "Excellent",        note: "Well hydrated — great job!",             color: "text-emerald-600",      status: "good" as const };
-  if (level <= 3)  return { label: "Normal",           note: "Hydration looks normal",                 color: "text-emerald-600",      status: "good" as const };
-  if (level <= 4)  return { label: "Drink More Water", note: "Could use a bit more water",             color: "text-amber-600",        status: "fair" as const };
-  if (level <= 5)  return { label: "Mild Dehydration", note: "Encourage more fluid intake",            color: "text-amber-600",        status: "fair" as const };
-  if (level <= 6)  return { label: "Dehydrated",       note: "Dehydrated — needs water now",           color: "text-rose-600",         status: "warn" as const };
-  return           { label: "Very Dehydrated",         note: "Severely dehydrated — consider calling", color: "text-rose-600",         status: "warn" as const };
+  if (level === 0) return { label: "No data",          color: "text-muted-foreground" };
+  if (level <= 2)  return { label: "Excellent",        color: "text-emerald-600" };
+  if (level <= 3)  return { label: "Normal",           color: "text-emerald-600" };
+  if (level <= 4)  return { label: "Drink More Water", color: "text-amber-600" };
+  if (level <= 5)  return { label: "Mild Dehydration", color: "text-amber-600" };
+  if (level <= 6)  return { label: "Dehydrated",       color: "text-rose-600" };
+  return                  { label: "Very Dehydrated",  color: "text-rose-600" };
 }
 
 function gaitStatus(symmetryPct: number, variabilityPct: number, speedMs: number, cadence: number, worseStride: number, worseGCT: number) {
-  if (symmetryPct === 0) return { label: "No data", note: "Gait data unavailable",          color: "text-muted-foreground", status: "fair" as const };
+  if (symmetryPct === 0) return { label: "No data",  color: "text-muted-foreground" };
   const isHigh = cadence < 80  || speedMs < 0.7  || worseStride < 90  || worseGCT > 950 || symmetryPct < 78  || variabilityPct > 10;
-  if (isHigh) return { label: "Irregular gait",     note: "Significant gait irregularities detected", color: "text-rose-600",    status: "warn" as const };
+  if (isHigh) return { label: "Irregular gait",      color: "text-rose-600" };
   const isMed  = cadence < 100 || speedMs < 1.0  || worseStride < 140 || worseGCT > 650 || symmetryPct < 95  || variabilityPct > 5;
-  if (isMed)  return { label: "Some asymmetry", note: "Some asymmetry — worth monitoring",        color: "text-amber-600",   status: "fair" as const };
-  return             { label: "Steady and Balanced",      note: "Gait looks steady and balanced",           color: "text-emerald-600", status: "good" as const };
+  if (isMed)  return { label: "Some asymmetry",      color: "text-amber-600" };
+  return             { label: "Steady and Balanced", color: "text-emerald-600" };
 }
 
 function nutritionStatus(mealsCount: number) {
@@ -335,10 +312,13 @@ function HealthCard({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 const FamilyView = () => {
   // Card data states
-  const [vitals, setVitals] = useState<Vitals>({ heartRate: 0, steps: 0, stressLevel: 0, sleepHours: 0, mealsCount: 0 });
+  const emptyVitals: Vitals = { heartRate: 0, steps: 0, stressLevel: 0, sleepHours: 0, hydrationNote: "", hydrationColorLevel: 0, waterLiters: 0, expiringItems: [], currentItems: [], mealsCount: 0, gaitNote: "", fallRiskAlert: false };
+  const [vitals, setVitals] = useState<Vitals>(emptyVitals);
+  const vitalsRef = useRef<Vitals>(emptyVitals);
+  vitalsRef.current = vitals;
   const [stepHistory, setStepHistory] = useState<{ day: string; steps: number }[]>([]);
-  const [hydrationLevel, setHydrationLevel] = useState(0);
   const [gaitMetrics, setGaitMetrics] = useState({ symmetry: 0, variability: 0, speed: 0, cadence: 0, worseStride: 0, worseGCT: 0 });
+  const [stepMetrics, setStepMetrics] = useState({ stepsTrend: "", avgSteps: "", maxSteps: "", prevAvgSteps: 0, trendPctSteps: 0, trendStepsUp: false });
   const [familySummary, setFamilySummary] = useState<{ status: string; summary: string } | null>(null);
   const [loaded, setLoaded] = useState(false);
   // UI states
@@ -445,74 +425,43 @@ const FamilyView = () => {
     localStorage.setItem("nhh-call-state", JSON.stringify({ status: "idle", timestamp: Date.now() }));
   };
 
-  // TODO: change how Vitals is set so the logic from ElderView can be reused
   useEffect(() => {
     (async () => {
       try {
-        const [dailyRes, sleepRes, toiletRes, gaitRes, fridgeRes, summaryRes] = await Promise.all([
-          fetch(`${API_BASE}/api/iris_data?patient_id=${HOME_ID}&column=dailySummary`),
-          fetch(`${API_BASE}/api/iris_data?patient_id=${HOME_ID}&column=sleep`),
-          fetch(`${API_BASE}/api/iris_data?patient_id=${HOME_ID}&column=toilet`),
-          fetch(`${API_BASE}/api/iris_data?patient_id=${HOME_ID}&column=gait`),
-          fetch(`${API_BASE}/api/iris_data?patient_id=${HOME_ID}&column=fridge`),
-          fetch(`${API_BASE}/api/family-summary?patient_id=${HOME_ID}`),
+        const [dashboardRes, summaryRes] = await Promise.all([
+          fetch(`${API_BASE}/api/build-patient-dashboard?patient_id=${HOME_ID}`),
+          fetch(`${API_BASE}/api/family-summary?patient_id=${HOME_ID}`)
         ]);
-        const dailyJson = dailyRes.ok ? await dailyRes.json() : [];
-        const sleepJson = sleepRes.ok ? await sleepRes.json() : [];
-        const toiletJson: any[] = toiletRes.ok ? await toiletRes.json() : [];
-        const gaitJson: any[] = gaitRes.ok ? await gaitRes.json() : [];
-        const fridgeJson: any[] = fridgeRes.ok ? await fridgeRes.json() : [];
 
-        if (summaryRes.ok) setFamilySummary(await summaryRes.json());
-    
-        // Derive gait risk from latest day's sessions (average key metrics)
-        const latestGait = pickLatest(gaitJson.filter((x: any) =>
-          typeof x?.calendarDate === "string" &&
-          Array.isArray(x.sessions) &&
-          x.sessions.length > 0
-        ));
-        if (latestGait?.sessions?.length) {
-          // Use the last session — same as WalkingActivityChart
-          const s = latestGait.sessions[latestGait.sessions.length - 1];
-          setGaitMetrics({
-            symmetry:    Number(s.stepSymmetryPct ?? 0),
-            variability: Number(s.strideVariabilityPct ?? 0),
-            speed:       Number(s.gaitSpeedMs ?? 0),
-            cadence:     Number(s.cadence ?? 0),
-            worseStride: Math.min(Number(s.strideLength?.leftCm ?? 999), Number(s.strideLength?.rightCm ?? 999)),
-            worseGCT:    Math.max(Number(s.groundContactTimeMs?.left ?? 0), Number(s.groundContactTimeMs?.right ?? 0)),
-          });
+        if (!dashboardRes.ok) {
+          const errorData = await dashboardRes.json().catch(() => ({ detail: "Unknown Error" }));
+          throw new Error(errorData.detail || "Fetch failed");
         }
+        const dashboardData = await dashboardRes.json() as any;
+        const loaded: Vitals = {
+          ...dashboardData
+        };
+        setVitals(loaded);
+        vitalsRef.current = loaded;
 
-        // Derive hydration level from latest day's last reading
-        const latestToilet = pickLatest(toiletJson.filter(t => Array.isArray(t.readings) && t.readings.length > 0));
-        const lastReading = latestToilet?.readings?.at(-1);
-        if (lastReading?.colorLevel) setHydrationLevel(Math.min(8, Math.max(1, Number(lastReading.colorLevel))));
-
-        const allDays = (Array.isArray(dailyJson) ? dailyJson : [])
-          .filter((d: any) => d?.calendarDate)
-          .sort((a: any, b: any) => a.calendarDate.localeCompare(b.calendarDate));
-
-        setStepHistory(
-          allDays.filter((d: any) => d?.totalSteps != null).slice(-14).map((d: any) => ({
-            day: new Date(d.calendarDate + "T12:00:00").toLocaleDateString("en-US", { month: "numeric", day: "numeric" }),
-            steps: Number(d.totalSteps),
-          }))
-        );
-
-        const latestFridge = pickLatest(fridgeJson.filter((x: any) =>
-          typeof x?.calendarDate === "string" &&
-          Array.isArray(x.mealsDetected)
-        ));
-        const day = allDays[allDays.length - 1] ?? null;
-
-        setVitals({
-          heartRate: Number(day?.currentDayRestingHeartRate ?? day?.restingHeartRate ?? 0),
-          steps: Number(day?.totalSteps ?? 0),
-          stressLevel: extractStress(day),
-          sleepHours: extractSleep(sleepJson),
-          mealsCount: (latestFridge?.mealsDetected ?? []).length
+        // Extract latest session gait metrics for health card status
+        const incomingGaitMetrics = dashboardData.gaitMetrics || {};
+        setGaitMetrics({ 
+            ...incomingGaitMetrics 
         });
+
+        // Extract latest session step metrics for health card status
+        const incomingStepMetrics = dashboardData.stepMetrics || {};
+        setStepMetrics({
+          ...incomingStepMetrics
+        });
+
+        // Build step history for trend chart
+        setStepHistory(dashboardData.stepHistory ?? []);
+
+        // Fetch AI family summary
+        if (summaryRes.ok) setFamilySummary(await summaryRes.json());
+
       } catch (error) {
         console.error("Error loading data:", error);
       }
@@ -534,23 +483,8 @@ const FamilyView = () => {
   const sleep     = sleepStatus(vitals.sleepHours);
   const heart     = heartStatus(vitals.heartRate);
   const steps     = stepsStatus(vitals.steps);
-  const stepsTrend = (() => {
-    if (stepHistory.length < 2) return { label: steps.label, subtitle: undefined };
-    const prev = stepHistory.slice(0, -1).reduce((s, d) => s + d.steps, 0) / (stepHistory.length - 1);
-    const curr = vitals.steps;
-    if (prev === 0) return { label: steps.label, subtitle: undefined };
-    const pct = Math.round(((curr - prev) / prev) * 100);
-    if (pct <= -20) return { label: `${curr.toLocaleString()} steps · ↓ ${Math.abs(pct)}%`, subtitle: undefined };
-    if (pct >= 20)  return { label: `${curr.toLocaleString()} steps · ↑ ${pct}%`, subtitle: undefined };
-    return { label: steps.label, subtitle: undefined };
-  })();
-  const avgSteps = stepHistory.length ? Math.round(stepHistory.reduce((s, d) => s + d.steps, 0) / stepHistory.length) : 0;
-  const maxSteps = stepHistory.length ? Math.max(...stepHistory.map((d) => d.steps)) : 0;
-  const prevAvgSteps = stepHistory.length > 1 ? Math.round(stepHistory.slice(0, -1).reduce((s, d) => s + d.steps, 0) / (stepHistory.length - 1)) : 0;
-  const trendPctSteps = prevAvgSteps > 0 ? Math.round(((vitals.steps - prevAvgSteps) / prevAvgSteps) * 100) : 0;
-  const trendStepsUp = trendPctSteps >= 0;
   const stress    = stressStatus(vitals.stressLevel);
-  const hydration = hydrationStatus(hydrationLevel);
+  const hydration = hydrationStatus(vitals.hydrationColorLevel);
   const gait      = gaitStatus(gaitMetrics.symmetry, gaitMetrics.variability, gaitMetrics.speed, gaitMetrics.cadence, gaitMetrics.worseStride, gaitMetrics.worseGCT);
   const nutrition = nutritionStatus(vitals.mealsCount)
 
@@ -585,7 +519,7 @@ const FamilyView = () => {
                 </span>
               </div>
               <div className="h-3 rounded-full bg-muted overflow-hidden">
-                <div className={`h-full rounded-full transition-all ${stress.status === "good" ? "bg-emerald-500" : stress.status === "fair" ? "bg-amber-500" : "bg-rose-500"}`} style={{ width: `${Math.min(100, vitals.stressLevel)}%` }} />
+                <div className={`h-full rounded-full transition-all ${stress.status === "good" ? "bg-emerald-500" : stress.status === "fair" ? "bg-amber-500" : "bg-rose-500"}`} style={{ width: `${vitals.stressLevel}%` }} />
               </div>
               <div className="grid grid-cols-3 gap-2 text-center text-xs">
                 <span className="rounded-lg bg-emerald-50 px-2 py-2 text-emerald-700 font-medium">0-35 · Calm</span>
@@ -611,9 +545,9 @@ const FamilyView = () => {
                   </p>
                   <p className="mt-0.5 text-sm text-muted-foreground">{steps.label} today</p>
                 </div>
-                {prevAvgSteps > 0 && (
-                  <div className={`text-right ${trendStepsUp ? "text-emerald-600" : "text-rose-600"}`}>
-                    <p className="text-xl font-bold">{trendStepsUp ? "+" : ""}{trendPctSteps}%</p>
+                {stepMetrics.prevAvgSteps > 0 && (
+                  <div className={`text-right ${stepMetrics.trendStepsUp ? "text-emerald-600" : "text-rose-600"}`}>
+                    <p className="text-xl font-bold">{stepMetrics.trendStepsUp ? "+" : ""}{stepMetrics.trendPctSteps}%</p>
                     <p className="text-xs text-muted-foreground">vs. recent avg</p>
                   </div>
                 )}
@@ -623,11 +557,11 @@ const FamilyView = () => {
               {stepHistory.length > 1 && (
                 <div className="grid grid-cols-3 gap-3 text-center">
                   <div className="rounded-xl bg-muted/40 p-3">
-                    <p className="text-base font-bold text-foreground">{avgSteps.toLocaleString()}</p>
+                    <p className="text-base font-bold text-foreground">{stepMetrics.avgSteps}</p>
                     <p className="text-xs text-muted-foreground">Daily avg</p>
                   </div>
                   <div className="rounded-xl bg-muted/40 p-3">
-                    <p className="text-base font-bold text-emerald-600">{maxSteps.toLocaleString()}</p>
+                    <p className="text-base font-bold text-emerald-600">{stepMetrics.maxSteps}</p>
                     <p className="text-xs text-muted-foreground">Best day</p>
                   </div>
                   <div className="rounded-xl bg-muted/40 p-3">
@@ -839,62 +773,16 @@ const FamilyView = () => {
         </div>
 
         {/* ── 9-card grid (3 × 3) ───────────────────────────────────── */}
-        <div className="grid grid-cols-3 gap-3 flex-1" style={{ gridTemplateRows: 'repeat(3, 1fr)' }}>
-          <HealthCard
-            icon={Heart} iconBg="bg-heart/15 text-heart"
-            title="Heart Health"
-            label={heart.label} labelColor={heart.color}
-            onClick={() => setOpenModal("heart")}
-          />
-          <HealthCard
-            icon={Moon} iconBg="bg-sleep/15 text-sleep"
-            title="Sleep Analysis"
-            label={sleep.label} labelColor={sleep.color}
-            onClick={() => setOpenModal("sleep")}
-          />
-          <HealthCard
-            icon={Utensils} iconBg="bg-teal-500/15 text-teal-600"
-            title="Nutrition & Diet"
-            label={nutrition.label} labelColor={nutrition.color}            
-            onClick={() => setOpenModal("nutrition")}            
-          />
-          <HealthCard
-            icon={Brain} iconBg="bg-stress/15 text-stress"
-            title="Stress"
-            label={stress.label} labelColor={stress.color}
-            onClick={() => setOpenModal("stress")}
-          />
-          <HealthCard
-            icon={Footprints} iconBg="bg-ecg/15 text-ecg"
-            title="Steps Today"
-            label={stepsTrend.label} labelColor={steps.color}
-            subtitle={stepsTrend.subtitle}
-            onClick={() => setOpenModal("steps")}
-          />
-          <HealthCard
-            icon={Shield} iconBg="bg-amber-500/15 text-amber-600"
-            title="Gait Analysis"
-            label={gait.label} labelColor={gait.color}
-            onClick={() => setOpenModal("gait")}
-          />
-          <HealthCard
-            icon={Droplets} iconBg="bg-teal-500/15 text-teal-600"
-            title="Hydration"
-            label={hydration.label} labelColor={hydration.color}
-            onClick={() => setOpenModal("hydration")}
-          />
-          <HealthCard
-            icon={Pill} iconBg="bg-blue-500/15 text-blue-600"
-            title="Medication"
-            label="Active Rx" labelColor="text-blue-600"
-            onClick={() => setOpenModal("medication")}
-          />
-          <HealthCard
-            icon={Calendar} iconBg="bg-violet-500/15 text-violet-600"
-            title="Appointments"
-            label="Upcoming" labelColor="text-violet-600"
-            onClick={() => setOpenModal("appointments")}
-          />
+        <div className="grid grid-cols-3 gap-3">
+          <HealthCard icon={Heart}      iconBg="bg-heart/15 text-heart"           title="Heart Health"     label={heart.label}           labelColor={heart.color}     onClick={() => setOpenModal("heart")} />
+          <HealthCard icon={Moon}       iconBg="bg-sleep/15 text-sleep"           title="Sleep Analysis"   label={sleep.label}           labelColor={sleep.color}     onClick={() => setOpenModal("sleep")} />
+          <HealthCard icon={Utensils}   iconBg="bg-teal-500/15 text-teal-600"     title="Nutrition & Diet" label={nutrition.label}       labelColor={nutrition.color} onClick={() => setOpenModal("nutrition")} />
+          <HealthCard icon={Brain}      iconBg="bg-stress/15 text-stress"         title="Stress"           label={stress.label}          labelColor={stress.color}    onClick={() => setOpenModal("stress")} />
+          <HealthCard icon={Footprints} iconBg="bg-ecg/15 text-ecg"               title="Steps Today"      label={stepMetrics.stepsTrend} labelColor={steps.color}     onClick={() => setOpenModal("steps")} />
+          <HealthCard icon={Shield}     iconBg="bg-amber-500/15 text-amber-600"   title="Gait Analysis"    label={gait.label}            labelColor={gait.color}      onClick={() => setOpenModal("gait")} />
+          <HealthCard icon={Droplets}   iconBg="bg-teal-500/15 text-teal-600"     title="Hydration"        label={hydration.label}       labelColor={hydration.color} onClick={() => setOpenModal("hydration")} />
+          <HealthCard icon={Pill}       iconBg="bg-blue-500/15 text-blue-600"     title="Medication"       label="Active Rx"              labelColor="text-blue-600"    onClick={() => setOpenModal("medication")} />
+          <HealthCard icon={Calendar}   iconBg="bg-violet-500/15 text-violet-600" title="Appointments"     label="Upcoming"               labelColor="text-violet-600"  onClick={() => setOpenModal("appointments")} />
         </div>
 
       </main>

@@ -25,20 +25,8 @@ const HOME_ID = "PATIENT_001";
 const first_name = "Frank";
 const last_name = "Larson";
 
-type Vitals = {
-  heartRate: number;
-  steps: number;
-  stressLevel: number;
-  sleepHours: number;
-  hydrationNote: string;
-  hydrationColorLevel: number;
-  waterLiters: number;
-  expiringItems: string[];
-  currentItems: string[];
-  mealsCount: number;
-  gaitNote: string;
-  fallRiskAlert: boolean;
-}; 
+type Vitals = { heartRate: number; steps: number; stressLevel: number; sleepHours: number;  mealsCount: number; hydrationNote: string; hydrationColorLevel: number; 
+                waterLiters: number; expiringItems: string[]; currentItems: string[]; gaitNote: string; fallRiskAlert: boolean; };
 type Msg = { role: "user" | "assistant"; content: string };
 type Med = { drug: string; status: string; authored: string; dosage: string };
 type Appt = { status: string; start: string; end: string; type: string; practitioner: string; location: string };
@@ -348,13 +336,13 @@ const ElderView = () => {
   }, []);
 
   // ── Derived health card status values ────────────────────────────────────
-  const sleepS     = sleepStatus(vitals.sleepHours);
-  const heartS     = heartStatus(vitals.heartRate);
-  const stepsS     = stepsStatus(vitals.steps);
-  const stressS    = stressStatus(vitals.stressLevel);
-  const hydrationS = hydrationStatus(vitals.hydrationColorLevel);
-  const gaitS      = gaitStatus(gaitMetrics.symmetry, gaitMetrics.variability, gaitMetrics.speed, gaitMetrics.cadence, gaitMetrics.worseStride, gaitMetrics.worseGCT);
-  const nutritionS = nutritionStatus(vitals.mealsCount);
+  const sleep     = sleepStatus(vitals.sleepHours);
+  const heart     = heartStatus(vitals.heartRate);
+  const steps     = stepsStatus(vitals.steps);
+  const stress    = stressStatus(vitals.stressLevel);
+  const hydration = hydrationStatus(vitals.hydrationColorLevel);
+  const gait      = gaitStatus(gaitMetrics.symmetry, gaitMetrics.variability, gaitMetrics.speed, gaitMetrics.cadence, gaitMetrics.worseStride, gaitMetrics.worseGCT);
+  const nutrition = nutritionStatus(vitals.mealsCount);
 
   const renderModalContent = () => {
     switch (openModal) {
@@ -370,17 +358,17 @@ const ElderView = () => {
       case "stress":
         return (
           <ModalCard icon={Brain} iconBg="bg-stress" gradient="from-purple-50 to-violet-50"
-            title="Stress" subtitle={stressS.note}>
+            title="Stress" subtitle={stress.note}>
             <div className="space-y-4 max-w-md">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Score today</span>
-                <span className={`text-2xl font-bold ${stressS.color}`}>
+                <span className={`text-2xl font-bold ${stress.color}`}>
                   {vitals.stressLevel > 0 ? vitals.stressLevel : "—"}
                   <span className="text-sm font-normal text-muted-foreground"> / 100</span>
                 </span>
               </div>
               <div className="h-3 rounded-full bg-muted overflow-hidden">
-                <div className={`h-full rounded-full transition-all ${stressS.barColor}`} style={{ width: `${vitals.stressLevel}%` }} />
+                <div className={`h-full rounded-full transition-all ${stress.barColor}`} style={{ width: `${vitals.stressLevel}%` }} />
               </div>
               <div className="grid grid-cols-3 gap-2 text-center text-xs">
                 <span className="rounded-lg bg-emerald-50 px-2 py-2 text-emerald-700 font-medium">0-35 · Calm</span>
@@ -396,12 +384,12 @@ const ElderView = () => {
       case "steps": {
         return (
           <ModalCard icon={Footprints} iconBg="bg-ecg" gradient="from-blue-50 to-sky-50"
-            title="Steps Today" subtitle={stepsS.note}>
+            title="Steps Today" subtitle={steps.note}>
             <div className="space-y-5">
               <div className="flex items-end justify-between">
                 <div>
-                  <p className={`text-4xl font-bold ${stepsS.color}`}>{vitals.steps > 0 ? vitals.steps.toLocaleString() : "—"}</p>
-                  <p className="mt-0.5 text-sm text-muted-foreground">{stepsS.label} today</p>
+                  <p className={`text-4xl font-bold ${steps.color}`}>{vitals.steps > 0 ? vitals.steps.toLocaleString() : "—"}</p>
+                  <p className="mt-0.5 text-sm text-muted-foreground">{steps.label} today</p>
                 </div>
                 {stepMetrics.prevAvg > 0 && (
                   <div className={`text-right ${stepMetrics.trendUp ? "text-emerald-600" : "text-rose-600"}`}>
@@ -1176,13 +1164,13 @@ const ElderView = () => {
 
             {/* 9-card grid */}
             <div className="grid grid-cols-3 gap-3">
-              <HealthCard icon={Heart}      iconBg="bg-heart/15 text-heart"           title="Heart Health"     label={heartS.label}           labelColor={heartS.color}     onClick={() => setOpenModal("heart")} />
-              <HealthCard icon={Moon}       iconBg="bg-sleep/15 text-sleep"           title="Sleep Analysis"   label={sleepS.label}           labelColor={sleepS.color}     onClick={() => setOpenModal("sleep")} />
-              <HealthCard icon={Utensils}   iconBg="bg-teal-500/15 text-teal-600"     title="Nutrition & Diet" label={nutritionS.label}       labelColor={nutritionS.color} onClick={() => setOpenModal("nutrition")} />
-              <HealthCard icon={Brain}      iconBg="bg-stress/15 text-stress"         title="Stress"           label={stressS.label}          labelColor={stressS.color}    onClick={() => setOpenModal("stress")} />
-              <HealthCard icon={Footprints} iconBg="bg-ecg/15 text-ecg"               title="Steps Today"      label={stepMetrics.stepsTrend} labelColor={stepsS.color}     onClick={() => setOpenModal("steps")} />
-              <HealthCard icon={Shield}     iconBg="bg-amber-500/15 text-amber-600"   title="Gait Analysis"    label={gaitS.label}            labelColor={gaitS.color}      onClick={() => setOpenModal("gait")} />
-              <HealthCard icon={Droplets}   iconBg="bg-teal-500/15 text-teal-600"     title="Hydration"        label={hydrationS.label}       labelColor={hydrationS.color} onClick={() => setOpenModal("hydration")} />
+              <HealthCard icon={Heart}      iconBg="bg-heart/15 text-heart"           title="Heart Health"     label={heart.label}           labelColor={heart.color}     onClick={() => setOpenModal("heart")} />
+              <HealthCard icon={Moon}       iconBg="bg-sleep/15 text-sleep"           title="Sleep Analysis"   label={sleep.label}           labelColor={sleep.color}     onClick={() => setOpenModal("sleep")} />
+              <HealthCard icon={Utensils}   iconBg="bg-teal-500/15 text-teal-600"     title="Nutrition & Diet" label={nutrition.label}       labelColor={nutrition.color} onClick={() => setOpenModal("nutrition")} />
+              <HealthCard icon={Brain}      iconBg="bg-stress/15 text-stress"         title="Stress"           label={stress.label}          labelColor={stress.color}    onClick={() => setOpenModal("stress")} />
+              <HealthCard icon={Footprints} iconBg="bg-ecg/15 text-ecg"               title="Steps Today"      label={stepMetrics.stepsTrend} labelColor={steps.color}     onClick={() => setOpenModal("steps")} />
+              <HealthCard icon={Shield}     iconBg="bg-amber-500/15 text-amber-600"   title="Gait Analysis"    label={gait.label}            labelColor={gait.color}      onClick={() => setOpenModal("gait")} />
+              <HealthCard icon={Droplets}   iconBg="bg-teal-500/15 text-teal-600"     title="Hydration"        label={hydration.label}       labelColor={hydration.color} onClick={() => setOpenModal("hydration")} />
               <HealthCard icon={Pill}       iconBg="bg-blue-500/15 text-blue-600"     title="Medication"       label="Active Rx"              labelColor="text-blue-600"    onClick={() => setOpenModal("medication")} />
               <HealthCard icon={Calendar}   iconBg="bg-violet-500/15 text-violet-600" title="Appointments"     label="Upcoming"               labelColor="text-violet-600"  onClick={() => setOpenModal("appointments")} />
             </div>
