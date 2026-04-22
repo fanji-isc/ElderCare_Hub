@@ -19,7 +19,8 @@ import {
 } from "recharts";
 import { toast } from "sonner";
 
-type Vitals = { steps: number; stressLevel: number; };
+type Vitals = { steps: number; stressLevel: number; stepsTrend: string, avgSteps: string, maxSteps: string, 
+                prevAvgSteps: number, trendPctSteps: number, trendStepsUp: boolean };
 type Med = { drug: string; status: string; authored: string; dosage: string };
 type Appt = { status: string; start: string; end: string; type: string; practitioner: string; location: string };
 
@@ -253,12 +254,11 @@ function HipaaShieldIcon({ className }: { className?: string }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 const FamilyView = () => {
   // Card data states
-  const emptyVitals: Vitals = { steps: 0, stressLevel: 0 };
+  const emptyVitals: Vitals = { steps: 0, stressLevel: 0, stepsTrend: "", avgSteps: "", maxSteps: "", prevAvgSteps: 0, trendPctSteps: 0, trendStepsUp: false };
   const [vitals, setVitals] = useState<Vitals>(emptyVitals);
   const vitalsRef = useRef<Vitals>(emptyVitals);
   vitalsRef.current = vitals;
   const [stepHistory, setStepHistory] = useState<{ day: string; steps: number }[]>([]);
-  const [stepMetrics, setStepMetrics] = useState({ stepsTrend: "", avgSteps: "", maxSteps: "", prevAvgSteps: 0, trendPctSteps: 0, trendStepsUp: false });
   const [healthStatus, setHealthStatus] = useState({ sleep: {}, heart: {}, stress: {}, steps: {}, hydration: {}, gait: {}, nutrition: {} });
   const [familySummary, setFamilySummary] = useState<{ status: string; summary: string } | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -385,12 +385,6 @@ const FamilyView = () => {
         setVitals(loaded);
         vitalsRef.current = loaded;
 
-        // Extract latest session step metrics for health card status
-        const incomingStepMetrics = dashboardData.stepMetrics || {};
-        setStepMetrics({
-          ...incomingStepMetrics
-        });
-
         // Build step history for trend chart
         setStepHistory(dashboardData.stepHistory ?? []);
 
@@ -434,13 +428,22 @@ const FamilyView = () => {
     },
   }[familySummary.status];
 
+  // ── Derived health card status values ────────────────────────────────────
   const renderModalContent = () => {
     switch (openModal) {
-      case "heart": return <div className="flex flex-col gap-4"><HeartRateChart /><ECGVisualization /></div>;
-      case "sleep": return <SleepChart />;
+      case "heart":
+        return (
+          <div className="flex flex-col gap-4">
+            <HeartRateChart />
+            <ECGVisualization />
+          </div>
+        );
+      case "sleep":
+        return <SleepChart />;
       case "stress":
         return (
-          <ModalCard icon={Brain} iconBg="bg-stress" gradient="from-purple-50 to-violet-50" title="Stress" subtitle={healthStatus.stress.note}>
+          <ModalCard icon={Brain} iconBg="bg-stress" gradient="from-purple-50 to-violet-50"
+            title="Stress" subtitle={healthStatus.stress.note}>
             <div className="space-y-4 max-w-md">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Score today</span>
@@ -450,7 +453,7 @@ const FamilyView = () => {
                 </span>
               </div>
               <div className="h-3 rounded-full bg-muted overflow-hidden">
-                <div className={`h-full rounded-full transition-all ${healthStatus.stress.status === "good" ? "bg-emerald-500" : healthStatus.stress.status === "fair" ? "bg-amber-500" : "bg-rose-500"}`} style={{ width: `${vitals.stressLevel}%` }} />
+                <div className={`h-full rounded-full transition-all ${healthStatus.stress.barColor}`} style={{ width: `${vitals.stressLevel}%` }} />
               </div>
               <div className="grid grid-cols-3 gap-2 text-center text-xs">
                 <span className="rounded-lg bg-emerald-50 px-2 py-2 text-emerald-700 font-medium">0-35 · Calm</span>
@@ -458,41 +461,36 @@ const FamilyView = () => {
                 <span className="rounded-lg bg-rose-50 px-2 py-2 text-rose-700 font-medium">61+ · Elevated</span>
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Derived from Garmin heart rate variability analysis throughout the day. Scores are averaged across waking hours only.
+                Derived from Garmin heart rate variability analysis throughout the day. Scores are averaged across awake hours only.
               </p>
             </div>
           </ModalCard>
         );
-      case "steps": 
+      case "steps": {
         return (
           <ModalCard icon={Footprints} iconBg="bg-ecg" gradient="from-blue-50 to-sky-50"
             title="Steps Today" subtitle={healthStatus.steps.note}>
             <div className="space-y-5">
-              {/* Today + trend vs recent average */}
               <div className="flex items-end justify-between">
                 <div>
-                  <p className={`text-4xl font-bold ${healthStatus.steps.color}`}>
-                    {vitals.steps > 0 ? vitals.steps.toLocaleString() : "—"}
-                  </p>
+                  <p className={`text-4xl font-bold ${healthStatus.steps.color}`}>{vitals.steps > 0 ? vitals.steps.toLocaleString() : "—"}</p>
                   <p className="mt-0.5 text-sm text-muted-foreground">{healthStatus.steps.label} today</p>
                 </div>
-                {stepMetrics.prevAvgSteps > 0 && (
-                  <div className={`text-right ${stepMetrics.trendStepsUp ? "text-emerald-600" : "text-rose-600"}`}>
-                    <p className="text-xl font-bold">{stepMetrics.trendStepsUp ? "+" : ""}{stepMetrics.trendPctSteps}%</p>
+                {vitals.prevAvg > 0 && (
+                  <div className={`text-right ${vitals.trendUp ? "text-emerald-600" : "text-rose-600"}`}>
+                    <p className="text-xl font-bold">{vitals.trendUp ? "+" : ""}{vitals.trendPct}%</p>
                     <p className="text-xs text-muted-foreground">vs. recent avg</p>
                   </div>
                 )}
               </div>
-
-              {/* Stats row */}
               {stepHistory.length > 1 && (
                 <div className="grid grid-cols-3 gap-3 text-center">
                   <div className="rounded-xl bg-muted/40 p-3">
-                    <p className="text-base font-bold text-foreground">{stepMetrics.avgSteps}</p>
+                    <p className="text-base font-bold text-foreground">{vitals.avgSteps}</p>
                     <p className="text-xs text-muted-foreground">Daily avg</p>
                   </div>
                   <div className="rounded-xl bg-muted/40 p-3">
-                    <p className="text-base font-bold text-emerald-600">{stepMetrics.maxSteps}</p>
+                    <p className="text-base font-bold text-emerald-600">{vitals.maxSteps}</p>
                     <p className="text-xs text-muted-foreground">Best day</p>
                   </div>
                   <div className="rounded-xl bg-muted/40 p-3">
@@ -501,18 +499,14 @@ const FamilyView = () => {
                   </div>
                 </div>
               )}
-
-              {/* Trend area chart */}
               {stepHistory.length > 1 && (
                 <>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    {stepHistory.length}-day trend
-                  </p>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{stepHistory.length}-day trend</p>
                   <div className="h-52">
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={stepHistory} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
                         <defs>
-                          <linearGradient id="stepsGradient" x1="0" y1="0" x2="0" y2="1">
+                          <linearGradient id="stepsGradientElder" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="0%" stopColor="hsl(var(--ecg))" stopOpacity={0.35} />
                             <stop offset="100%" stopColor="hsl(var(--ecg))" stopOpacity={0} />
                           </linearGradient>
@@ -520,25 +514,9 @@ const FamilyView = () => {
                         <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
                         <XAxis dataKey="day" tick={{ fontSize: 11, fill: "hsl(215,16%,50%)" }} axisLine={false} tickLine={false} />
                         <YAxis tick={{ fontSize: 11, fill: "hsl(215,16%,50%)" }} axisLine={false} tickLine={false} />
-                        <Tooltip
-                          contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid hsl(var(--border))" }}
-                          formatter={(v: number) => [v.toLocaleString(), "Steps"]}
-                        />
-                        <ReferenceLine
-                          y={5000}
-                          stroke="hsl(var(--success))"
-                          strokeDasharray="4 4"
-                          label={{ value: "Goal 5k", fontSize: 9, fill: "hsl(var(--success))", position: "right" }}
-                        />
-                        <Area
-                          type="monotone"
-                          dataKey="steps"
-                          stroke="hsl(var(--ecg))"
-                          strokeWidth={2.5}
-                          fill="url(#stepsGradient)"
-                          dot={{ r: 3, fill: "hsl(var(--ecg))", strokeWidth: 0 }}
-                          isAnimationActive={false}
-                        />
+                        <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid hsl(var(--border))" }} formatter={(v: number) => [v.toLocaleString(), "Steps"]} />
+                        <ReferenceLine y={5000} stroke="hsl(var(--success))" strokeDasharray="4 4" label={{ value: "Goal 5k", fontSize: 9, fill: "hsl(var(--success))", position: "right" }} />
+                        <Area type="monotone" dataKey="steps" stroke="hsl(var(--ecg))" strokeWidth={2.5} fill="url(#stepsGradientElder)" dot={{ r: 3, fill: "hsl(var(--ecg))", strokeWidth: 0 }} isAnimationActive={false} />
                       </AreaChart>
                     </ResponsiveContainer>
                   </div>
@@ -547,9 +525,13 @@ const FamilyView = () => {
             </div>
           </ModalCard>
         );
-      case "gait": return <WalkingActivityChart />;
-      case "nutrition": return <SmartFridgeCard />;
-      case "hydration": return <HydrationIndicator />;
+      }
+      case "gait":
+        return <WalkingActivityChart />;
+      case "nutrition":
+        return <SmartFridgeCard />;
+      case "hydration":
+        return <HydrationIndicator />;
       case "medication":
         return (
           <ModalCard icon={Pill} iconBg="bg-blue-500" gradient="from-blue-50 to-indigo-50"
@@ -560,11 +542,12 @@ const FamilyView = () => {
       case "appointments":
         return (
           <ModalCard icon={Calendar} iconBg="bg-violet-500" gradient="from-violet-50 to-purple-50"
-            title="Upcoming Appointments" subtitle="Scheduled visits & family action items">
+            title="Appointments" subtitle="Upcoming scheduled visits">
             <AppointmentsDetail />
           </ModalCard>
         );
-      default: return null;
+      default:
+        return null;
     }
   };
 
@@ -709,7 +692,7 @@ const FamilyView = () => {
           <HealthCard icon={Moon}       iconBg="bg-sleep/15 text-sleep"           title="Sleep Analysis"   label={healthStatus.sleep.label}           labelColor={healthStatus.sleep.color}     onClick={() => setOpenModal("sleep")} />
           <HealthCard icon={Utensils}   iconBg="bg-teal-500/15 text-teal-600"     title="Nutrition & Diet" label={healthStatus.nutrition.label}       labelColor={healthStatus.nutrition.color} onClick={() => setOpenModal("nutrition")} />
           <HealthCard icon={Brain}      iconBg="bg-stress/15 text-stress"         title="Stress"           label={healthStatus.stress.label}          labelColor={healthStatus.stress.color}    onClick={() => setOpenModal("stress")} />
-          <HealthCard icon={Footprints} iconBg="bg-ecg/15 text-ecg"               title="Steps Today"      label={stepMetrics.stepsTrend} labelColor={healthStatus.steps.color}     onClick={() => setOpenModal("steps")} />
+          <HealthCard icon={Footprints} iconBg="bg-ecg/15 text-ecg"               title="Steps Today"      label={vitals.stepsTrend} labelColor={healthStatus.steps.color}     onClick={() => setOpenModal("steps")} />
           <HealthCard icon={Shield}     iconBg="bg-amber-500/15 text-amber-600"   title="Gait Analysis"    label={healthStatus.gait.label}            labelColor={healthStatus.gait.color}      onClick={() => setOpenModal("gait")} />
           <HealthCard icon={Droplets}   iconBg="bg-teal-500/15 text-teal-600"     title="Hydration"        label={healthStatus.hydration.label}       labelColor={healthStatus.hydration.color} onClick={() => setOpenModal("hydration")} />
           <HealthCard icon={Pill}       iconBg="bg-blue-500/15 text-blue-600"     title="Medication"       label="Active Rx"              labelColor="text-blue-600"    onClick={() => setOpenModal("medication")} />

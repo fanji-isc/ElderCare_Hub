@@ -25,7 +25,8 @@ const HOME_ID = "PATIENT_001";
 const first_name = "Frank";
 const last_name = "Larson";
 
-type Vitals = { steps: number; stressLevel: number; };
+type Vitals = { steps: number; stressLevel: number; stepsTrend: string, avgSteps: string, maxSteps: string, 
+                prevAvgSteps: number, trendPctSteps: number, trendStepsUp: boolean };
 type Msg = { role: "user" | "assistant"; content: string };
 type Med = { drug: string; status: string; authored: string; dosage: string };
 type Appt = { status: string; start: string; end: string; type: string; practitioner: string; location: string };
@@ -203,11 +204,10 @@ const ElderView = () => {
   const [pendingJoinId, setPendingJoinId] = useState<number | null>(null);
   const [pendingConnectId, setPendingConnectId] = useState<number | null>(null);
   const [pendingConnectName, setPendingConnectName] = useState<string>("");
-  const emptyVitals: Vitals = { steps: 0, stressLevel: 0 };
+  const emptyVitals: Vitals = { steps: 0, stressLevel: 0, stepsTrend: "", avgSteps: "", maxSteps: "", prevAvgSteps: 0, trendPctSteps: 0, trendStepsUp: false };
   const [vitals, setVitals] = useState<Vitals>(emptyVitals);
   const vitalsRef = useRef<Vitals>(emptyVitals);
   vitalsRef.current = vitals;
-  const [stepMetrics, setStepMetrics] = useState({ stepsTrend: "", avgSteps: "", maxSteps: "", prevAvgSteps: 0, trendPctSteps: 0, trendStepsUp: false });
   const [stepHistory, setStepHistory] = useState<{ day: string; steps: number }[]>([]);
   const [healthStatus, setHealthStatus] = useState({ sleep: {}, heart: {}, stress: {}, steps: {}, hydration: {}, gait: {}, nutrition: {} });
   const [loaded, setLoaded] = useState(false);
@@ -258,12 +258,6 @@ const ElderView = () => {
         };
         setVitals(loaded);
         vitalsRef.current = loaded;
-
-        // Extract latest session step metrics for health card status
-        const incomingStepMetrics = dashboardData.stepMetrics || {};
-        setStepMetrics({
-          ...incomingStepMetrics
-        });
 
         // Build step history for trend chart
         const history = dashboardData.stepHistory || [];
@@ -326,9 +320,9 @@ const ElderView = () => {
                   <p className={`text-4xl font-bold ${healthStatus.steps.color}`}>{vitals.steps > 0 ? vitals.steps.toLocaleString() : "—"}</p>
                   <p className="mt-0.5 text-sm text-muted-foreground">{healthStatus.steps.label} today</p>
                 </div>
-                {stepMetrics.prevAvg > 0 && (
-                  <div className={`text-right ${stepMetrics.trendUp ? "text-emerald-600" : "text-rose-600"}`}>
-                    <p className="text-xl font-bold">{stepMetrics.trendUp ? "+" : ""}{stepMetrics.trendPct}%</p>
+                {vitals.prevAvg > 0 && (
+                  <div className={`text-right ${vitals.trendUp ? "text-emerald-600" : "text-rose-600"}`}>
+                    <p className="text-xl font-bold">{vitals.trendUp ? "+" : ""}{vitals.trendPct}%</p>
                     <p className="text-xs text-muted-foreground">vs. recent avg</p>
                   </div>
                 )}
@@ -336,11 +330,11 @@ const ElderView = () => {
               {stepHistory.length > 1 && (
                 <div className="grid grid-cols-3 gap-3 text-center">
                   <div className="rounded-xl bg-muted/40 p-3">
-                    <p className="text-base font-bold text-foreground">{stepMetrics.avgSteps}</p>
+                    <p className="text-base font-bold text-foreground">{vitals.avgSteps}</p>
                     <p className="text-xs text-muted-foreground">Daily avg</p>
                   </div>
                   <div className="rounded-xl bg-muted/40 p-3">
-                    <p className="text-base font-bold text-emerald-600">{stepMetrics.maxSteps}</p>
+                    <p className="text-base font-bold text-emerald-600">{vitals.maxSteps}</p>
                     <p className="text-xs text-muted-foreground">Best day</p>
                   </div>
                   <div className="rounded-xl bg-muted/40 p-3">
@@ -1113,7 +1107,7 @@ const ElderView = () => {
               <HealthCard icon={Moon}       iconBg="bg-sleep/15 text-sleep"           title="Sleep Analysis"   label={healthStatus.sleep.label}           labelColor={healthStatus.sleep.color}     onClick={() => setOpenModal("sleep")} />
               <HealthCard icon={Utensils}   iconBg="bg-teal-500/15 text-teal-600"     title="Nutrition & Diet" label={healthStatus.nutrition.label}       labelColor={healthStatus.nutrition.color} onClick={() => setOpenModal("nutrition")} />
               <HealthCard icon={Brain}      iconBg="bg-stress/15 text-stress"         title="Stress"           label={healthStatus.stress.label}          labelColor={healthStatus.stress.color}    onClick={() => setOpenModal("stress")} />
-              <HealthCard icon={Footprints} iconBg="bg-ecg/15 text-ecg"               title="Steps Today"      label={stepMetrics.stepsTrend} labelColor={healthStatus.steps.color}     onClick={() => setOpenModal("steps")} />
+              <HealthCard icon={Footprints} iconBg="bg-ecg/15 text-ecg"               title="Steps Today"      label={vitals.stepsTrend} labelColor={healthStatus.steps.color}     onClick={() => setOpenModal("steps")} />
               <HealthCard icon={Shield}     iconBg="bg-amber-500/15 text-amber-600"   title="Gait Analysis"    label={healthStatus.gait.label}            labelColor={healthStatus.gait.color}      onClick={() => setOpenModal("gait")} />
               <HealthCard icon={Droplets}   iconBg="bg-teal-500/15 text-teal-600"     title="Hydration"        label={healthStatus.hydration.label}       labelColor={healthStatus.hydration.color} onClick={() => setOpenModal("hydration")} />
               <HealthCard icon={Pill}       iconBg="bg-blue-500/15 text-blue-600"     title="Medication"       label="Active Rx"              labelColor="text-blue-600"    onClick={() => setOpenModal("medication")} />
