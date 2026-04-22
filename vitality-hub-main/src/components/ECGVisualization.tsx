@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Activity, Clock } from "lucide-react";
 
-
 type EcgRecord = {
   summary: {
     startTimeLocal?: string;

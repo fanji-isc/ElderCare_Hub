@@ -13,9 +13,6 @@ import {
   Tooltip, Legend, ReferenceArea, ResponsiveContainer,
 } from "recharts";
 
-const API_BASE = "http://localhost:3001";
-
-
 function generateAvatar(name: string, gender: string, age: number): string {
   // Multi-pass hash — each attribute gets a completely independent value
   const hashAttr = (str: string, attr: string) => {
@@ -360,7 +357,7 @@ const PhysicianView = () => {
   const [selectedId, setSelectedId]   = useState<string | null>(null);
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/fhir/patients`)
+    fetch(`/api/fhir/patients`)
       .then(r => { if (!r.ok) throw new Error("Failed to load patients"); return r.json(); })
       .then(data => {
         const pts: FhirPatient[] = Array.isArray(data) ? data : [];
@@ -392,14 +389,14 @@ const PhysicianView = () => {
     (async () => {
       try {
         const [cond, meds, vit, lab, proc, imm, enc, bp] = await Promise.all([
-          fetch(`${API_BASE}/api/fhir/conditions?patient_id=${selectedId}`).then(r => r.json()),
-          fetch(`${API_BASE}/api/fhir/medications?patient_id=${selectedId}`).then(r => r.json()),
-          fetch(`${API_BASE}/api/fhir/vitals?patient_id=${selectedId}`).then(r => r.json()),
-          fetch(`${API_BASE}/api/fhir/labs?patient_id=${selectedId}`).then(r => r.json()),
-          fetch(`${API_BASE}/api/fhir/procedures?patient_id=${selectedId}`).then(r => r.json()),
-          fetch(`${API_BASE}/api/fhir/immunizations?patient_id=${selectedId}`).then(r => r.json()),
-          fetch(`${API_BASE}/api/fhir/encounters?patient_id=${selectedId}`).then(r => r.json()),
-          fetch(`${API_BASE}/api/fhir/bp-trend?patient_id=${selectedId}`).then(r => r.json()),
+          fetch(`/api/fhir/conditions?patient_id=${selectedId}`).then(r => r.json()),
+          fetch(`/api/fhir/medications?patient_id=${selectedId}`).then(r => r.json()),
+          fetch(`/api/fhir/vitals?patient_id=${selectedId}`).then(r => r.json()),
+          fetch(`/api/fhir/labs?patient_id=${selectedId}`).then(r => r.json()),
+          fetch(`/api/fhir/procedures?patient_id=${selectedId}`).then(r => r.json()),
+          fetch(`/api/fhir/immunizations?patient_id=${selectedId}`).then(r => r.json()),
+          fetch(`/api/fhir/encounters?patient_id=${selectedId}`).then(r => r.json()),
+          fetch(`/api/fhir/bp-trend?patient_id=${selectedId}`).then(r => r.json()),
         ]);
         setConditions(Array.isArray(cond) ? cond : []);
         setMedications(Array.isArray(meds) ? meds : []);
@@ -438,7 +435,7 @@ const PhysicianView = () => {
     setSummaryLoading(true);
     setSummaryError(null);
 
-    fetch(`${API_BASE}/api/clinician_summary?patient_id=${selectedId}`)
+    fetch(`/api/clinician_summary?patient_id=${selectedId}`)
       .then(r => {
         if (!r.ok) throw new Error("Could not load summary");
         return r.text();
@@ -461,7 +458,7 @@ const PhysicianView = () => {
     setSummaryError(null);
     try {
       const r = await fetch(
-        `${API_BASE}/api/clinician_summary/generate?patient_id=${selectedId}`,
+        `/api/clinician_summary/generate?patient_id=${selectedId}`,
         { method: "POST" }
       );
       if (!r.ok) {

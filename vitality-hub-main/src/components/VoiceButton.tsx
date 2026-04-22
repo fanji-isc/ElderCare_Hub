@@ -1,12 +1,10 @@
 import React, { useRef, useState } from "react";
 
 type Props = {
-  apiBase?: string;              // e.g. "http://localhost:3001"
   onTranscript: (text: string) => void;
 };
 
 export default function VoiceButton({
-  apiBase = "http://localhost:3001",
   onTranscript,
 }: Props) {
   const [isRecording, setIsRecording] = useState(false);
@@ -56,7 +54,7 @@ export default function VoiceButton({
         fd.append("file", blob, "audio.webm");
 
         try {
-            const res = await fetch(`${apiBase}/api/transcribe`, {
+            const res = await fetch(`/api/transcribe`, {
             method: "POST",
             body: fd,
             });

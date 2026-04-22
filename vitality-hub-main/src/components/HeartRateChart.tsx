@@ -27,7 +27,7 @@ function pickIndex(
 }
 
 export function HeartRateChart() {
-  const patientId = "PATIENT_001";
+  const HOME_ID = "PATIENT_001";
 
   const [payload, setPayload] = useState<EpochPayload | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -42,7 +42,7 @@ export function HeartRateChart() {
       setError(null);
 
       try {
-        const r = await fetch(`/api/iris_data?patient_id=${encodeURIComponent(patientId)}&column=hr`);
+        const r = await fetch(`/api/iris_data?patient_id=${encodeURIComponent(HOME_ID)}&column=hr`);
         if (!r.ok) throw new Error(await r.text());
         const data = (await r.json()) as unknown;
 

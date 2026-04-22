@@ -15,8 +15,7 @@ const COLOR_SCALE = [
   { level: 8, hex: "#4A2D0A", label: "Very Dark",    status: "See a Doctor",     statusColor: "text-destructive" },
 ];
 
-const API_BASE = "http://localhost:3001";
-const PATIENT_ID = "PATIENT_001";
+const HOME_ID = "PATIENT_001";
 
 function pickLatestByCalendarDate(list: any[]): any | null {
   if (!Array.isArray(list) || list.length === 0) return null;
@@ -93,7 +92,7 @@ export function HydrationIndicator() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/iris_data?patient_id=${encodeURIComponent(PATIENT_ID)}&column=toilet`);
+        const res = await fetch(`/api/iris_data?patient_id=${encodeURIComponent(HOME_ID)}&column=toilet`);
         const json = res.ok ? await res.json() : [];
         const allData = Array.isArray(json) ? json : [];
 

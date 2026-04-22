@@ -103,28 +103,8 @@ def build_neighbourhood_context(patient_id: str = ""):
         lines.append(instructions)
     return "\n".join(lines)
 
-def heartStatus(bpm: int) -> dict:
-    if bpm == 0:        return {"label": "No data", "color": "text-muted-foreground"}
-    if 0 < bpm < 55:    return {"label": "Slightly low", "color": "text-amber-600"}
-    if 55 <= bpm <= 85: return {"label": "Normal range", "color": "text-emerald-600"}
-    if 85 < bpm <= 100: return {"label": "Slightly elevated", "color": "text-amber-600"}
-    return                     {"label": "Check with doctor", "color": "text-rose-600"}
-
-def stressStatus(v: int) -> dict:
-    if v == 0: return {"label": "Calm", "note": "Stress levels look great", "color": "text-emerald-600", "barColor": "bg-emerald-500"}
-    if v <= 35: return {"label": "Calm", "note": "Very relaxed today", "color": "text-emerald-600", "barColor": "bg-emerald-500"}
-    if v <= 60: return {"label": "Mild stress", "note": "Some stress — likely normal", "color": "text-amber-600", "barColor": "bg-amber-500"}
-    return {"label": "High stress",  "note": "Elevated — try to relax", "color": "text-rose-600", "barColor": "bg-rose-500"}
-
-def sleepStatus(patient_id: str = "") -> dict:
-    hoursAsleep = extract_sleep(patient_id)
-    if hoursAsleep == 0: return {"label": "No data", "color": "text-muted-foreground"}
-    if hoursAsleep >= 7: return {"label": "Well rested", "color": "text-emerald-600"}
-    if hoursAsleep >= 5.5: return {"label": "Light sleep", "color": "text-amber-600"}
-    return {"label": "Poor sleep",  "color": "text-rose-600"}
-
 def extract_steps(dailySummaryJson: list, vitals_steps: int) -> tuple[list, dict, dict]:
-    def stepsStatus(steps: int) -> str:
+    def get_steps_status(steps: int) -> str:
         if steps == 0:    return {"label": "No data", "note": "Activity data unavailable", "color": "text-muted-foreground"}
         if steps >= 5000: return {"label": "Very active", "note": f"{steps} steps — excellent!", "color": "text-emerald-600"}
         if steps >= 2500: return {"label": "Moderately active", "note": f"{steps} steps — good movement", "color": "text-emerald-600"}
@@ -144,7 +124,8 @@ def extract_steps(dailySummaryJson: list, vitals_steps: int) -> tuple[list, dict
             "day": formatted_date,
             "steps": d.get("totalSteps")
         })
-    step_status = stepsStatus(vitals_steps)
+    
+    step_status = get_steps_status(vitals_steps)
     step_metrics = {
         "stepsTrend": f"{vitals_steps} steps · {step_status['label']}" if vitals_steps > 0 else "No step data",
         "avgSteps": "0",
@@ -170,7 +151,7 @@ def extract_steps(dailySummaryJson: list, vitals_steps: int) -> tuple[list, dict
     return step_history, step_metrics, step_status
 
 def extract_fridge(patient_id: str = "") -> tuple[dict, dict]:
-    def nutritionStatus(mealsCount: int) -> dict:
+    def get_nutrition_status(mealsCount: int) -> dict:
         if mealsCount == 0: return {"label": "No meals tracked", "color": "text-rose-600"}
         if mealsCount == 1: return {"label": "1 meal tracked", "color": "text-orange-600"}
         if mealsCount == 2: return {"label": "2 meals tracked", "color": "text-amber-600"}
@@ -193,11 +174,11 @@ def extract_fridge(patient_id: str = "") -> tuple[dict, dict]:
             "currentItems": current_items,
             "expiringItems": expiring_items,
             "mealsCount": meal_count,
-        }, nutritionStatus(meal_count)
-    return {"waterLiters": 50, "currentItems": [], "expiringItems": [], "mealsCount": 0}, nutritionStatus(0)
+        }, get_nutrition_status(meal_count)
+    return {"waterLiters": 50, "currentItems": [], "expiringItems": [], "mealsCount": 0}, {"label": "No meals tracked", "color": "text-rose-600"}
 
 def extract_hydration(patient_id: str = "") -> tuple[str, int, bool, dict]:
-    def hydrationStatus(level: int) -> dict:
+    def get_hydration_status(level: int) -> dict:
         if level == 0: return {"label": "No data", "color": "text-muted-foreground"}
         if level <= 2: return {"label": "Excellent", "color": "text-emerald-600"}
         if level <= 3: return {"label": "Normal", "color": "text-emerald-600"}
@@ -224,10 +205,10 @@ def extract_hydration(patient_id: str = "") -> tuple[str, int, bool, dict]:
         ]        
         hydrationNote = next((note for max_lvl, note in levels if hydrationColorLevel <= max_lvl), "severely dehydrated — needs attention soon")
     dehydrated = "dehydrated" in hydrationNote.lower()
-    return hydrationNote, hydrationColorLevel, dehydrated, hydrationStatus(hydrationColorLevel)
+    return hydrationNote, hydrationColorLevel, dehydrated, get_hydration_status(hydrationColorLevel)
 
 def extract_gait(patient_id: str = "") -> tuple[str, bool, dict, dict]:
-    def gaitStatus(metrics: dict) -> dict:
+    def get_gait_status(metrics: dict) -> dict:
         if metrics.get("symmetry", 0) == 0:
             return {"label": "No data", "color": "text-muted-foreground"}
         is_high = (
@@ -260,9 +241,8 @@ def extract_gait(patient_id: str = "") -> tuple[str, bool, dict, dict]:
         avg_speed       = sum(x["gaitSpeedMs"] for x in all_sessions) / n
         avg_symmetry    = sum(x["stepSymmetryPct"] for x in all_sessions) / n
         avg_variability = sum(x["strideVariabilityPct"] for x in all_sessions) / n
-        avg_gct_diff = sum(abs(x["groundContactTimeMs"]["left"] - 
-                               x["groundContactTimeMs"]["right"]) 
-                           for x in all_sessions) / n
+        avg_gct_diff = sum(abs(x["groundContactTimeMs"]["left"] - x["groundContactTimeMs"]["right"]) for x in all_sessions) / n
+
         score = 0
         if avg_speed < 0.6: score += 4
         elif avg_speed < 0.8: score += 2
@@ -295,23 +275,7 @@ def extract_gait(patient_id: str = "") -> tuple[str, bool, dict, dict]:
         "worseStride": min(stride["leftCm"], stride["rightCm"]),
         "worseGCT": max(gct["left"], gct["right"])
     }
-    return gaitNote, gaitConcern, gait_metrics, gaitStatus(gait_metrics)
-
-def extract_phone_calls(patient_id: str = "") -> dict:
-    phoneCallJson = get_iris_data(patient_id, "phoneCalls")
-    phone_calls = {"phoneCallMinutes": 0, "phoneCallTrend": []}
-    
-    sorted_calls = sorted(
-        phoneCallJson, 
-        key=lambda x: str(x.get("calendarDate", ""))
-    )
-    if sorted_calls:
-        last7 = sorted_calls[-7:]
-        trend = [float(d.get("totalMinutes", 0)) for d in last7]
-        latest = sorted_calls[-1]
-        minutes = float(latest.get("totalMinutes", 0)) 
-        phone_calls = {"phoneCallMinutes": minutes, "phoneCallTrend": trend}
-    return phone_calls
+    return gaitNote, gaitConcern, gait_metrics, get_gait_status(gait_metrics)
 
 def extract_sleep(patient_id: str = "") -> float:
     sleepJson = get_iris_data(patient_id, "sleep")
@@ -331,6 +295,26 @@ def extract_sleep(patient_id: str = "") -> float:
             total_seconds = latest.get("deepSleepSeconds") + latest.get("lightSleepSeconds") + latest.get("remSleepSeconds")
             hoursAsleep = total_seconds / 3600
     return hoursAsleep
+
+def get_heart_status(bpm: int) -> dict:
+    if bpm == 0:        return {"label": "No data", "color": "text-muted-foreground"}
+    if 0 < bpm < 55:    return {"label": "Slightly low", "color": "text-amber-600"}
+    if 55 <= bpm <= 85: return {"label": "Normal range", "color": "text-emerald-600"}
+    if 85 < bpm <= 100: return {"label": "Slightly elevated", "color": "text-amber-600"}
+    return                     {"label": "Check with doctor", "color": "text-rose-600"}
+
+def get_stress_status(v: int) -> dict:
+    if v == 0: return {"label": "Calm", "note": "Stress levels look great", "color": "text-emerald-600", "barColor": "bg-emerald-500"}
+    if v <= 35: return {"label": "Calm", "note": "Very relaxed today", "color": "text-emerald-600", "barColor": "bg-emerald-500"}
+    if v <= 60: return {"label": "Mild stress", "note": "Some stress — likely normal", "color": "text-amber-600", "barColor": "bg-amber-500"}
+    return {"label": "High stress",  "note": "Elevated — try to relax", "color": "text-rose-600", "barColor": "bg-rose-500"}
+
+def get_sleep_status(patient_id: str = "") -> dict:
+    hoursAsleep = extract_sleep(patient_id)
+    if hoursAsleep == 0: return {"label": "No data", "color": "text-muted-foreground"}
+    if hoursAsleep >= 7: return {"label": "Well rested", "color": "text-emerald-600"}
+    if hoursAsleep >= 5.5: return {"label": "Light sleep", "color": "text-amber-600"}
+    return {"label": "Poor sleep",  "color": "text-rose-600"}
 
 def unix_to_utc(timestamp):
     return datetime.fromtimestamp(timestamp / 1000.0, tz=timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')
@@ -665,35 +649,41 @@ def get_patient_dashboard(patient_id: str = "") -> dict:
     dailyJson = get_iris_data(patient_id, "dailySummary")
     latest_dailySummary = max(dailyJson, key=lambda x: x.get("calendarDate"), default=None)
 
-    # extractStress
+    # extract_stress
     aggregator_list = latest_dailySummary.get("allDayStress").get("aggregatorList")
     awake = next((a for a in aggregator_list if a.get("type") == "AWAKE"), {})
     stressLevel = round(awake.get("averageStressLevel"))
 
+    steps = latest_dailySummary.get("totalSteps", 0)
+    heart_rate = latest_dailySummary.get("currentDayRestingHeartRate") or latest_dailySummary.get("restingHeartRate") or 0
+
     _, nutritionStatus = extract_fridge(patient_id)
     _, _, _, hydrationStatus = extract_hydration(patient_id)
     _, _, _, gaitStatus = extract_gait(patient_id)    
-    steps = latest_dailySummary.get("totalSteps", 0)
     stepHistory, stepMetrics, stepStatus = extract_steps(dailyJson, steps)
-    heart_rate = latest_dailySummary.get("currentDayRestingHeartRate") or latest_dailySummary.get("restingHeartRate") or 0
 
     return {
         "steps": steps,
         "stepHistory": stepHistory,
-        "stepMetrics": stepMetrics,
+        "stepsTrend": stepMetrics['stepsTrend'],
+        "avgSteps": stepMetrics['avgSteps'],
+        "maxSteps": stepMetrics['maxSteps'],
+        "prevAvgSteps": stepMetrics['prevAvgSteps'],
+        "trendPctSteps": stepMetrics['trendPctSteps'],
+        "trendStepsUp": stepMetrics['trendStepsUp'],
         "stressLevel": min(stressLevel, 100),
         "status": {
             "steps": stepStatus,
-            "heart": heartStatus(heart_rate),
-            "stress": stressStatus(stressLevel),
-            "sleep": sleepStatus(patient_id),
+            "heart": get_heart_status(heart_rate),
+            "stress": get_stress_status(stressLevel),
+            "sleep": get_sleep_status(patient_id),
             "hydration": hydrationStatus,
             "gait": gaitStatus,
             "nutrition": nutritionStatus
         }
     }
 
-def get_patient_data(patient_id: str = "") -> dict:
+def llm_patient_data(patient_id: str = "") -> dict:
     dailyJson = get_iris_data(patient_id, "dailySummary")
     latest_dailySummary = max(dailyJson, key=lambda x: x.get("calendarDate"), default=None)
 
@@ -702,32 +692,36 @@ def get_patient_data(patient_id: str = "") -> dict:
     awake = next((a for a in aggregator_list if a.get("type") == "AWAKE"), {})
     stressLevel = round(awake.get("averageStressLevel"))
 
+    steps = latest_dailySummary.get("totalSteps", 0)
+    heart_rate = latest_dailySummary.get("currentDayRestingHeartRate") or latest_dailySummary.get("restingHeartRate") or 0
+
     fridge, _ = extract_fridge(patient_id)
     hydrationNote, hydrationColorLevel, dehydrated, _ = extract_hydration(patient_id)
     gaitNote, gaitConcern, gaitMetrics, _ = extract_gait(patient_id)    
-    phoneCalls = extract_phone_calls(patient_id)
     hoursAsleep = extract_sleep(patient_id)
-    steps = latest_dailySummary.get("totalSteps", 0)
     stepHistory, stepMetrics, _ = extract_steps(dailyJson, steps)
 
     return {
-        "heartRate": latest_dailySummary.get("currentDayRestingHeartRate") or latest_dailySummary.get("restingHeartRate") or 0,
-        "steps": steps,
-        "stepHistory": stepHistory,
-        "stepMetrics": stepMetrics,
-        "stressLevel": min(stressLevel, 100),
-        "sleepHours": hoursAsleep,
-        "hydrationNote": hydrationNote,
-        "hydrationColorLevel": hydrationColorLevel,
-        "waterLiters": fridge.get("waterLiters"),
-        "expiringItems": fridge.get("expiringItems"),
-        "currentItems": fridge.get("currentItems"),
-        "mealsCount": fridge.get("mealsCount"),
-        "phoneCallMinutes": phoneCalls.get("phoneCallMinutes"),
-        "phoneCallTrend": phoneCalls.get("phoneCallTrend"),
-        "gaitNote": gaitNote,
-        "fallRiskAlert": dehydrated and gaitConcern,
-        "gaitMetrics": gaitMetrics
+        "resting_heart_rate": heart_rate,
+        "total_steps_today": steps,
+        "step_history": stepHistory,
+        "average_steps": stepMetrics['avgSteps'],
+        "average_steps_before_today": stepMetrics['prevAvgSteps'],
+        "max_steps": stepMetrics['maxSteps'],
+        "steps_percentage_change": stepMetrics['trendPctSteps'],
+        "steps_percentage_change": stepMetrics['trendStepsUp'],
+        "steps_trend": stepMetrics['stepsTrend'],
+        "stress_level_today": min(stressLevel, 100),
+        "sleep_hours_today": hoursAsleep,
+        "hydration_note_today": hydrationNote,
+        "hydration_color_level_today": hydrationColorLevel,
+        "water_liters_drunken_today": fridge.get("waterLiters"),
+        "expiring_fridge_items": fridge.get("expiringItems"),
+        "current_firdge_tems": fridge.get("currentItems"),
+        "meals_count_todya": fridge.get("mealsCount"),
+        "gait_history_description": gaitNote,
+        "current_fall_risk": dehydrated and gaitConcern,
+        "gait_metrics_today": gaitMetrics
     }
 
 # ── Interpret IRIS Home data endpoints ──────────────────────────────────────────
@@ -1849,7 +1843,7 @@ def get_system_prompt(patient_id: str = "") -> str:
 
     # RESTRICTIONS
     DO NOT give medical diagnoses. 
-    If unsure, suggest contacting their healthcare professional. Only suggest this if the user explicitly asks for medical advice or if the data shows a severe concerning condition, otherwise suggest contacting their family.
+    If unsure about any MEDICAL, suggest contacting their healthcare professional. Only suggest this if the user explicitly asks for medical advice or if the data shows a severe concerning condition, otherwise only suggest contacting their family.
 
     You are an advisor, not a personal secretary. You may suggest that the user contacts a neighbor or family member, but you must NEVER offer to draft messages, send alerts, or "loop people in" yourself. 
     **HARD STOP:** Never offer to "help think through," "create a plan," or "formulate next steps." Provide the information and then stop. **NO FACILITATION:** Never use phrases like "I can help you plan" or "Let's figure out." Your role is to provide options, not to manage the user's schedule or logistics EXCEPT for the specific automated actions defined in the Trigger Codes section.
@@ -1940,7 +1934,7 @@ def generate_family_summary(patient_id: str = ""):
     return {"status": "warn", "summary": "Yesterday Frank walked less than usual (low daily steps) and had a high fall-risk pattern, along with moderate dehydration despite eating only two meals. He slept very little, which may add to dizziness risk. With his diuretic and past near-falls, it would help to focus on steady fluids, safe movement, and a medication/vitals check at the upcoming visits."}
     client = get_openai_client()
     
-    vitals = get_patient_data(patient_id)
+    vitals = llm_patient_data(patient_id)
     patient_desc = get_patient_desc(patient_id)
 
     home_analyst = f"""

@@ -181,15 +181,14 @@ function MiniChart({
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
-const API_BASE   = "http://localhost:3001";
-const PATIENT_ID = "PATIENT_001";
+const HOME_ID = "PATIENT_001";
 
 export function WalkingActivityChart() {
   const [gaitDays, setGaitDays] = useState<GaitDay[]>([]);
   const [open, setOpen]         = useState(false);
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/iris_data?patient_id=${encodeURIComponent(PATIENT_ID)}&column=gait`)
+    fetch(`/api/iris_data?patient_id=${encodeURIComponent(HOME_ID)}&column=gait`)
       .then((r) => (r.ok ? r.json() : []))
       .then((data) => {
         if (Array.isArray(data))

@@ -33,7 +33,7 @@ function safeNum(v: unknown) {
   return typeof v === "number" && Number.isFinite(v) ? v : 0;
 }
 
-export function SleepChart({ patientId = "PATIENT_001" }: { patientId?: string }) {
+export function SleepChart({ HOME_ID = "PATIENT_001" }: { HOME_ID?: string }) {
   const [rows, setRows]       = useState<ChartRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState<string | null>(null);
@@ -44,7 +44,7 @@ export function SleepChart({ patientId = "PATIENT_001" }: { patientId?: string }
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`/api/iris_data?patient_id=${encodeURIComponent(patientId)}&column=sleep`);
+        const res = await fetch(`/api/iris_data?patient_id=${encodeURIComponent(HOME_ID)}&column=sleep`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const payload = await res.json();
 
@@ -70,7 +70,7 @@ export function SleepChart({ patientId = "PATIENT_001" }: { patientId?: string }
     }
     load();
     return () => { cancelled = true; };
-  }, [patientId]);
+  }, [HOME_ID]);
 
   const avgTotal = useMemo(() => {
     if (!rows.length) return "—";
