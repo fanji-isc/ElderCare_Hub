@@ -30,8 +30,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
-const API_BASE = import.meta.env.VITE_API_BASE ?? "";
-const PATIENT_ID = "PATIENT_001";
+const HOME_ID = "PATIENT_001";
 
 // ─── Data Types ───────────────────────────────────────────────────────────────
 
@@ -211,7 +210,6 @@ export function CommunityPanel({ section = "all" }: { section?: CommunitySection
       return next;
     });
   };
-  // TODO: figure out why Ride request is hard coded in
   const handleSubmitPost = () => {
     if (!postMessage.trim()) return;
     const now = new Date();
@@ -231,6 +229,7 @@ export function CommunityPanel({ section = "all" }: { section?: CommunitySection
     };
     setPosts((prev) => [newPost, ...prev]);
     toast.success("Your post is now on the board!");
+    // Reset to default display
     setPostMessage("");
     setPostType("request");
     setPostCategory("Ride");
@@ -263,7 +262,7 @@ export function CommunityPanel({ section = "all" }: { section?: CommunitySection
   }, [posts, activities, loading, pendingCmd]);
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/iris_data?patient_id=${encodeURIComponent(PATIENT_ID)}&column=neighborhood`)
+    fetch(`/api/iris_data?patient_id=${encodeURIComponent(HOME_ID)}&column=neighborhood`)
       .then((r) => r.ok ? r.json() : [])
       .then((data: any) => {
         console.log("Fetched neighborhood data: ", data);

@@ -1,13 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { Header } from "@/components/Header";
 import { CommunityPanel } from "@/components/CommunityPanel";
-import { HeartRateChart } from "@/components/HeartRateChart";
-import { ECGVisualization } from "@/components/ECGVisualization";
-import { SleepChart } from "@/components/SleepChart";
-import { HydrationIndicator } from "@/components/HydrationIndicator";
-import { WalkingActivityChart } from "@/components/WalkingActivityChart";
-import { SmartFridgeCard } from "@/components/SmartFridgeCard";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { HealthModalContent, HealthCard } from "@/components/HealthPanel";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import {
   Users, HeartHandshake, ChevronDown, ChevronUp,
   Mic, Activity, Heart, Moon, Footprints, Volume2,
@@ -15,181 +10,13 @@ import {
   Utensils, Shield, Droplets, Pill,
   Phone, PhoneOff, PhoneCall, PhoneIncoming,
 } from "lucide-react";
-import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid,
-  Tooltip, ReferenceLine, ResponsiveContainer,
-} from "recharts";
 
-const API_BASE = "http://localhost:3001";
 const HOME_ID = "PATIENT_001";
 const first_name = "Frank";
-const last_name = "Larson";
 
 type Vitals = { steps: number; stressLevel: number; stepsTrend: string, avgSteps: string, maxSteps: string, 
                 prevAvgSteps: number, trendPctSteps: number, trendStepsUp: boolean };
 type Msg = { role: "user" | "assistant"; content: string };
-type Med = { drug: string; status: string; authored: string; dosage: string };
-type Appt = { status: string; start: string; end: string; type: string; practitioner: string; location: string };
-
-// ── ModalCard ─────────────────────────────────────────────────────────────────
-function ModalCard({
-  icon: Icon, iconBg, gradient, title, subtitle, children,
-}: {
-  icon: React.ElementType; iconBg: string; gradient: string;
-  title: string; subtitle?: string; children: React.ReactNode;
-}) {
-  return (
-    <div className="rounded-2xl bg-card shadow-card overflow-hidden">
-      <div className={`flex items-center gap-3 border-b border-border px-5 py-3.5 bg-gradient-to-r ${gradient}`}>
-        <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${iconBg} text-primary-foreground`}>
-          <Icon className="h-4 w-4" />
-        </div>
-        <div>
-          <p className="text-sm font-semibold text-foreground leading-tight">{title}</p>
-          {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
-        </div>
-      </div>
-      <div className="p-5">{children}</div>
-    </div>
-  );
-}
-
-// ── HealthCard ────────────────────────────────────────────────────────────────
-function HealthCard({
-  icon: Icon, iconBg, title, label, labelColor, onClick,
-}: {
-  icon: React.ElementType; iconBg: string;
-  title: string; label: string; labelColor: string; onClick: () => void;
-}) {
-  return (
-    <div onClick={onClick}
-      className={`rounded-2xl shadow-card overflow-hidden cursor-pointer group hover:shadow-lg transition-shadow px-5 py-6 flex flex-col justify-center bg-sky-50`}>
-      <div className="flex items-center gap-3 mb-4">
-        <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${iconBg}`}>
-          <Icon className="h-5 w-5" />
-        </div>
-        <span className="text-base font-semibold text-foreground">{title}</span>
-      </div>
-      <p className={`text-sm font-medium leading-tight ${labelColor}`}>{label}</p>
-    </div>
-  );
-}
-
-// ── MedicationDetail ──────────────────────────────────────────────────────────
-function MedicationDetail() {
-  const [meds, setMeds] = useState<Med[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchMeds = async () => {
-      try {
-        const res = await fetch(`${API_BASE}/api/fhir/patient-medications?first_name=${first_name}&last_name=${last_name}`);
-        if (!res.ok) throw new Error("Patient not found or server error");
-        
-        const data = await res.json();
-        setMeds(data);
-      } catch (e: any) {
-        setError(e.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (first_name && last_name) fetchMeds();
-  }, [first_name, last_name]);
-
-  if (loading) return <div className="flex items-center justify-center py-12"><p className="text-sm text-muted-foreground">Loading medications…</p></div>;
-  if (error)   return <div className="flex items-center justify-center py-12"><p className="text-sm text-rose-600">{error}</p></div>;
-  if (!meds.length) return <div className="flex items-center justify-center py-12"><p className="text-sm text-muted-foreground">No medication records found.</p></div>;
-
-  return (
-    <div className="space-y-2">
-      {meds.map((med, i) => {
-        const authored = med.authored
-          ? new Date(med.authored).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
-          : null;
-        return (
-          <div key={i} className="rounded-xl bg-muted/40 px-4 py-3">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground">{med.drug}</p>
-                {med.dosage && <p className="mt-0.5 text-xs text-muted-foreground">{med.dosage}</p>}
-                {authored && <p className="mt-0.5 text-xs text-muted-foreground/60">Prescribed {authored}</p>}
-              </div>
-              <span className={`flex-shrink-0 text-xs font-medium px-2.5 py-0.5 rounded-full ${
-                med.status === "active" ? "bg-emerald-100 text-emerald-700" : "bg-muted text-muted-foreground"
-              }`}>
-                {med.status}
-              </span>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-// ── AppointmentsDetail ────────────────────────────────────────────────────────
-function AppointmentsDetail() {
-  const [appts, setAppts] = useState<Appt[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchAppts = async () => {
-      try {
-        const res = await fetch(`${API_BASE}/api/fhir/patient-appointments?first_name=${first_name}&last_name=${last_name}`);
-        if (!res.ok) throw new Error("Patient not found or server error");
-        
-        const data: Appt[] = await res.json();
-        setAppts(Array.isArray(data) ? data : []);
-      } catch (e: any) {
-        setError(e.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (first_name && last_name) fetchAppts();
-  }, [first_name, last_name]);
-
-  if (loading) return <div className="flex items-center justify-center py-12"><p className="text-sm text-muted-foreground">Loading appointments…</p></div>;
-  if (error)   return <div className="flex items-center justify-center py-12"><p className="text-sm text-rose-600">{error}</p></div>;
-  if (!appts.length) return <div className="flex items-center justify-center py-12"><p className="text-sm text-muted-foreground">No upcoming appointments scheduled.</p></div>;
-
-  return (
-    <div className="space-y-3">
-      {appts.map((appt, i) => {
-        const startDate = appt.start
-          ? new Date(appt.start).toLocaleDateString("en-US", { weekday: "short", year: "numeric", month: "long", day: "numeric" })
-          : null;
-        const startTime = appt.start
-          ? new Date(appt.start).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
-          : null;
-        return (
-          <div key={i} className="rounded-xl bg-violet-50 border border-violet-100 px-4 py-3">
-            <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-violet-100">
-                <Calendar className="h-5 w-5 text-violet-600" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-foreground">{appt.type}</p>
-                {startDate && (
-                  <p className="mt-0.5 text-sm text-violet-700 font-medium">
-                    {startDate}{startTime ? ` at ${startTime}` : ""}
-                  </p>
-                )}
-                {appt.practitioner && <p className="mt-0.5 text-xs text-muted-foreground">{appt.practitioner}</p>}
-                {appt.location && <p className="text-xs text-muted-foreground">{appt.location}</p>}
-              </div>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 type Panel = "health" | "activity" | "helping" | null;
@@ -212,11 +39,6 @@ const ElderView = () => {
   const [healthStatus, setHealthStatus] = useState({ sleep: {}, heart: {}, stress: {}, steps: {}, hydration: {}, gait: {}, nutrition: {} });
   const [loaded, setLoaded] = useState(false);
   const [openModal, setOpenModal] = useState<string | null>(null);
-  const modalTitle: Record<string, string> = {
-    heart: "Heart Health", sleep: "Sleep Analysis", stress: "Stress",
-    steps: "Steps Today", gait: "Gait Analysis", nutrition: "Nutrition & Diet",
-    hydration: "Hydration", medication: "Medications", appointments: "Appointments",
-  };
 
   // Phone call state
   const [callState, setCallState] = useState<"idle" | "calling" | "connected" | "declined">("idle");
@@ -247,7 +69,7 @@ const ElderView = () => {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/build-patient-dashboard?patient_id=${HOME_ID}`);
+        const res = await fetch(`/api/build-patient-dashboard?patient_id=${HOME_ID}`);
         if (!res.ok) {
           const errorData = await res.json().catch(() => ({ detail: "Unknown Error" }));
           throw new Error(errorData.detail || "Fetch failed");
@@ -272,134 +94,11 @@ const ElderView = () => {
     })();
   }, []);
 
-  // ── Derived health card status values ────────────────────────────────────
-  const renderModalContent = () => {
-    switch (openModal) {
-      case "heart":
-        return (
-          <div className="flex flex-col gap-4">
-            <HeartRateChart />
-            <ECGVisualization />
-          </div>
-        );
-      case "sleep":
-        return <SleepChart />;
-      case "stress":
-        return (
-          <ModalCard icon={Brain} iconBg="bg-stress" gradient="from-purple-50 to-violet-50"
-            title="Stress" subtitle={healthStatus.stress.note}>
-            <div className="space-y-4 max-w-md">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Score today</span>
-                <span className={`text-2xl font-bold ${healthStatus.stress.color}`}>
-                  {vitals.stressLevel > 0 ? vitals.stressLevel : "—"}
-                  <span className="text-sm font-normal text-muted-foreground"> / 100</span>
-                </span>
-              </div>
-              <div className="h-3 rounded-full bg-muted overflow-hidden">
-                <div className={`h-full rounded-full transition-all ${healthStatus.stress.barColor}`} style={{ width: `${vitals.stressLevel}%` }} />
-              </div>
-              <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                <span className="rounded-lg bg-emerald-50 px-2 py-2 text-emerald-700 font-medium">0-35 · Calm</span>
-                <span className="rounded-lg bg-amber-50 px-2 py-2 text-amber-700 font-medium">36-60 · Mild</span>
-                <span className="rounded-lg bg-rose-50 px-2 py-2 text-rose-700 font-medium">61+ · Elevated</span>
-              </div>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Derived from Garmin heart rate variability analysis throughout the day. Scores are averaged across awake hours only.
-              </p>
-            </div>
-          </ModalCard>
-        );
-      case "steps": {
-        return (
-          <ModalCard icon={Footprints} iconBg="bg-ecg" gradient="from-blue-50 to-sky-50"
-            title="Steps Today" subtitle={healthStatus.steps.note}>
-            <div className="space-y-5">
-              <div className="flex items-end justify-between">
-                <div>
-                  <p className={`text-4xl font-bold ${healthStatus.steps.color}`}>{vitals.steps > 0 ? vitals.steps.toLocaleString() : "—"}</p>
-                  <p className="mt-0.5 text-sm text-muted-foreground">{healthStatus.steps.label} today</p>
-                </div>
-                {vitals.prevAvg > 0 && (
-                  <div className={`text-right ${vitals.trendUp ? "text-emerald-600" : "text-rose-600"}`}>
-                    <p className="text-xl font-bold">{vitals.trendUp ? "+" : ""}{vitals.trendPct}%</p>
-                    <p className="text-xs text-muted-foreground">vs. recent avg</p>
-                  </div>
-                )}
-              </div>
-              {stepHistory.length > 1 && (
-                <div className="grid grid-cols-3 gap-3 text-center">
-                  <div className="rounded-xl bg-muted/40 p-3">
-                    <p className="text-base font-bold text-foreground">{vitals.avgSteps}</p>
-                    <p className="text-xs text-muted-foreground">Daily avg</p>
-                  </div>
-                  <div className="rounded-xl bg-muted/40 p-3">
-                    <p className="text-base font-bold text-emerald-600">{vitals.maxSteps}</p>
-                    <p className="text-xs text-muted-foreground">Best day</p>
-                  </div>
-                  <div className="rounded-xl bg-muted/40 p-3">
-                    <p className="text-base font-bold text-muted-foreground">{stepHistory.length}d</p>
-                    <p className="text-xs text-muted-foreground">Tracked</p>
-                  </div>
-                </div>
-              )}
-              {stepHistory.length > 1 && (
-                <>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{stepHistory.length}-day trend</p>
-                  <div className="h-52">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={stepHistory} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
-                        <defs>
-                          <linearGradient id="stepsGradientElder" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="hsl(var(--ecg))" stopOpacity={0.35} />
-                            <stop offset="100%" stopColor="hsl(var(--ecg))" stopOpacity={0} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                        <XAxis dataKey="day" tick={{ fontSize: 11, fill: "hsl(215,16%,50%)" }} axisLine={false} tickLine={false} />
-                        <YAxis tick={{ fontSize: 11, fill: "hsl(215,16%,50%)" }} axisLine={false} tickLine={false} />
-                        <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid hsl(var(--border))" }} formatter={(v: number) => [v.toLocaleString(), "Steps"]} />
-                        <ReferenceLine y={5000} stroke="hsl(var(--success))" strokeDasharray="4 4" label={{ value: "Goal 5k", fontSize: 9, fill: "hsl(var(--success))", position: "right" }} />
-                        <Area type="monotone" dataKey="steps" stroke="hsl(var(--ecg))" strokeWidth={2.5} fill="url(#stepsGradientElder)" dot={{ r: 3, fill: "hsl(var(--ecg))", strokeWidth: 0 }} isAnimationActive={false} />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </div>
-                </>
-              )}
-            </div>
-          </ModalCard>
-        );
-      }
-      case "gait":
-        return <WalkingActivityChart />;
-      case "nutrition":
-        return <SmartFridgeCard />;
-      case "hydration":
-        return <HydrationIndicator />;
-      case "medication":
-        return (
-          <ModalCard icon={Pill} iconBg="bg-blue-500" gradient="from-blue-50 to-indigo-50"
-            title="Medications" subtitle="Active prescriptions">
-            <MedicationDetail />
-          </ModalCard>
-        );
-      case "appointments":
-        return (
-          <ModalCard icon={Calendar} iconBg="bg-violet-500" gradient="from-violet-50 to-purple-50"
-            title="Appointments" subtitle="Upcoming scheduled visits">
-            <AppointmentsDetail />
-          </ModalCard>
-        );
-      default:
-        return null;
-    }
-  };
-
   // Fetch system prompt on mount
   useEffect(() => {
     const fetchSystemPrompt = async () => {
       try {
-        const response = await fetch(`${API_BASE}/api/system-prompt?patient_id=${HOME_ID}`);
+        const response = await fetch(`/api/system-prompt?patient_id=${HOME_ID}`);
         
         if (!response.ok) {
           throw new Error("Network response was not ok");
@@ -436,7 +135,7 @@ const ElderView = () => {
   };
   const fetchTTSBuffer = async (text: string, signal: AbortSignal): Promise<ArrayBuffer | null> => {
     try {
-      const res = await fetch(`${API_BASE}/api/speak`, {
+      const res = await fetch(`/api/speak`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text }),
@@ -482,7 +181,7 @@ const ElderView = () => {
     onChunk: (full: string) => void,
     system?: string,
   ): Promise<string> => {
-    const res = await fetch(`${API_BASE}/api/answer/stream`, {
+    const res = await fetch(`/api/answer/stream`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text, messages: history, ...(system ? { system } : {}) }),
@@ -535,7 +234,7 @@ const ElderView = () => {
     if (runningRef.current || isRecording) return;
     runningRef.current = true;
     setIsThinking(true);
-    const prompt = await fetch(`${API_BASE}/api/checkin-prompt?mode=${mode}`).then(res => res.ok ? res.text() : "Error: Could not retrieve checkin prompt.");
+    const prompt = await fetch(`/api/checkin-prompt?mode=${mode}`).then(res => res.ok ? res.text() : "Error: Could not retrieve checkin prompt.");
     speakAbortRef.current?.abort();
     const ttsCtrl = new AbortController();
     speakAbortRef.current = ttsCtrl;
@@ -627,7 +326,7 @@ const ElderView = () => {
         const fd = new FormData();
         fd.append("file", blob, "audio.webm");
         try {
-          const res = await fetch(`${API_BASE}/api/transcribe`, { method: "POST", body: fd });
+          const res = await fetch(`/api/transcribe`, { method: "POST", body: fd });
           const ct = res.headers.get("content-type") || "";
           const data: any = ct.includes("application/json") ? await res.json() : { error: await res.text() };
           if (!res.ok || data?.error) { setNHHStatus("Transcription failed"); return; }
@@ -1103,15 +802,15 @@ const ElderView = () => {
           <div className="mt-6 rounded-3xl border border-blue-100 bg-white p-6 shadow-lg sm:p-8">
             {/* 9-card grid */}
             <div className="grid grid-cols-3 gap-3">
-              <HealthCard icon={Heart}      iconBg="bg-heart/15 text-heart"           title="Heart Health"     label={healthStatus.heart.label}           labelColor={healthStatus.heart.color}     onClick={() => setOpenModal("heart")} />
-              <HealthCard icon={Moon}       iconBg="bg-sleep/15 text-sleep"           title="Sleep Analysis"   label={healthStatus.sleep.label}           labelColor={healthStatus.sleep.color}     onClick={() => setOpenModal("sleep")} />
-              <HealthCard icon={Utensils}   iconBg="bg-teal-500/15 text-teal-600"     title="Nutrition & Diet" label={healthStatus.nutrition.label}       labelColor={healthStatus.nutrition.color} onClick={() => setOpenModal("nutrition")} />
-              <HealthCard icon={Brain}      iconBg="bg-stress/15 text-stress"         title="Stress"           label={healthStatus.stress.label}          labelColor={healthStatus.stress.color}    onClick={() => setOpenModal("stress")} />
-              <HealthCard icon={Footprints} iconBg="bg-ecg/15 text-ecg"               title="Steps Today"      label={vitals.stepsTrend} labelColor={healthStatus.steps.color}     onClick={() => setOpenModal("steps")} />
-              <HealthCard icon={Shield}     iconBg="bg-amber-500/15 text-amber-600"   title="Gait Analysis"    label={healthStatus.gait.label}            labelColor={healthStatus.gait.color}      onClick={() => setOpenModal("gait")} />
-              <HealthCard icon={Droplets}   iconBg="bg-teal-500/15 text-teal-600"     title="Hydration"        label={healthStatus.hydration.label}       labelColor={healthStatus.hydration.color} onClick={() => setOpenModal("hydration")} />
-              <HealthCard icon={Pill}       iconBg="bg-blue-500/15 text-blue-600"     title="Medication"       label="Active Rx"              labelColor="text-blue-600"    onClick={() => setOpenModal("medication")} />
-              <HealthCard icon={Calendar}   iconBg="bg-violet-500/15 text-violet-600" title="Appointments"     label="Upcoming"               labelColor="text-violet-600"  onClick={() => setOpenModal("appointments")} />
+              <HealthCard icon={Heart}      iconBg="bg-heart/15 text-heart"           title="Heart Health"     label={healthStatus.heart.label}           labelColor={healthStatus.heart.color}     onClick={() => setOpenModal("heart")}      showShield={false} />
+              <HealthCard icon={Moon}       iconBg="bg-sleep/15 text-sleep"           title="Sleep Analysis"   label={healthStatus.sleep.label}           labelColor={healthStatus.sleep.color}     onClick={() => setOpenModal("sleep")}      showShield={false} />
+              <HealthCard icon={Utensils}   iconBg="bg-teal-500/15 text-teal-600"     title="Nutrition & Diet" label={healthStatus.nutrition.label}       labelColor={healthStatus.nutrition.color} onClick={() => setOpenModal("nutrition")}  showShield={false} />
+              <HealthCard icon={Brain}      iconBg="bg-stress/15 text-stress"         title="Stress"           label={healthStatus.stress.label}          labelColor={healthStatus.stress.color}    onClick={() => setOpenModal("stress")}     showShield={false} />
+              <HealthCard icon={Footprints} iconBg="bg-ecg/15 text-ecg"               title="Steps Today"      label={vitals.stepsTrend}                  labelColor={healthStatus.steps.color}     onClick={() => setOpenModal("steps")}      showShield={false} />
+              <HealthCard icon={Shield}     iconBg="bg-amber-500/15 text-amber-600"   title="Gait Analysis"    label={healthStatus.gait.label}            labelColor={healthStatus.gait.color}      onClick={() => setOpenModal("gait")}       showShield={false} />
+              <HealthCard icon={Droplets}   iconBg="bg-teal-500/15 text-teal-600"     title="Hydration"        label={healthStatus.hydration.label}       labelColor={healthStatus.hydration.color} onClick={() => setOpenModal("hydration")}  showShield={false} />
+              <HealthCard icon={Pill}       iconBg="bg-blue-500/15 text-blue-600"     title="Medication"       label="Active Rx"       labelColor="text-blue-600"    onClick={() => setOpenModal("medication")}    showShield={false} />
+              <HealthCard icon={Calendar}   iconBg="bg-violet-500/15 text-violet-600" title="Appointments"     label="Upcoming"        labelColor="text-violet-600"  onClick={() => setOpenModal("appointments")}  showShield={false} />
             </div>
           </div>
         )}
@@ -1137,10 +836,13 @@ const ElderView = () => {
       {/* ── Detail modal ── */}
       <Dialog open={openModal !== null} onOpenChange={() => setOpenModal(null)}>
         <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader className="sr-only">
-            <DialogTitle>{openModal ? modalTitle[openModal] : ""}</DialogTitle>
-          </DialogHeader>
-          {renderModalContent()}
+          <HealthModalContent 
+            openModal={openModal} 
+            vitals={vitals} 
+            healthStatus={healthStatus} 
+            stepHistory={stepHistory}
+            showPrivacyFeatures={false}
+          />
         </DialogContent>
       </Dialog>
 

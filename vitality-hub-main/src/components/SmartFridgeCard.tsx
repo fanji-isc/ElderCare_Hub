@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { Refrigerator, AlertTriangle, ShoppingCart, Utensils, Flame } from "lucide-react";
 
-const API_BASE = "http://localhost:3001";
-const PATIENT_ID = "PATIENT_001";
+const HOME_ID = "PATIENT_001";
 
 type StockLevel = "low" | "medium" | "full";
 
@@ -53,7 +52,7 @@ export function SmartFridgeCard() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/iris_data?patient_id=${encodeURIComponent(PATIENT_ID)}&column=fridge`);
+        const res = await fetch(`/api/iris_data?patient_id=${encodeURIComponent(HOME_ID)}&column=fridge`);
         const json = res.ok ? await res.json() : [];
         setData(pickLatest(Array.isArray(json) ? json : []));
       } catch { /* fallback stays */ }
