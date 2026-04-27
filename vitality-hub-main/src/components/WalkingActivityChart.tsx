@@ -188,7 +188,7 @@ export function WalkingActivityChart() {
   const [open, setOpen]         = useState(false);
 
   useEffect(() => {
-    fetch(`/api/iris_data?patient_id=${encodeURIComponent(HOME_ID)}&column=gait`)
+    fetch(`/api/iris_data?home_id=${encodeURIComponent(HOME_ID)}&column=gait`)
       .then((r) => (r.ok ? r.json() : []))
       .then((data) => {
         if (Array.isArray(data))

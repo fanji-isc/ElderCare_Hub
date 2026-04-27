@@ -52,7 +52,7 @@ export function SmartFridgeCard() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`/api/iris_data?patient_id=${encodeURIComponent(HOME_ID)}&column=fridge`);
+        const res = await fetch(`/api/iris_data?home_id=${encodeURIComponent(HOME_ID)}&column=fridge`);
         const json = res.ok ? await res.json() : [];
         setData(pickLatest(Array.isArray(json) ? json : []));
       } catch { /* fallback stays */ }

@@ -137,7 +137,7 @@ const FamilyView = () => {
     (async () => {
       try {
         const [dashboardRes, summaryRes] = await Promise.all([
-          fetch(`/api/build-patient-dashboard?patient_id=${HOME_ID}`),
+          fetch(`/api/get-vitals?home_id=${HOME_ID}`),
           fetch(`/api/family-summary?patient_id=${HOME_ID}`)
         ]);
 

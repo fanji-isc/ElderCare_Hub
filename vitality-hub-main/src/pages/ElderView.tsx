@@ -69,7 +69,7 @@ const ElderView = () => {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`/api/build-patient-dashboard?patient_id=${HOME_ID}`);
+        const res = await fetch(`/api/get-vitals?home_id=${HOME_ID}`);
         if (!res.ok) {
           const errorData = await res.json().catch(() => ({ detail: "Unknown Error" }));
           throw new Error(errorData.detail || "Fetch failed");

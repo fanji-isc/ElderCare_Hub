@@ -42,7 +42,7 @@ export function HeartRateChart() {
       setError(null);
 
       try {
-        const r = await fetch(`/api/iris_data?patient_id=${encodeURIComponent(HOME_ID)}&column=hr`);
+        const r = await fetch(`/api/iris_data?home_id=${encodeURIComponent(HOME_ID)}&column=hr`);
         if (!r.ok) throw new Error(await r.text());
         const data = (await r.json()) as unknown;
 

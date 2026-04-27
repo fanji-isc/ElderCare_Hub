@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Vitality Hub is a multi-view health monitoring dashboard for elderly care. It displays Garmin wearable data (heart rate, sleep, ECG, gait, daily activity) and other smart household devices (smart toilet - hydration , smart fridge - nutrition) alongside FHIR clinical records, with a voice-controlled AI assistant powered by OpenAI. Data is stored in InterSystems IRIS Health via ObjectScript.
+Vitality Hub is a multi-view health monitoring dashboard for elderly care. It displays Garmin wearable data (heart rate, ECG, sleep, stress, steps, gait) and other smart household devices (smart toilet - hydration , smart fridge - nutrition) alongside FHIR clinical records, with a voice-controlled AI assistant powered by OpenAI. Data is stored in InterSystems IRIS Health via ObjectScript.
 
 **Three primary views:**
 - **Elder View** (`src/pages/ElderView.tsx`) — patient-facing dashboard with all health metrics alonside data about their neighborhood
@@ -23,8 +23,9 @@ docker compose up --build   # Start all services (iris, api, web)
 - IRIS Management Portal: http://localhost:52773/csp/sys/UtilHome.csp (user: `_SYSTEM`, pass: `demo`)
 - Backend API: http://localhost:3001
 
-> **Hot reload:** Changes to `src/` are picked up instantly via Vite HMR — no restart needed.
-> **Requires rebuild:** Changes to `backend/`, `garmin/`, or `fhirdata/` require `docker compose down -v && docker compose up --build`.
+> **Hot reload:** Changes to `backend/` are picked up instantly via Vite HMR — no restart needed.
+> **Requires restart:** Changes to `src/` require `docker compose restart`.
+> **Requires rebuild:** Changes to `garmin/`, or `fhirdata/` require `docker compose down -v && docker compose up --build`.
 
 ## Frontend Development Commands
 
@@ -58,7 +59,7 @@ Browser (8080) → [Vite/React] → /api proxy → [FastAPI (3001)] → [IRIS He
 | `GET /api/iris_data?column=toilet` | Hydration / toilet events |
 | `GET /api/iris_data?column=neighborhood` | Community activity |
 | `GET /api/iris_data?column=phoneCalls` | Phone call log |
-| `GET /api/build-patient-dashboard` | Vitals data |
+| `GET /api/get-vitals` | Vitals data for dashboard |
 | `GET /api/fhir/patients` | FHIR patient list |
 | `GET /api/fhir/patient` | Single patient demographics |
 | `GET /api/fhir/conditions` | Active conditions |
@@ -80,11 +81,11 @@ Browser (8080) → [Vite/React] → /api proxy → [FastAPI (3001)] → [IRIS He
 | `POST /api/answer/stream` | Streaming Text → GPT-5.4-nano response |
 | `POST /api/speak` | Text → OpenAI TTS-1-HD audio with Nova voice |
 
-**Database**: InterSystems IRIS Health. `backend/iris_db.py` runs at startup to load `garmin/*.json` and `fhirdata/*.json` files into IRIS under patient key `PATIENT_001`, who is `Frank Larson`.
+**Database**: InterSystems IRIS Health. `backend/iris_db.py` runs at startup to load `garmin/*.json` and `fhirdata/*.json` files into IRIS under the ID `PATIENT_001`, who is `Frank Larson`.
 
 ## Key Data Flow
 
-1. On startup, `iris_db.py` reads `garmin/` and `fhirdata/` JSON files and stores them in IRIS under patient key `PATIENT_001`.
+1. On startup, `iris_db.py` reads `garmin/` and `fhirdata/` JSON files and stores them in IRIS under `PATIENT_001`.
 2. Frontend fetches health metrics from the backend via the FastAPI endpoints
 3. Voice assistant: hold VoiceButton → WebM/Opus audio → `/api/transcribe` → `/api/answer/stream` → `/api/speak` → audio playback.
 
@@ -93,7 +94,7 @@ Browser (8080) → [Vite/React] → /api proxy → [FastAPI (3001)] → [IRIS He
 | Directory | Contents |
 |---|---|
 | `garmin/` | `heart_rate.json`, `sleep.json`, `ECG.json`, `daily_summary.json`, `gait.json`, `fridge.json`, `toilet_hydration.json`, `neighborhood_activities.json` |
-| `fhirdata/` | FHIR R4 bundles for Frank Larson and other patients (used by Physician View) |
+| `fhirdata/` | FHIR R4 bundles for Frank Larson and other patients within the Vitality Hub (used by Physician View) |
 
 ## Tech Stack
 

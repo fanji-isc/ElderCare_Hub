@@ -37,21 +37,40 @@ def get_iris():
 # ── IRIS Home data endpoints ─────────────────────────────────────────────────────
 
 @app.get("/api/iris_data")
-def get_iris_data(patient_id: str = "", column: str = ""):
+def get_iris_data(home_id: str = "", column: str = ""):
+    """This function retrieves home monitoring data for a specific resident in the Neighborhood Health Hub.
+
+    arguments:
+    home_id: Unique identifier of the resident whose data should be retrieved.
+    column:  Name of the data category to return. Must be one of: ['ecg', 'hr', 'sleep', 'dailySummary', 'toilet', 'gait', 'fridge', 'neighborhood', 'phoneCalls']
+    
+    returns: A JSON object (dictionary) containing the requested data for the specified resident and category.
+    The structure of the returned dictionary depends on the selected column.
+
+    If the data cannot be retrieved (e.g., invalid home_id, unsupported column, or no data available), an empty dictionary `{}` is returned."""
     conn = get_iris()
     try:
         irispy = iris.createIRIS(conn)
         # Fetch the combined record
-        txt = irispy.classMethodValue("MyApp.Utils", "GetLatestJSONFile", patient_id)
+        txt = irispy.classMethodValue("MyApp.Utils", "GetLatestJSONFile", home_id)
         data = json.loads(txt) if txt else {}
         # Only return the desired column
         return data.get(column, {})
     finally:
         conn.close()
 
-# TODO: rewrite to be a tool the agent can call if Frank asks about his neighbourhood
-def build_neighbourhood_context(patient_id: str = ""):
-    neighborhoodJson = get_iris_data(patient_id, "neighborhood")
+def build_neighbourhood_context(home_id: str = "") -> str:
+    """This function retrieves a specific resident's neighborhood-related information.
+
+    arguments:
+    home_id: Unique identifier of the resident whose neighborhood data should be retrieved.
+
+    returns:
+    A string describing upcoming neighborhood activities, existing help posts, and recent activity from the resident's neighbors.
+    Instructions on how to help the resident engage with their neighborhood are appended at the end.
+
+    If the data cannot be retrieved (e.g., invalid home_id or no available data), an empty string '' is returned."""
+    neighborhoodJson = get_iris_data(home_id, "neighborhood")
 
     latest_dict = neighborhoodJson[0] if neighborhoodJson else None
     lines = []
@@ -103,227 +122,50 @@ def build_neighbourhood_context(patient_id: str = ""):
         lines.append(instructions)
     return "\n".join(lines)
 
-def extract_steps(dailySummaryJson: list, vitals_steps: int) -> tuple[list, dict, dict]:
-    def get_steps_status(steps: int) -> str:
-        if steps == 0:    return {"label": "No data", "note": "Activity data unavailable", "color": "text-muted-foreground"}
-        if steps >= 5000: return {"label": "Very active", "note": f"{steps} steps — excellent!", "color": "text-emerald-600"}
-        if steps >= 2500: return {"label": "Moderately active", "note": f"{steps} steps — good movement", "color": "text-emerald-600"}
-        if steps >= 1000: return {"label": "Light activity", "note": f"{steps} steps — quieter day", "color": "text-amber-600"}
-        return                   {"label": "Very little movement", "note": f"{steps} steps — try a short walk", "color": "text-rose-600"}
-
-    all_days = sorted(
-        [d for d in dailySummaryJson if d.get("calendarDate")],
-        key=lambda x: x.get("calendarDate")
-    )
-    step_history_raw = [d for d in all_days if d.get("totalSteps")][-14:]
-    step_history = []
-    for d in step_history_raw:
-        date_obj = datetime.strptime(d.get("calendarDate"), "%Y-%m-%d")
-        formatted_date = date_obj.strftime("%m/%d") 
-        step_history.append({
-            "day": formatted_date,
-            "steps": d.get("totalSteps")
-        })
-    
-    step_status = get_steps_status(vitals_steps)
-    step_metrics = {
-        "stepsTrend": f"{vitals_steps} steps · {step_status['label']}" if vitals_steps > 0 else "No step data",
-        "avgSteps": "0",
-        "maxSteps": "0",
-        "prevAvgSteps": 0,
-        "trendPctSteps": 0,
-        "trendStepsUp": True
-    }
-    if step_history:
-        step_metrics["avgSteps"] = str(round(sum(d["steps"] for d in step_history) / len(step_history)))
-        step_metrics["maxSteps"] = str(max(d["steps"] for d in step_history))
-        if len(step_history) > 1:
-            prev_avg = sum(d["steps"] for d in step_history[:-1]) / (len(step_history) - 1)
-            step_metrics["prevAvgSteps"] = round(prev_avg)
-            if prev_avg != 0:
-                pct_change = round(((vitals_steps - prev_avg) / prev_avg) * 100)
-                step_metrics["trendPctSteps"] = pct_change
-                step_metrics["trendStepsUp"] = pct_change >= 0
-                if pct_change >= 20:
-                    step_metrics["stepsTrend"] = f"{vitals_steps} steps · ↑ {pct_change}%"
-                elif pct_change <= -20:
-                    step_metrics["stepsTrend"] = f"{vitals_steps} steps · ↓ {abs(pct_change)}%"
-    return step_history, step_metrics, step_status
-
-def extract_fridge(patient_id: str = "") -> tuple[dict, dict]:
-    def get_nutrition_status(mealsCount: int) -> dict:
-        if mealsCount == 0: return {"label": "No meals tracked", "color": "text-rose-600"}
-        if mealsCount == 1: return {"label": "1 meal tracked", "color": "text-orange-600"}
-        if mealsCount == 2: return {"label": "2 meals tracked", "color": "text-amber-600"}
-        return {"label": f"{mealsCount} meals tracked", "color": "text-emerald-600"}
-    
-    fridgeJson = get_iris_data(patient_id, "fridge")
-    
-    latest_dict = max(fridgeJson, key=lambda x: x.get("calendarDate"), default=None)
-    if latest_dict:
-        inventory_list = latest_dict.get("inventory")
-        current_items = [inv.get("item") for inv in inventory_list]
-        alerts = latest_dict.get("alerts")
-        expiring_items = [a.get("item") for a in alerts if a.get("type") == "expiring"]
-        nutrition = latest_dict.get("dailyNutrition")
-        meals_list = latest_dict.get("mealsDetected")
-        meal_count = len(meals_list) if meals_list else 0
-
-        return {
-            "waterLiters": nutrition.get("waterLiters"),
-            "currentItems": current_items,
-            "expiringItems": expiring_items,
-            "mealsCount": meal_count,
-        }, get_nutrition_status(meal_count)
-    return {"waterLiters": 50, "currentItems": [], "expiringItems": [], "mealsCount": 0}, {"label": "No meals tracked", "color": "text-rose-600"}
-
-def extract_hydration(patient_id: str = "") -> tuple[str, int, bool, dict]:
-    def get_hydration_status(level: int) -> dict:
-        if level == 0: return {"label": "No data", "color": "text-muted-foreground"}
-        if level <= 2: return {"label": "Excellent", "color": "text-emerald-600"}
-        if level <= 3: return {"label": "Normal", "color": "text-emerald-600"}
-        if level <= 4: return {"label": "Drink More Water", "color": "text-amber-600"}
-        if level <= 5: return {"label": "Mild Dehydration", "color": "text-amber-600"}
-        if level <= 6: return {"label": "Dehydrated", "color": "text-rose-600"}
-        return {"label": "Very Dehydrated", "color": "text-rose-600"}
-
-    toiletJson = get_iris_data(patient_id, "toilet")
-    
-    hydrationNote = ""
-    hydrationColorLevel = 0
-    latest = max(toiletJson, key=lambda x: x.get("calendarDate"), default=None)
-    readings = latest.get("readings")
-    latest_reading = max(readings, key=lambda r: r.get("timestamp"), default={})
-    hydrationColorLevel = latest_reading.get("colorLevel")
-    if hydrationColorLevel > 0:
-        levels = [
-            (2, "well hydrated"),
-            (4, "adequately hydrated"),
-            (5, "mildly dehydrated — could drink more water"),
-            (6, "moderately dehydrated — needs more fluids"),
-            (7, "significantly dehydrated — drinking water is important right now")
-        ]        
-        hydrationNote = next((note for max_lvl, note in levels if hydrationColorLevel <= max_lvl), "severely dehydrated — needs attention soon")
-    dehydrated = "dehydrated" in hydrationNote.lower()
-    return hydrationNote, hydrationColorLevel, dehydrated, get_hydration_status(hydrationColorLevel)
-
-def extract_gait(patient_id: str = "") -> tuple[str, bool, dict, dict]:
-    def get_gait_status(metrics: dict) -> dict:
-        if metrics.get("symmetry", 0) == 0:
-            return {"label": "No data", "color": "text-muted-foreground"}
-        is_high = (
-            metrics.get("cadence", 0) < 80 or 
-            metrics.get("speed", 0) < 0.7 or 
-            metrics.get("worseStride", 0) < 90 or 
-            metrics.get("worseGCT", 0) > 950 or 
-            metrics.get("symmetry", 0) < 78 or 
-            metrics.get("variability", 0) > 10
-        )
-        if is_high:
-            return {"label": "Irregular gait", "color": "text-rose-600"}
-        is_med = (
-            metrics.get("cadence", 0) < 100 or 
-            metrics.get("speed", 0) < 1.0 or 
-            metrics.get("worseStride", 0) < 140 or 
-            metrics.get("worseGCT", 0) > 650 or 
-            metrics.get("symmetry", 0) < 95 or 
-            metrics.get("variability", 0) > 5
-        )
-        if is_med:
-            return {"label": "Some asymmetry", "color": "text-amber-600"}
-        return {"label": "Steady and Balanced", "color": "text-emerald-600"}
-    
-    gaitJson = get_iris_data(patient_id, "gait")
-    
-    all_sessions = [s for day in gaitJson for s in day["sessions"]]
-    if all_sessions:
-        n = len(all_sessions)
-        avg_speed       = sum(x["gaitSpeedMs"] for x in all_sessions) / n
-        avg_symmetry    = sum(x["stepSymmetryPct"] for x in all_sessions) / n
-        avg_variability = sum(x["strideVariabilityPct"] for x in all_sessions) / n
-        avg_gct_diff = sum(abs(x["groundContactTimeMs"]["left"] - x["groundContactTimeMs"]["right"]) for x in all_sessions) / n
-
-        score = 0
-        if avg_speed < 0.6: score += 4
-        elif avg_speed < 0.8: score += 2
-        if avg_symmetry < 75: score += 3
-        elif avg_symmetry < 82: score += 2
-        if avg_variability > 12: score += 2
-        elif avg_variability > 8: score += 1
-        if avg_gct_diff > 100: score += 2
-        elif avg_gct_diff > 60: score += 1
-
-        risk_level = "high" if score >= 5 else "moderate" if score >= 2 else "low"
-        gaitNote = (f"{risk_level} fall risk — avg walking speed {avg_speed:.2f} m/s, "
-                    f"step symmetry {round(avg_symmetry)}%, "
-                    f"stride variability {avg_variability:.1f}%, "
-                    f"L/R ground contact diff {round(avg_gct_diff)} ms")
-    
-    gaitConcern = (risk_level != "low")
-    
-    latest_day = max(gaitJson, key=lambda x: x["calendarDate"])
-    s = latest_day["sessions"][-1] 
-
-    gct = s["groundContactTimeMs"]
-    stride = s["strideLength"]
-
-    gait_metrics = {
-        "symmetry": float(s["stepSymmetryPct"]),
-        "variability": float(s["strideVariabilityPct"]),
-        "speed": float(s["gaitSpeedMs"]),
-        "cadence": float(s["cadence"]),
-        "worseStride": min(stride["leftCm"], stride["rightCm"]),
-        "worseGCT": max(gct["left"], gct["right"])
-    }
-    return gaitNote, gaitConcern, gait_metrics, get_gait_status(gait_metrics)
-
-def extract_sleep(patient_id: str = "") -> float:
-    sleepJson = get_iris_data(patient_id, "sleep")
-    
-    hoursAsleep = 0
-    filtered_sleep = [
-        x for x in sleepJson 
-        if x.get("calendarDate") and (
-            x.get("deepSleepSeconds") is not None or 
-            x.get("lightSleepSeconds") is not None or 
-            x.get("remSleepSeconds") is not None
-        )
-    ]
-    if filtered_sleep:
-        latest = max(filtered_sleep, key=lambda x: str(x.get("calendarDate", "")), default=None)   
-        if latest:
-            total_seconds = latest.get("deepSleepSeconds") + latest.get("lightSleepSeconds") + latest.get("remSleepSeconds")
-            hoursAsleep = total_seconds / 3600
-    return hoursAsleep
-
-def get_heart_status(bpm: int) -> dict:
-    if bpm == 0:        return {"label": "No data", "color": "text-muted-foreground"}
-    if 0 < bpm < 55:    return {"label": "Slightly low", "color": "text-amber-600"}
-    if 55 <= bpm <= 85: return {"label": "Normal range", "color": "text-emerald-600"}
-    if 85 < bpm <= 100: return {"label": "Slightly elevated", "color": "text-amber-600"}
-    return                     {"label": "Check with doctor", "color": "text-rose-600"}
-
-def get_stress_status(v: int) -> dict:
-    if v == 0: return {"label": "Calm", "note": "Stress levels look great", "color": "text-emerald-600", "barColor": "bg-emerald-500"}
-    if v <= 35: return {"label": "Calm", "note": "Very relaxed today", "color": "text-emerald-600", "barColor": "bg-emerald-500"}
-    if v <= 60: return {"label": "Mild stress", "note": "Some stress — likely normal", "color": "text-amber-600", "barColor": "bg-amber-500"}
-    return {"label": "High stress",  "note": "Elevated — try to relax", "color": "text-rose-600", "barColor": "bg-rose-500"}
-
-def get_sleep_status(patient_id: str = "") -> dict:
-    hoursAsleep = extract_sleep(patient_id)
-    if hoursAsleep == 0: return {"label": "No data", "color": "text-muted-foreground"}
-    if hoursAsleep >= 7: return {"label": "Well rested", "color": "text-emerald-600"}
-    if hoursAsleep >= 5.5: return {"label": "Light sleep", "color": "text-amber-600"}
-    return {"label": "Poor sleep",  "color": "text-rose-600"}
-
-def unix_to_utc(timestamp):
+def unix_to_utc(timestamp) -> str:
+    """
+    Helper function to convert UNIX timestamps to UTC.
+    """
     return datetime.fromtimestamp(timestamp / 1000.0, tz=timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')
 
-def llm_ready_ecg(ecg_list):
-    """
-    Filters raw Garmin ECG data into a concise dictionary optimized for LLM analysis and summarization.
-    """
-    def analyze_raw_ecg(ecg_readings):
+def llm_ready_ecg(ecg_list) -> list:
+    """Helper function which filters raw Garmin ECG data (for a specific resident in the Neighborhood Health Hub) into a list of concise dictionaries optimized for LLM analysis and summarization.
+
+    arguments:
+    ecg_list: List of ECG JSON objects retrieved from IRIS.
+
+    returns: A list of dictionarys corresponding to each ECG JSON object. Dictionary of format:
+    {
+        "utc_timestamp": str,
+        "local_time": str,
+        "rhythm_classification": str,
+        "metrics": {
+            "average_heart_rate_bpm": float,
+            "rmssd_hrv_ms": int,
+            "lead_type": str,
+            "duration_seconds": int
+        },
+        "calculated_metrics": {
+            "total_beats_detected": int,
+            "mean_rr_interval_ms": float,
+            "sdnn_hrv_ms": float,
+            "estimated_hr_range": str,
+            "rhythm_stability": {
+                "rr_variance": float,
+                "is_regular_rhythm": boolean
+            },
+            "signal_metadata": {
+                "sample_count": int,
+                "sampling_rate_hz": float
+            }
+        },
+        "context": {
+            "mounting_side": str,
+            "reported_symptoms": list,
+            "device_info": str
+        }
+    }"""
+    def ecg_metrics(ecg_readings):
         samples = np.array(ecg_readings["samples"])
         fs = ecg_readings["sampleRate"]  # 128.0 Hz
         
@@ -359,7 +201,7 @@ def llm_ready_ecg(ecg_list):
         reading = ecg_json.get("reading", {})
 
         start_time_utc = unix_to_utc(summary.get("startTime", 0))
-        analysis_report = analyze_raw_ecg(reading)
+        analysis_report = ecg_metrics(reading)
 
         llm_input.append({
             "utc_timestamp": start_time_utc,
@@ -380,10 +222,51 @@ def llm_ready_ecg(ecg_list):
         })
     return llm_input
 
-def llm_ready_hr(hr_json):
-    """
-    Filters raw Garmin HR data into a concise dictionary optimized for LLM analysis and summarization.
-    """
+def llm_ready_hr(hr_json) -> dict:
+    """Helper function which filters raw Garmin HR data (for a specific resident in the Neighborhood Health Hub) into a concise dictionary optimized for LLM analysis and summarization.
+
+    arguments:
+    hr_json: Single day's HR JSON object retrieved from IRIS.
+
+    returns: A dictionary of format:
+    {
+        "time_window": {
+            "utc_start_timestamp": str,
+            "utc_end_timestamp": str,
+            "duration_total_minutes": float
+        },
+        "summary_metrics": {
+            "heart_rate_bpm": {
+                "min": float,
+                "max": float,
+                "avg": float,
+                "std_dev": float
+            },
+            "stress_score_0_100": {
+                "min": float,
+                "max": float,
+                "avg": float,
+                "std_dev": float
+            },
+            "blood_oxygen_spo2": {
+                "min": float,
+                "max": float,
+                "avg": float,
+                "std_dev": float
+            },
+            "respiration_breaths_per_min": {
+                "min": float,
+                "max": float,
+                "avg": float,
+                "std_dev": float
+            }
+        },
+        "physiological_insights": {
+            "hr_stress_correlation": float,
+            "data_points_analyzed": int,
+            "is_high_stress_event": boolean
+        }
+    }"""
     epochs = hr_json.get("epochArray", [])
 
     # Extract columns based on the provided descriptors
@@ -432,10 +315,48 @@ def llm_ready_hr(hr_json):
     }
     return analysis_report
 
-def llm_ready_sleep(sleep_list):
-    """
-    Filters raw Garmin Sleep data into a concise dictionary optimized for LLM analysis and summarization.
-    """
+def llm_ready_sleep(sleep_list) -> dict:
+    """Helper function which filters raw Garmin Sleep data (for a specific resident in the Neighborhood Health Hub) into a concise dictionary optimized for LLM analysis and summarization.
+
+    arguments:
+    sleep_list: List of Sleep JSON objects retrieved from IRIS.
+
+    returns: A dictionary of format:
+    {
+        "overall_stats": {
+            "mean_overall_score": float,
+            "mean_avg_sleep_stress": float,
+            "total_nights_tracked": int
+        },
+        "daily_breakdown": list of dictionaries of format 
+            {
+                "date": str,
+                "total_sleep_time": str,
+                "awake_time_during_sleep": str,
+                "scores": {
+                    "overall": int,
+                    "recovery": int,
+                    "restfulness": int
+                },
+                "architecture": {
+                    "deep_pct": float,
+                    "rem_pct": float,
+                    "light_pct": float
+                },
+                "physiologicals": {
+                    "avg_sleep_stress": float,
+                    "avg_respiration_brpm": float,
+                    "restless_moments": int
+                },
+                "naps": if naps occurred, list of dictionaries of format
+                    {
+                        "duration": float,
+                        "time": str
+                    }
+                else string "NONE",
+                "garmin_feedback": str
+            }
+    }"""
     def sec_to_hms(seconds: int) -> str:
         # Convert Seconds to Hours/Minutes for readability
         h = seconds // 3600
@@ -502,10 +423,42 @@ def llm_ready_sleep(sleep_list):
         "daily_breakdown": processed_entries
     }    
 
-def llm_ready_gait(gait_list):
-    """
-    Filters raw Garmin Gait data into a concise dictionary optimized for LLM analysis and summarization.
-    """
+def llm_ready_gait(gait_list) -> dict:
+    """Helper function which filters raw Garmin Gait data (for a specific resident in the Neighborhood Health Hub) into a concise dictionary optimized for LLM analysis and summarization.
+
+    arguments:
+    gait_list: List of Gait JSON objects retrieved from IRIS.
+
+    returns: A dictionary of format:
+    {
+        "fall_risk_assessment": {
+            "level": risk_level,
+            "weighted_score": score,
+            "is_concerning": boolean
+        },
+        "latest_snapshot": {
+            "date": str,
+            "speed_ms": float,
+            "symmetry_pct": float,
+            "variability_pct": float,
+            "asymmetry": {
+                "gct_delta_ms": int,
+                "stride_delta_cm": int,
+                "shorter_stride_side": str ["left" or "right"]
+            }
+        },
+        "historical_averages": {
+            "avg_walking_speed": float,
+            "avg_symmetry": float,
+            "avg_variability": float,
+            "avg_gct_imbalance": int
+        },
+        "clinical_flags": {
+            "frailty_speed_alert": boolean,
+            "high_instability_alert": boolean,
+            "significant_limp_detected": boolean
+        }
+    }"""
     # Flatten all sessions across all days for historical context
     all_sessions = [s for day in gait_list for s in day.get("sessions", [])]
 
@@ -565,10 +518,24 @@ def llm_ready_gait(gait_list):
         }
     }
 
-def llm_ready_toilet(toilet_list):
-    """
-    Filters raw Smart Toilet data into a concise dictionary optimized for LLM analysis and summarization.
-    """
+def llm_ready_toilet(toilet_list) -> list:
+    """Helper function which filters raw Smart Toilet data (for a specific resident in the Neighborhood Health Hub) into a list of concise dictionaries optimized for LLM analysis and summarization.
+
+    arguments:
+    toilet_list: List of Toilet JSON objects retrieved from IRIS.
+
+    returns: A list of dictionarys corresponding to each Toilet JSON object. Dictionary of format:
+    {
+        "date": str,
+        "readings_count": int,
+        "morning_status": str ["Dehydrated" or "Hydrated"],
+        "hydration_trend": {
+            "start_level": int,
+            "end_level": int,
+            "net_improvement": int
+        },
+        "is_incomplete_data": boolean
+    }"""
     daily_analysis = []
     
     for day in toilet_list:
@@ -595,10 +562,32 @@ def llm_ready_toilet(toilet_list):
         
     return daily_analysis
 
-def llm_ready_fridge(fridge_list):
-    """
-    Filters raw Smart Fridge data into a concise dictionary optimized for LLM analysis and summarization.
-    """
+def llm_ready_fridge(fridge_list) -> tuple[dict, str]:
+    """Helper function which filters raw Smart Fridge data (for a specific resident in the Neighborhood Health Hub) into a concise dictionary optimized for LLM analysis and summarization.
+
+    arguments:
+    fridge_list: List of Fridge JSON objects retrieved from IRIS.
+
+    returns: A dictionary of format:
+    {
+        "observation_period": str,
+        "aggregate_stats": {
+            "avg_daily_calories": float,
+            "avg_daily_protein": float,
+            "calorie_trend_pct": str,
+            "meal_frequency_series": list[int]
+        },
+        "nutritional_risk_assessment": {
+            "sarcopenia_risk": str ["High" or "Low"],
+            "weight_loss_indicator": str ["Critical Decline" or "Stable"]
+        },
+        "chronological_alert_history": list[list[str]],
+        "latest_daily_snapshot": {
+            "date": str,
+            "calories": int,
+            "protein": int
+        }
+    } and a string which contains the current inventory list in the fridge"""
     total_days = len(fridge_list)
     if total_days == 0:
         return {}, "[]"
@@ -644,9 +633,337 @@ def llm_ready_fridge(fridge_list):
         
     return trend_summary, inventory_str
 
-@app.get("/api/build-patient-dashboard")
-def get_patient_dashboard(patient_id: str = "") -> dict:
-    dailyJson = get_iris_data(patient_id, "dailySummary")
+# ── Dashboard vitals data endpoints ──────────────────────────────────────────────
+
+def extract_fridge(home_id: str = "") -> tuple[dict, dict]:
+    """Helper function to retrieve Smart Fridge data for a specific resident in the Neighborhood Health Hub.
+
+    arguments:
+    home_id: Unique identifier of the resident whose Smart Fridge data should be retrieved.
+
+    returns: A tuple containing:
+    a) fridge_data: Dictionary with keys:
+        - 'waterLiters': Amount of water consumed today.
+        - 'currentItems': List of items currently in the fridge.
+        - 'expiringItems': List of items that are nearing expiration.
+        - 'mealsCount': Number of meals consumed today.
+    b) nutrition_status: Dictionary with keys 'label' and 'color' for UI display.
+
+    If the data cannot be processed or required inputs are missing, the function returns:
+    ({
+        "waterLiters": 0, 
+        "currentItems": [], 
+        "expiringItems": [], 
+        "mealsCount": 0
+    }, {
+        "label": "No meals tracked", 
+        "color": "text-rose-600"
+    })"""
+    def get_nutrition_status(mealsCount: int) -> dict:
+        if mealsCount == 0: return {"label": "No meals tracked", "color": "text-rose-600"}
+        if mealsCount == 1: return {"label": "1 meal tracked", "color": "text-orange-600"}
+        if mealsCount == 2: return {"label": "2 meals tracked", "color": "text-amber-600"}
+        return {"label": f"{mealsCount} meals tracked", "color": "text-emerald-600"}
+    
+    fridgeJson = get_iris_data(home_id, "fridge")
+    
+    latest_dict = max(fridgeJson, key=lambda x: x.get("calendarDate"), default=None)
+    if latest_dict:
+        inventory_list = latest_dict.get("inventory")
+        current_items = [inv.get("item") for inv in inventory_list]
+        alerts = latest_dict.get("alerts")
+        expiring_items = [a.get("item") for a in alerts if a.get("type") == "expiring"]
+        nutrition = latest_dict.get("dailyNutrition")
+        meals_list = latest_dict.get("mealsDetected")
+        meal_count = len(meals_list) if meals_list else 0
+
+        return {
+            "waterLiters": nutrition.get("waterLiters"),
+            "currentItems": current_items,
+            "expiringItems": expiring_items,
+            "mealsCount": meal_count,
+        }, get_nutrition_status(meal_count)
+    return {"waterLiters": 0, "currentItems": [], "expiringItems": [], "mealsCount": 0}, {"label": "No meals tracked", "color": "text-rose-600"}
+
+def extract_hydration(home_id: str = "") -> tuple[str, int, dict]:
+    """Helper function to retrieve Smart Toilet data for a specific resident in the Neighborhood Health Hub.
+
+    arguments:
+    home_id: Unique identifier of the resident whose Smart Toilet data should be retrieved.
+
+    returns: A tuple containing:
+    a) hydration_note: String describing how well hydrated they are today.
+    b) hydration_color_level: Integer describing their hydration today on the Armstrong urine color scale.
+    c) hydration_status: Dictionary with keys 'label' and 'color' for UI display.
+
+    If the data cannot be processed or required inputs are missing, the function returns:
+    ("", 0, {
+        "label": "No data", 
+        "color": "text-muted-foreground"
+    })"""
+    def get_hydration_status(level: int) -> dict:
+        if level == 0: return {"label": "No data", "color": "text-muted-foreground"}
+        if level <= 2: return {"label": "Excellent", "color": "text-emerald-600"}
+        if level <= 3: return {"label": "Normal", "color": "text-emerald-600"}
+        if level <= 4: return {"label": "Drink More Water", "color": "text-amber-600"}
+        if level <= 5: return {"label": "Mild Dehydration", "color": "text-amber-600"}
+        if level <= 6: return {"label": "Dehydrated", "color": "text-rose-600"}
+        return {"label": "Very Dehydrated", "color": "text-rose-600"}
+
+    toiletJson = get_iris_data(home_id, "toilet")
+    
+    hydration_note = ""
+    color_level = 0
+    latest = max(toiletJson, key=lambda x: x.get("calendarDate"), default=None)
+    readings = latest.get("readings")
+    latest_reading = max(readings, key=lambda r: r.get("timestamp"), default={})
+    color_level = latest_reading.get("colorLevel")
+    if color_level > 0:
+        levels = [
+            (2, "well hydrated"),
+            (4, "adequately hydrated"),
+            (5, "mildly dehydrated — could drink more water"),
+            (6, "moderately dehydrated — needs more fluids"),
+            (7, "significantly dehydrated — drinking water is important right now")
+        ]        
+        hydration_note = next((note for max_lvl, note in levels if color_level <= max_lvl), "severely dehydrated — needs attention soon")
+    return hydration_note, color_level, get_hydration_status(color_level)
+
+def extract_steps(dailySummary_list: list, vitals_steps: int) -> tuple[list, dict, dict]:
+    """Helper function to retrieve Garmin step data for a specific resident in the Neighborhood Health Hub.
+
+    arguments:
+    dailySummary_list: List of dailySummary JSON objects retrieved from IRIS.
+    vitals_steps: Number of steps recorded in the most recent dailySummary object.
+
+    returns: A tuple containing:
+    a) step_history: List of dictionaries with keys 'day' and 'steps' for each entry in dailySummary_list.
+    b) step_metrics: Dictionary with keys 'stepsTrend', 'avgSteps', 'maxSteps', 'prevAvgSteps', 'trendPctSteps', and 'trendStepsUp'.
+    c) step_status: Dictionary with keys 'label', 'note', and 'color' for UI display.
+
+    If the data cannot be processed or required inputs are missing, the function returns:
+    ([], {
+        "stepsTrend": "No step data",
+        "avgSteps": "0",
+        "maxSteps": "0",
+        "prevAvgSteps": 0,
+        "trendPctSteps": 0,
+        "trendStepsUp": True
+    }, {
+        "label": "No data",
+        "note": "Activity data unavailable",
+        "color": "text-muted-foreground"
+    })"""
+    def get_steps_status(steps: int) -> dict:
+        if steps == 0:    return {"label": "No data", "note": "Activity data unavailable", "color": "text-muted-foreground"}
+        if steps >= 5000: return {"label": "Very active", "note": f"{steps} steps — excellent!", "color": "text-emerald-600"}
+        if steps >= 2500: return {"label": "Moderately active", "note": f"{steps} steps — good movement", "color": "text-emerald-600"}
+        if steps >= 1000: return {"label": "Light activity", "note": f"{steps} steps — quieter day", "color": "text-amber-600"}
+        return                   {"label": "Very little movement", "note": f"{steps} steps — try a short walk", "color": "text-rose-600"}
+
+    all_days = sorted(
+        [d for d in dailySummary_list if d.get("calendarDate")],
+        key=lambda x: x.get("calendarDate")
+    )
+    step_history_raw = [d for d in all_days if d.get("totalSteps")][-14:]
+    step_history = []
+    for d in step_history_raw:
+        date_obj = datetime.strptime(d.get("calendarDate"), "%Y-%m-%d")
+        formatted_date = date_obj.strftime("%m/%d") 
+        step_history.append({
+            "day": formatted_date,
+            "steps": d.get("totalSteps")
+        })
+    
+    step_status = get_steps_status(vitals_steps)
+    step_metrics = {
+        "stepsTrend": f"{vitals_steps} steps · {step_status['label']}" if vitals_steps > 0 else "No step data",
+        "avgSteps": "0",
+        "maxSteps": "0",
+        "prevAvgSteps": 0,
+        "trendPctSteps": 0,
+        "trendStepsUp": True
+    }
+    if step_history:
+        step_metrics["avgSteps"] = str(round(sum(d["steps"] for d in step_history) / len(step_history)))
+        step_metrics["maxSteps"] = str(max(d["steps"] for d in step_history))
+        if len(step_history) > 1:
+            prev_avg = sum(d["steps"] for d in step_history[:-1]) / (len(step_history) - 1)
+            step_metrics["prevAvgSteps"] = round(prev_avg)
+            if prev_avg != 0:
+                pct_change = round(((vitals_steps - prev_avg) / prev_avg) * 100)
+                step_metrics["trendPctSteps"] = abs(pct_change)
+                step_metrics["trendStepsUp"] = pct_change >= 0
+                if pct_change >= 20:
+                    step_metrics["stepsTrend"] = f"{vitals_steps} steps · ↑ {pct_change}%"
+                elif pct_change <= -20:
+                    step_metrics["stepsTrend"] = f"{vitals_steps} steps · ↓ {abs(pct_change)}%"
+    return step_history, step_metrics, step_status
+
+def extract_gait(home_id: str = "") -> tuple[str, bool, dict, dict]:
+    """Helper function to retrieve Garmin gait data for a specific resident in the Neighborhood Health Hub.
+
+    arguments:
+    home_id: Unique identifier of the resident whose gait data should be retrieved.
+
+    returns: A tuple containing:
+    a) gait_note: String describing their average gait metrics across all recorded days.
+    b) gait_concern: Boolean describing their fall risk based on a composite score.
+    c) gait_metrics: Dictionary with keys 'symmetry', 'variability', 'speed', 'cadence', 'worseStride', 'worseGCT'
+    d) gait_status: Dictionary with keys 'label' and 'color' for UI display.
+
+    If the data cannot be processed or required inputs are missing, the function returns:
+    ("", False, {}, {
+        "label": "No data", 
+        "color": "text-muted-foreground"
+    })"""
+    def get_gait_status(metrics: dict) -> dict:
+        if metrics.get("symmetry", 0) == 0:
+            return {"label": "No data", "color": "text-muted-foreground"}
+        is_high = (
+            metrics.get("cadence", 0) < 80 or 
+            metrics.get("speed", 0) < 0.7 or 
+            metrics.get("worseStride", 0) < 90 or 
+            metrics.get("worseGCT", 0) > 950 or 
+            metrics.get("symmetry", 0) < 78 or 
+            metrics.get("variability", 0) > 10
+        )
+        if is_high:
+            return {"label": "Irregular gait", "color": "text-rose-600"}
+        is_med = (
+            metrics.get("cadence", 0) < 100 or 
+            metrics.get("speed", 0) < 1.0 or 
+            metrics.get("worseStride", 0) < 140 or 
+            metrics.get("worseGCT", 0) > 650 or 
+            metrics.get("symmetry", 0) < 95 or 
+            metrics.get("variability", 0) > 5
+        )
+        if is_med:
+            return {"label": "Some asymmetry", "color": "text-amber-600"}
+        return {"label": "Steady and Balanced", "color": "text-emerald-600"}
+    
+    gaitJson = get_iris_data(home_id, "gait")
+    
+    gait_note = ""
+    fall_risk = False
+    gait_metrics = {}
+
+    all_sessions = [s for day in gaitJson for s in day["sessions"]]
+    if all_sessions:
+        n = len(all_sessions)
+        avg_speed       = sum(x["gaitSpeedMs"] for x in all_sessions) / n
+        avg_symmetry    = sum(x["stepSymmetryPct"] for x in all_sessions) / n
+        avg_variability = sum(x["strideVariabilityPct"] for x in all_sessions) / n
+        avg_gct_diff = sum(abs(x["groundContactTimeMs"]["left"] - x["groundContactTimeMs"]["right"]) for x in all_sessions) / n
+
+        score = 0
+        if avg_speed < 0.6: score += 4
+        elif avg_speed < 0.8: score += 2
+        if avg_symmetry < 75: score += 3
+        elif avg_symmetry < 82: score += 2
+        if avg_variability > 12: score += 2
+        elif avg_variability > 8: score += 1
+        if avg_gct_diff > 100: score += 2
+        elif avg_gct_diff > 60: score += 1
+
+        risk_level = "high" if score >= 5 else "moderate" if score >= 2 else "low"
+        fall_risk = (risk_level != "low")
+        gait_note = (f"{risk_level} fall risk — avg walking speed {avg_speed:.2f} m/s, "
+                    f"step symmetry {round(avg_symmetry)}%, "
+                    f"stride variability {avg_variability:.1f}%, "
+                    f"L/R ground contact diff {round(avg_gct_diff)} ms")
+    
+    latest_day = max(gaitJson, key=lambda x: x["calendarDate"])
+    if latest_day:
+        s = latest_day["sessions"][-1] 
+
+        gct = s["groundContactTimeMs"]
+        stride = s["strideLength"]
+
+        gait_metrics = {
+            "symmetry": float(s["stepSymmetryPct"]),
+            "variability": float(s["strideVariabilityPct"]),
+            "speed": float(s["gaitSpeedMs"]),
+            "cadence": float(s["cadence"]),
+            "worseStride": min(stride["leftCm"], stride["rightCm"]),
+            "worseGCT": max(gct["left"], gct["right"])
+        }
+    return gait_note, fall_risk, gait_metrics, get_gait_status(gait_metrics)
+
+def extract_sleep(home_id: str = "") -> float:
+    """Helper function to retrieve Garmin sleep data for a specific resident in the Neighborhood Health Hub.
+
+    arguments:
+    home_id: Unique identifier of the resident whose sleep data should be retrieved.
+
+    returns: Float value of how many hours they slept last night.
+
+    If the data cannot be processed or required inputs are missing, the function returns 0"""
+    sleepJson = get_iris_data(home_id, "sleep")
+    
+    hours_asleep = 0
+    filtered_sleep = [
+        x for x in sleepJson 
+        if x.get("calendarDate") and (
+            x.get("deepSleepSeconds") is not None or 
+            x.get("lightSleepSeconds") is not None or 
+            x.get("remSleepSeconds") is not None
+        )
+    ]
+    if filtered_sleep:
+        latest = max(filtered_sleep, key=lambda x: str(x.get("calendarDate", "")), default=None)   
+        if latest:
+            total_seconds = latest.get("deepSleepSeconds") + latest.get("lightSleepSeconds") + latest.get("remSleepSeconds")
+            hours_asleep = total_seconds / 3600
+    return hours_asleep
+
+def get_heart_status(bpm: int) -> dict:
+    """Helper function to determine Garmin heart data status (for UI display) for a specific resident in the Neighborhood Health Hub.
+
+    arguments:
+    bpm: Resident's resting heart rate today.
+
+    returns: A dictionary with keys 'label' and 'color' for UI display."""
+    if bpm == 0:        return {"label": "No data", "color": "text-muted-foreground"}
+    if 0 < bpm < 55:    return {"label": "Slightly low", "color": "text-amber-600"}
+    if 55 <= bpm <= 85: return {"label": "Normal range", "color": "text-emerald-600"}
+    if 85 < bpm <= 100: return {"label": "Slightly elevated", "color": "text-amber-600"}
+    return                     {"label": "Check with doctor", "color": "text-rose-600"}
+
+def get_stress_status(score: int) -> dict:
+    """Helper function to determine Garmin stress data status (for UI display) for a specific resident in the Neighborhood Health Hub.
+
+    arguments:
+    bpm: Resident's average stress level today.
+
+    returns: A dictionary with keys 'label', 'note', 'color' and 'barColor' for UI display."""
+    if score == 0: return {"label": "Calm", "note": "Stress levels look great", "color": "text-emerald-600", "barColor": "bg-emerald-500"}
+    if score <= 35: return {"label": "Calm", "note": "Very relaxed today", "color": "text-emerald-600", "barColor": "bg-emerald-500"}
+    if score <= 60: return {"label": "Mild stress", "note": "Some stress — likely normal", "color": "text-amber-600", "barColor": "bg-amber-500"}
+    return {"label": "High stress",  "note": "Elevated — try to relax", "color": "text-rose-600", "barColor": "bg-rose-500"}
+
+def get_sleep_status(home_id: str = "") -> dict:
+    """Helper function to determine Garmin sleep data status (for UI display) for a specific resident in the Neighborhood Health Hub.
+
+    arguments:
+    home_id: Unique identifier of the resident whose sleep data should be retrieved.
+
+    returns: A dictionary with keys 'label' and 'color' for UI display."""
+    hours = extract_sleep(home_id)
+    if hours == 0: return {"label": "No data", "color": "text-muted-foreground"}
+    if hours >= 7: return {"label": "Well rested", "color": "text-emerald-600"}
+    if hours >= 5.5: return {"label": "Light sleep", "color": "text-amber-600"}
+    return {"label": "Poor sleep",  "color": "text-rose-600"}
+
+@app.get("/api/get-vitals")
+def get_vitals(home_id: str = ""):
+    """This function retrieves all home monitoring data needed for the UI display for a specific resident in the Neighborhood Health Hub.
+
+    arguments:
+    home_id: Unique identifier of the resident whose data should be retrieved.
+    
+    returns: A JSON object (dictionary) containing the necessary vitals data for the UI display."""
+    dailyJson = get_iris_data(home_id, "dailySummary")
     latest_dailySummary = max(dailyJson, key=lambda x: x.get("calendarDate"), default=None)
 
     # extract_stress
@@ -657,9 +974,9 @@ def get_patient_dashboard(patient_id: str = "") -> dict:
     steps = latest_dailySummary.get("totalSteps", 0)
     heart_rate = latest_dailySummary.get("currentDayRestingHeartRate") or latest_dailySummary.get("restingHeartRate") or 0
 
-    _, nutritionStatus = extract_fridge(patient_id)
-    _, _, _, hydrationStatus = extract_hydration(patient_id)
-    _, _, _, gaitStatus = extract_gait(patient_id)    
+    _, nutritionStatus = extract_fridge(home_id)
+    _, _, hydrationStatus = extract_hydration(home_id)
+    _, _, _, gaitStatus = extract_gait(home_id)    
     stepHistory, stepMetrics, stepStatus = extract_steps(dailyJson, steps)
 
     return {
@@ -676,18 +993,32 @@ def get_patient_dashboard(patient_id: str = "") -> dict:
             "steps": stepStatus,
             "heart": get_heart_status(heart_rate),
             "stress": get_stress_status(stressLevel),
-            "sleep": get_sleep_status(patient_id),
+            "sleep": get_sleep_status(home_id),
             "hydration": hydrationStatus,
             "gait": gaitStatus,
             "nutrition": nutritionStatus
         }
     }
 
-def llm_patient_data(patient_id: str = "") -> dict:
-    dailyJson = get_iris_data(patient_id, "dailySummary")
+def llm_patient_data(home_id: str = "") -> dict:
+    """This function retrieves all home monitoring data for a specific resident in the Neighborhood Health Hub.
+
+    arguments:
+    home_id: Unique identifier of the resident whose data should be retrieved.
+    
+    returns: A JSON object (dictionary) containing the resident's vitals data. Keys included are
+    - 'resting_heart_rate', 
+    - 'total_steps_today', 'step_history', 'average_steps', 'average_steps_before_today', 'max_steps', 'steps_percentage_change', 'steps_positive_percentage_change', 'steps_trend',
+    - 'stress_level_today',
+    - 'sleep_hours_today',
+    - 'hydration_note_today', 'hydration_color_level_today',
+    - 'water_liters_drunken_today', 'expiring_fridge_items', 'current_fridge_items', 'meals_count_today',
+    - 'gait_history_description', 'current_fall_risk', 'gait_metrics_today'
+    """
+    dailyJson = get_iris_data(home_id, "dailySummary")
     latest_dailySummary = max(dailyJson, key=lambda x: x.get("calendarDate"), default=None)
 
-    # extractStress
+    # extract_stress
     aggregator_list = latest_dailySummary.get("allDayStress").get("aggregatorList")
     awake = next((a for a in aggregator_list if a.get("type") == "AWAKE"), {})
     stressLevel = round(awake.get("averageStressLevel"))
@@ -695,38 +1026,39 @@ def llm_patient_data(patient_id: str = "") -> dict:
     steps = latest_dailySummary.get("totalSteps", 0)
     heart_rate = latest_dailySummary.get("currentDayRestingHeartRate") or latest_dailySummary.get("restingHeartRate") or 0
 
-    fridge, _ = extract_fridge(patient_id)
-    hydrationNote, hydrationColorLevel, dehydrated, _ = extract_hydration(patient_id)
-    gaitNote, gaitConcern, gaitMetrics, _ = extract_gait(patient_id)    
-    hoursAsleep = extract_sleep(patient_id)
-    stepHistory, stepMetrics, _ = extract_steps(dailyJson, steps)
+    fridge, _ = extract_fridge(home_id)
+    hydration_note, color_level, _ = extract_hydration(home_id)
+    dehydrated = "dehydrated" in hydration_note
+    gait_note, gait_concern, gait_metrics, _ = extract_gait(home_id)    
+    hours = extract_sleep(home_id)
+    step_history, step_metrics, _ = extract_steps(dailyJson, steps)
 
     return {
         "resting_heart_rate": heart_rate,
         "total_steps_today": steps,
-        "step_history": stepHistory,
-        "average_steps": stepMetrics['avgSteps'],
-        "average_steps_before_today": stepMetrics['prevAvgSteps'],
-        "max_steps": stepMetrics['maxSteps'],
-        "steps_percentage_change": stepMetrics['trendPctSteps'],
-        "steps_percentage_change": stepMetrics['trendStepsUp'],
-        "steps_trend": stepMetrics['stepsTrend'],
+        "step_history": step_history,
+        "average_steps": step_metrics['avgSteps'],
+        "average_steps_before_today": step_metrics['prevAvgSteps'],
+        "max_steps": step_metrics['maxSteps'],
+        "steps_percentage_change": step_metrics['trendPctSteps'],
+        "steps_positive_percentage_change": step_metrics['trendStepsUp'],
+        "steps_trend": step_metrics['stepsTrend'],
         "stress_level_today": min(stressLevel, 100),
-        "sleep_hours_today": hoursAsleep,
-        "hydration_note_today": hydrationNote,
-        "hydration_color_level_today": hydrationColorLevel,
+        "sleep_hours_today": hours,
+        "hydration_note_today": hydration_note,
+        "hydration_color_level_today": color_level,
         "water_liters_drunken_today": fridge.get("waterLiters"),
         "expiring_fridge_items": fridge.get("expiringItems"),
-        "current_firdge_tems": fridge.get("currentItems"),
-        "meals_count_todya": fridge.get("mealsCount"),
-        "gait_history_description": gaitNote,
-        "current_fall_risk": dehydrated and gaitConcern,
-        "gait_metrics_today": gaitMetrics
+        "current_fridge_items": fridge.get("currentItems"),
+        "meals_count_today": fridge.get("mealsCount"),
+        "gait_history_description": gait_note,
+        "current_fall_risk": dehydrated and gait_concern,
+        "gait_metrics_today": gait_metrics
     }
 
 # ── Interpret IRIS Home data endpoints ──────────────────────────────────────────
 
-def interpret_garmin(patient_id: str = "") -> dict:
+def interpret_garmin(home_id: str = "") -> dict:
     """This function retrieves an AI summary of the Patient's ECG, HR, Sleep, and Gait Data from their Garmin Watch.
 
     returns: Status of the execution of this function, and a dictionary of the 'ECG Summary', 'HR Summary', 'Sleep Summary', and 'Geriatric Gait Summary'."""
@@ -885,7 +1217,7 @@ def interpret_garmin(patient_id: str = "") -> dict:
     try:
         irispy = iris.createIRIS(conn)
         # Fetch the combined record
-        combined_record = irispy.classMethodValue("MyApp.Utils", "GetLatestJSONFile", patient_id)
+        combined_record = irispy.classMethodValue("MyApp.Utils", "GetLatestJSONFile", home_id)
         data = json.loads(combined_record) if combined_record else {}
         
         raw_ecg_data = data.get("ecg", [])
@@ -922,7 +1254,7 @@ def interpret_garmin(patient_id: str = "") -> dict:
     finally:
         conn.close()
 
-def interpret_home_data(patient_id: str = "") -> dict:
+def interpret_home_data(home_id: str = "") -> dict:
     """This function retrieves an AI summary of the Patient's Toilet and Fridge Data from their smart home hub.
 
     returns: Status of the execution of this function, and a dictionary of the 'Hydration Summary' and 'Nutrition Summary'."""
@@ -987,7 +1319,7 @@ def interpret_home_data(patient_id: str = "") -> dict:
     try:
         irispy = iris.createIRIS(conn)
         # Fetch the combined record
-        combined_record = irispy.classMethodValue("MyApp.Utils", "GetLatestJSONFile", patient_id)
+        combined_record = irispy.classMethodValue("MyApp.Utils", "GetLatestJSONFile", home_id)
         data = json.loads(combined_record) if combined_record else {}
         
         raw_toilet_data = data.get("toilet", {})
@@ -1011,7 +1343,8 @@ def interpret_home_data(patient_id: str = "") -> dict:
     finally:
         conn.close()
 
-def get_resident_context(patient_id: str = "") -> str:
+# TODO: Add docstring
+def get_resident_context(home_id: str = "") -> str:
     return """
     ---
     ### ⚠️ OVERALL RISK LEVEL: **CRITICAL**
@@ -1061,8 +1394,8 @@ def get_resident_context(patient_id: str = "") -> str:
     if not client:
         raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
     
-    garmin_dict = interpret_garmin(patient_id)
-    home_dict = interpret_home_data(patient_id)
+    garmin_dict = interpret_garmin(home_id)
+    home_dict = interpret_home_data(home_id)
     if garmin_dict.get("status") == "error" or home_dict.get("status") == "error":
         garmin_data = "None"
         home_data = "None"
@@ -1129,6 +1462,7 @@ def get_resident_context(patient_id: str = "") -> str:
     return triage_answer
 
 # ── FHIR proxy endpoints ─────────────────────────────────────────────────────────
+# TODO: Add docstrings
 
 def _fhir_get(resource: str, params: dict = {}):
     try:
@@ -1484,6 +1818,7 @@ def get_fhir_care_plans(patient_id: str = ""):
     return results
 
 # ── Interpret FHIR proxy endpoints ───────────────────────────────────────────────
+# TODO: Add docstrings
 
 def get_patient_context(patient_id: str = ""):
     conditions  = get_fhir_conditions(patient_id)
@@ -1785,6 +2120,7 @@ def get_clinician_overview(patient_id: str = ""):
         conn.close()
 
 # ── AI System Prompts ────────────────────────────────────────────────────────────
+# TODO: Add docstrings
 
 @app.get("/api/system-prompt")
 def get_system_prompt(patient_id: str = "") -> str: 
@@ -2002,6 +2338,7 @@ def generate_family_summary(patient_id: str = ""):
     return json.loads(family_answer)
 
 # ── AI response endpoints ────────────────────────────────────────────────────────
+# TODO: Add docstrings
 
 @app.post("/api/answer/stream")
 async def answer_stream(payload: dict = Body(...)):

@@ -262,7 +262,7 @@ export function CommunityPanel({ section = "all" }: { section?: CommunitySection
   }, [posts, activities, loading, pendingCmd]);
 
   useEffect(() => {
-    fetch(`/api/iris_data?patient_id=${encodeURIComponent(HOME_ID)}&column=neighborhood`)
+    fetch(`/api/iris_data?home_id=${encodeURIComponent(HOME_ID)}&column=neighborhood`)
       .then((r) => r.ok ? r.json() : [])
       .then((data: any) => {
         console.log("Fetched neighborhood data: ", data);
