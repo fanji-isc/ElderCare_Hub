@@ -2058,6 +2058,7 @@ async def transcribe(file: UploadFile = File(...)):
             r = client.audio.transcriptions.create(
                 model="gpt-4o-mini-transcribe",
                 file=f,
+                language="en"
             )
         return {"transcript": getattr(r, "text", "")}
     except Exception as e:
